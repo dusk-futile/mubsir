@@ -72,6 +72,27 @@ public class CostLedgerTests
     }
 
     [Fact]
+    public void LongPromptMultiplier_ThroughTheLedger()
+    {
+        var ledger = new CostLedger(new ManualClock(utc: Oct10));
+
+        // 1M input tokens is far over 100K: 0.10 x 5.
+        Assert.Equal(0.50m, ledger.Add(Usage("claude-haiku-5-5", input: 1_000_000)));
+
+        // Cache writes count towards the threshold, and cache tokens are multiplied too.
+        decimal cached = ledger.Add(Usage("claude-haiku-5-5", input: 50_000, cacheWrite: 50_001, cacheRead: 10_000, output: 100));
+        Assert.Equal(((50_000 * 0.10m) + (50_001 * 0.125m) + (10_000 * 0.01m) + (100 * 0.50m)) / 1_000_000m * 5, cached);
+    }
+
+    [Fact]
+    public void LongPromptMultiplier_OnlyForModelsThatHaveOne()
+    {
+        decimal sonnet = PriceTable.Compute(Usage("claude-sonnet-5-5", input: 500_000), PriceTable.Defaults["claude-sonnet-5-5"]);
+
+        Assert.Equal(1.00m, sonnet);
+    }
+
+    [Fact]
     public void LongPromptMultiplier_DoesNotApplyToWebSearchFees()
     {
         ModelPrice haiku = PriceTable.Defaults["claude-haiku-5-5"];
@@ -126,6 +147,24 @@ public class CostLedgerTests
     }
 
     [Fact]
+    public void UnknownModel_WebSearchFeesStillCount()
+    {
+        var ledger = new CostLedger(new ManualClock(utc: Oct10));
+
+        Assert.Equal(0.02m, ledger.Add(Usage("new-model-x", input: 5_000, searches: 2)));
+        Assert.Equal(["new-model-x"], ledger.UnknownModels);
+    }
+
+    [Fact]
+    public void DatedModelIdsArePricedThroughTheLedger()
+    {
+        var ledger = new CostLedger(new ManualClock(utc: Oct10));
+
+        Assert.Equal(0.0001m, ledger.Add(Usage("claude-haiku-5-5-20261001", input: 1_000)));
+        Assert.False(ledger.HasUnknownModels);
+    }
+
+    [Fact]
     public void DatedModelIds_FindTheirBasePrice()
     {
         Assert.True(PriceTable.TryFind(PriceTable.Defaults, "claude-haiku-5-5-20261001", out ModelPrice p));
@@ -177,7 +216,7 @@ public class CostLedgerTests
 
         ledger.AllowExtra(2m);
         Assert.Equal(3m, ledger.ExtraAllowanceUsd);
-        Assert.Equal(BudgetState.Warning, ledger.State); // 8 of 11 = 72.7%...
+        Assert.Equal(BudgetState.Ok, ledger.State); // 8 of 11 = 72.7%
     }
 
     [Fact]
@@ -190,6 +229,45 @@ public class CostLedgerTests
         Assert.Equal(BudgetState.Ok, ledger.State);
         Assert.Throws<ArgumentOutOfRangeException>(() => ledger.AllowExtra(0m));
         Assert.Throws<ArgumentOutOfRangeException>(() => ledger.AllowExtra(-1m));
+    }
+
+    [Fact]
+    public void ExtraAllowance_DoesNotReannounceTheWarning()
+    {
+        var ledger = new CostLedger(new ManualClock(utc: Oct10), softCapUsd: 10m, prices: FlatPrices());
+        ledger.Add(Dollars(10m));
+        Assert.True(ledger.TryClaimWarningAnnouncement());
+
+        ledger.AllowExtra();
+
+        Assert.Equal(BudgetState.Warning, ledger.State); // 10 of 11
+        Assert.False(ledger.TryClaimWarningAnnouncement());
+    }
+
+    [Fact]
+    public void ExtraAllowance_AllowsMoreSpendingUntilReachedAgain()
+    {
+        var ledger = new CostLedger(new ManualClock(utc: Oct10), softCapUsd: 8m, prices: FlatPrices());
+        ledger.Add(Dollars(8m));
+        ledger.AllowExtra();
+
+        ledger.Add(Dollars(0.99m));
+        Assert.Equal(BudgetState.Warning, ledger.State);
+        ledger.Add(Dollars(0.01m));
+        Assert.Equal(BudgetState.Reached, ledger.State);
+    }
+
+    [Fact]
+    public void SoftCapChange_TakesEffectAtOnce()
+    {
+        var ledger = new CostLedger(new ManualClock(utc: Oct10), softCapUsd: 8m, prices: FlatPrices());
+        ledger.Add(Dollars(5m));
+        Assert.Equal(BudgetState.Ok, ledger.State);
+
+        ledger.SoftCapUsd = 6m;
+        Assert.Equal(BudgetState.Warning, ledger.State);
+        ledger.SoftCapUsd = 5m;
+        Assert.Equal(BudgetState.Reached, ledger.State);
     }
 
     [Fact]
@@ -251,15 +329,15 @@ public class CostLedgerTests
     public void CostByModel_TracksEachModel()
     {
         var ledger = new CostLedger(new ManualClock(utc: Oct10));
-        ledger.Add(Usage("claude-haiku-5-5", input: 1_000_000));
-        ledger.Add(Usage("claude-haiku-5-5", input: 1_000_000));
+        ledger.Add(Usage("claude-haiku-5-5", input: 100_000)); // at the long-prompt threshold: normal price
+        ledger.Add(Usage("claude-haiku-5-5", input: 100_000));
         ledger.Add(Usage("gemini-3.5-flash-lite", output: 1_000_000));
 
         IReadOnlyDictionary<string, decimal> byModel = ledger.CostByModel();
 
-        Assert.Equal(0.20m, byModel["claude-haiku-5-5"]);
+        Assert.Equal(0.02m, byModel["claude-haiku-5-5"]);
         Assert.Equal(2.50m, byModel["gemini-3.5-flash-lite"]);
-        Assert.Equal(2.70m, ledger.MonthToDateUsd);
+        Assert.Equal(2.52m, ledger.MonthToDateUsd);
         Assert.Equal(3, ledger.RequestCount);
     }
 
