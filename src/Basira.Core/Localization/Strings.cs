@@ -80,7 +80,7 @@ public static partial class Strings
             "لفتح طبقة الأوامر اضغط Control الأيمن مرتين بسرعة، ثم: "
             + "المسافة للقراءة من هنا. "
             + "السهم الأيسر للجملة السابقة، والسهم الأيمن للجملة التالية. "
-            + "السهم الأعلى للفقرة السابقة، والسهم الأسفل للفقرة التالية. "
+            + "السهم لأعلى للفقرة السابقة، والسهم لأسفل للفقرة التالية. "
             + "النقطة لإعادة آخر جملة، ومرتين لإعادة آخر إجابة كاملة. "
             + "إدخال لكتابة طلب. "
             + "Escape لإيقاف المهمة الحالية. "
@@ -119,6 +119,37 @@ public static partial class Strings
         [StringKey.Muted] = ("كتمت الصوت.", "Sound muted."),
         [StringKey.SpeakingFaster] = ("أسرع.", "Faster."),
         [StringKey.SpeakingSlower] = ("أبطأ.", "Slower."),
+        [StringKey.Unmuted] = ("أعدت الصوت.", "Sound is back on."),
+        [StringKey.VolumeLevel] = ("مستوى الصوت {0} بالمئة.", "Volume {0} percent."),
+        [StringKey.SettingsMenu] = (
+            "الإعدادات: سرعة الكلام، ومستوى التفصيل، ومفتاح التحدث، والميزانية، والإيقاف المؤقت. قل ما تريد تغييره.",
+            "Settings: speech speed, detail level, talk key, budget, and pause. Say what you want to change."),
+        [StringKey.BudgetStatus] = (
+            "استخدمت هذا الشهر {0:0.##} دولار من {1:0.##} دولار.",
+            "This month you have used {0:0.##} of {1:0.##} dollars."),
+        [StringKey.NothingToRead] = ("لا يوجد نص لأقرأه هنا.", "There is no text to read here."),
+        [StringKey.Done] = ("تم.", "Done."),
+        [StringKey.KeyHelpTalkAndLayer] = (
+            "مفتاح التحدث: اضغطه مطولًا وتكلم ثم اتركه، واضغطه مرتين بسرعة لفتح طبقة الأوامر.",
+            "Talk key: hold it and speak, then let go. Press it twice quickly to open the command layer."),
+        [StringKey.KeyHelpTalk] = ("مفتاح التحدث: اضغطه مطولًا وتكلم ثم اتركه.", "Talk key: hold it and speak, then let go."),
+        [StringKey.KeyHelpLayer] = (
+            "مفتاح طبقة الأوامر: اضغطه مرتين بسرعة لفتح طبقة الأوامر.",
+            "Command layer key: press it twice quickly to open the command layer."),
+        [StringKey.KeyHelpControl] = ("Control: يوقف الكلام.", "Control: stops speech."),
+        [StringKey.KeyHelpSpace] = ("المسافة: في طبقة الأوامر للقراءة من هنا.", "Space: in the command layer, reads from here."),
+        [StringKey.KeyHelpLeftArrow] = ("السهم الأيسر: في طبقة الأوامر للجملة السابقة.", "Left arrow: in the command layer, the previous sentence."),
+        [StringKey.KeyHelpRightArrow] = ("السهم الأيمن: في طبقة الأوامر للجملة التالية.", "Right arrow: in the command layer, the next sentence."),
+        [StringKey.KeyHelpUpArrow] = ("السهم لأعلى: في طبقة الأوامر للفقرة السابقة.", "Up arrow: in the command layer, the previous paragraph."),
+        [StringKey.KeyHelpDownArrow] = ("السهم لأسفل: في طبقة الأوامر للفقرة التالية.", "Down arrow: in the command layer, the next paragraph."),
+        [StringKey.KeyHelpPeriod] = (
+            "النقطة: في طبقة الأوامر لإعادة آخر جملة، ومرتين لإعادة آخر إجابة كاملة.",
+            "Period: in the command layer, repeats the last sentence; press it twice for the whole last answer."),
+        [StringKey.KeyHelpEnter] = (
+            "إدخال: في طبقة الأوامر لكتابة طلب، وعندما أطلب التأكيد فهو للموافقة.",
+            "Enter: in the command layer, type a request. When I ask you to confirm, it means yes."),
+        [StringKey.KeyHelpF1] = ("F1: في طبقة الأوامر للمساعدة ومستكشف المفاتيح.", "F1: in the command layer, help and the key explorer."),
+        [StringKey.KeyHelpNvdaKey] = ("مفتاح NVDA، ولا تستخدمه بصيرة.", "The NVDA key. Basira does not use it."),
     };
 
     /// <summary>

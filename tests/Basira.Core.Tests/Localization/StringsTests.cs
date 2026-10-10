@@ -129,7 +129,7 @@ public class StringsTests
         }
 
         string ar = Strings.Get(StringKey.LayerHelp, Lang.Arabic);
-        foreach (string word in new[] { "المسافة", "السهم الأيسر", "السهم الأيمن", "السهم الأعلى", "السهم الأسفل", "النقطة", "إدخال", "Escape", "F1" })
+        foreach (string word in new[] { "المسافة", "السهم الأيسر", "السهم الأيمن", "السهم لأعلى", "السهم لأسفل", "النقطة", "إدخال", "Escape", "F1" })
         {
             Assert.Contains(word, ar);
         }

@@ -78,6 +78,31 @@ public enum StringKey
     BatteryCharging,
     NoBattery,
     Muted,
+    Unmuted,
+
+    /// <summary>Arg 0: percent.</summary>
+    VolumeLevel,
     SpeakingFaster,
     SpeakingSlower,
+    SettingsMenu,
+
+    /// <summary>Arg 0: spent this month in USD; arg 1: the monthly limit in USD.</summary>
+    BudgetStatus,
+    NothingToRead,
+    Done,
+
+    // Key explorer: what a key does in Basira (the app may say the key's own name first).
+    KeyHelpTalkAndLayer,
+    KeyHelpTalk,
+    KeyHelpLayer,
+    KeyHelpControl,
+    KeyHelpSpace,
+    KeyHelpLeftArrow,
+    KeyHelpRightArrow,
+    KeyHelpUpArrow,
+    KeyHelpDownArrow,
+    KeyHelpPeriod,
+    KeyHelpEnter,
+    KeyHelpF1,
+    KeyHelpNvdaKey,
 }
