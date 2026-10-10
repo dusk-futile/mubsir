@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace Basira.Core.Logging;
 
 public enum LogKind
@@ -69,35 +71,36 @@ public sealed record LogEvent(
 }
 
 /// <summary>Validation for the identifier fields of <see cref="LogEvent"/>.</summary>
-public static class LogIdentifier
+public static partial class LogIdentifier
 {
     public const string Invalid = "invalid";
     public const int MaxLength = 64;
 
-    /// <summary>Things that look like web addresses even without a scheme ("bank.example.com").</summary>
-    private static readonly HashSet<string> DomainEndings = new(StringComparer.OrdinalIgnoreCase)
+    /// <summary>
+    /// Endings that make an identifier look like a web address ("bank.example.com") or a file name
+    /// ("report.pdf"), which the metadata log must never hold.
+    /// </summary>
+    private static readonly HashSet<string> ForbiddenEndings = new(StringComparer.OrdinalIgnoreCase)
     {
+        // Domains
         "com", "net", "org", "edu", "gov", "info", "io", "ai", "co", "me", "tv", "app", "dev", "uk", "eg", "sa",
         "ly", "ae", "ma", "dz", "tn", "jo", "lb", "sy", "iq", "kw", "qa", "bh", "om", "ye", "sd", "ps",
+
+        // Files
+        "txt", "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "rtf", "odt", "csv", "jpg", "jpeg", "png",
+        "gif", "bmp", "webp", "mp3", "mp4", "wav", "m4a", "ogg", "avi", "mkv", "zip", "rar", "7z", "exe", "msi",
+        "lnk", "bat", "cmd", "ps1", "html", "htm", "epub", "json", "xml",
     };
 
     /// <summary>
-    /// Matches <c>^[A-Za-z0-9_.:-]{1,64}$</c>, and is not a bare domain name or "www." address.
+    /// Matches <c>^[A-Za-z0-9_.:-]{1,64}$</c> and does not look like a web address ("www.", a
+    /// domain ending) or a file name (a file extension).
     /// </summary>
     public static bool IsValid(string? value)
     {
-        if (string.IsNullOrEmpty(value) || value.Length > MaxLength)
+        if (value is null || !Shape().IsMatch(value))
         {
             return false;
-        }
-
-        foreach (char c in value)
-        {
-            bool ok = c is (>= 'A' and <= 'Z') or (>= 'a' and <= 'z') or (>= '0' and <= '9') or '_' or '.' or ':' or '-';
-            if (!ok)
-            {
-                return false;
-            }
         }
 
         if (value.StartsWith("www.", StringComparison.OrdinalIgnoreCase))
@@ -106,9 +109,13 @@ public static class LogIdentifier
         }
 
         int lastDot = value.LastIndexOf('.');
-        return lastDot < 0 || !DomainEndings.Contains(value[(lastDot + 1)..]);
+        return lastDot < 0 || !ForbiddenEndings.Contains(value[(lastDot + 1)..]);
     }
 
     /// <summary>Null stays null; a valid identifier is kept; anything else becomes <see cref="Invalid"/>.</summary>
     public static string? Sanitize(string? value) => value is null ? null : IsValid(value) ? value : Invalid;
+
+    // \z, not $: "$" would also accept a trailing newline.
+    [GeneratedRegex(@"^[A-Za-z0-9_.:-]{1,64}\z", RegexOptions.CultureInvariant)]
+    private static partial Regex Shape();
 }
