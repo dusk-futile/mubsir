@@ -1,0 +1,31 @@
+# Build output
+bin/
+obj/
+artifacts/
+publish/
+*.user
+.vs/
+.vscode/
+.idea/
+.DS_Store
+__pycache__/
+*.pyc
+*.nvda-addon
+
+# Private data: recordings and real transcripts never go into git
+evals/private/
+*.wav
+*.mp3
+*.m4a
+*.opus
+*.ogg
+*.flac
+*.webm
+
+# Secrets
+*.secrets.json
+secrets/
+.env
+*.pfx
+*.key
+minisign.key

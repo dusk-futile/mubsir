@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Basira.App/Basira.App.csproj" />
+    <Project Path="src/Basira.Core/Basira.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Basira.Core.Tests/Basira.Core.Tests.csproj" />
+  </Folder>
+</Solution>
