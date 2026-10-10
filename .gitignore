@@ -29,3 +29,6 @@ secrets/
 *.pfx
 *.key
 minisign.key
+
+# Local agent worktrees and tool state
+.claude/
