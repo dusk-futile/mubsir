@@ -58,6 +58,7 @@ public static class CommandGrammar
 
         // Exact phrase first, then peel fillers one at a time ("اقرأ الشاشة من فضلك يا بصيرة").
         ReadOnlySpan<string> words = all;
+        int offset = 0;
         bool stripped = false;
         while (true)
         {
@@ -66,7 +67,7 @@ public static class CommandGrammar
                 return new CommandMatch(command, null, stripped ? FillerConfidence : ExactConfidence);
             }
 
-            if (!TryStripOneFiller(ref words))
+            if (!TryStripOneFiller(ref words, ref offset))
             {
                 break;
             }
@@ -79,12 +80,12 @@ public static class CommandGrammar
             return null;
         }
 
-        if (MatchOpenApp(words) is string app)
+        if (TryMatchOpenApp(words, out int start, out int length))
         {
-            return new CommandMatch(LocalCommand.OpenApp, app, stripped ? OpenAppFillerConfidence : OpenAppConfidence);
+            return OpenApp(utterance, all, words.Slice(start, length), offset + start, stripped ? OpenAppFillerConfidence : OpenAppConfidence);
         }
 
-        return MatchAdaptedVerb(words);
+        return MatchAdaptedVerb(utterance, all, words, offset);
     }
 
     /// <summary>Parses a command name such as the speech-to-text model's <c>local_command</c> (case-insensitive).</summary>
@@ -98,7 +99,7 @@ public static class CommandGrammar
     /// "ممكن تقرا الشاشة" → "اقرا الشاشة"; "تعيد" → "عيد": a second-person verb after a polite
     /// opener is tried as the imperative. Only exact table phrases and the open-app pattern qualify.
     /// </summary>
-    private static CommandMatch? MatchAdaptedVerb(ReadOnlySpan<string> words)
+    private static CommandMatch? MatchAdaptedVerb(string utterance, string[] all, ReadOnlySpan<string> words, int offset)
     {
         string first = words[0];
         if (first.Length < 3 || first[0] != 'ت')
@@ -115,42 +116,58 @@ public static class CommandGrammar
                 return new CommandMatch(command, null, AdaptedVerbConfidence);
             }
 
-            if (MatchOpenApp(variant) is string app)
+            if (TryMatchOpenApp(variant, out int start, out int length))
             {
-                return new CommandMatch(LocalCommand.OpenApp, app, AdaptedVerbConfidence);
+                return OpenApp(utterance, all, variant.AsSpan(start, length), offset + start, AdaptedVerbConfidence);
             }
         }
 
         return null;
     }
 
-    /// <summary>"افتح X" / "شغل X" / "open X" where X is a 1–3 word app name and nothing else.</summary>
-    private static string? MatchOpenApp(ReadOnlySpan<string> words)
+    private static CommandMatch OpenApp(string utterance, string[] all, ReadOnlySpan<string> app, int firstWord, double confidence)
     {
+        string folded = Join(app);
+        return new CommandMatch(LocalCommand.OpenApp, folded, confidence)
+        {
+            ArgumentText = OriginalWords(utterance, all.Length, firstWord, app.Length) ?? folded,
+        };
+    }
+
+    /// <summary>
+    /// "افتح X" / "شغل X" / "open X" where X is a 1–3 word app name and nothing else.
+    /// On success, <paramref name="start"/> and <paramref name="length"/> locate X in <paramref name="words"/>.
+    /// </summary>
+    private static bool TryMatchOpenApp(ReadOnlySpan<string> words, out int start, out int length)
+    {
+        start = 0;
+        length = 0;
         if (words.Length < 2 || !OpenVerbs.Contains(words[0]))
         {
-            return null;
+            return false;
         }
 
-        ReadOnlySpan<string> arg = words[1..];
-        if (arg.Length > 1 && OpenVerbParticles.Contains(arg[0]))
+        int from = 1;
+        int to = words.Length; // exclusive
+        if (to - from > 1 && OpenVerbParticles.Contains(words[from]))
         {
-            arg = arg[1..];
+            from++;
         }
 
-        while (arg.Length > 1 && AppNameNoise.Contains(arg[0]))
+        while (to - from > 1 && AppNameNoise.Contains(words[from]))
         {
-            arg = arg[1..];
+            from++;
         }
 
-        while (arg.Length > 1 && AppNameNoise.Contains(arg[^1]))
+        while (to - from > 1 && AppNameNoise.Contains(words[to - 1]))
         {
-            arg = arg[..^1];
+            to--;
         }
 
+        ReadOnlySpan<string> arg = words[from..to];
         if (arg.Length is 0 or > MaxAppWords || NonAppFirstWords.Contains(arg[0]))
         {
-            return null;
+            return false;
         }
 
         for (int i = 0; i < arg.Length; i++)
@@ -158,31 +175,89 @@ public static class CommandGrammar
             string w = arg[i];
             if (StopWords.Contains(w) || SecondVerbs.Contains(w) || FillerWords.Contains(w) || AppNameNoise.Contains(w))
             {
-                return null;
+                return false;
             }
 
             // "و" glued to a later word is a conjunction ("جوجل وابحث"), except in app names ("مايكروسوفت وورد").
             if (i > 0 && w.Length >= 2 && w[0] == 'و' && !WawAppWords.Contains(w))
             {
-                return null;
+                return false;
             }
 
             if (!w.Any(char.IsLetter))
             {
-                return null;
+                return false;
             }
         }
 
-        return Join(arg);
+        start = from;
+        length = arg.Length;
+        return true;
     }
 
-    private static bool TryStripOneFiller(ref ReadOnlySpan<string> words)
+    /// <summary>
+    /// The original spelling of folded words [<paramref name="first"/>, first + <paramref name="count"/>),
+    /// with edge punctuation trimmed; null when the words don't line up with whole original tokens.
+    /// </summary>
+    private static string? OriginalWords(string utterance, int foldedWordCount, int first, int count)
+    {
+        string[] tokens = utterance.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        int word = 0;
+        int firstToken = -1;
+        int lastToken = -1;
+        for (int t = 0; t < tokens.Length; t++)
+        {
+            string folded = ArabicFolding.Fold(tokens[t]);
+            if (folded.Length == 0)
+            {
+                continue;
+            }
+
+            int n = folded.Split(' ').Length;
+            int end = word + n; // exclusive
+            if (word < first + count && end > first)
+            {
+                if (word < first || end > first + count)
+                {
+                    return null; // a token only partly inside the argument
+                }
+
+                firstToken = firstToken < 0 ? t : firstToken;
+                lastToken = t;
+            }
+
+            word = end;
+        }
+
+        if (word != foldedWordCount || firstToken < 0)
+        {
+            return null;
+        }
+
+        ReadOnlySpan<char> text = string.Join(' ', tokens[firstToken..(lastToken + 1)]);
+        while (text.Length > 0 && IsEdgeMark(text[0]))
+        {
+            text = text[1..];
+        }
+
+        while (text.Length > 0 && IsEdgeMark(text[^1]))
+        {
+            text = text[..^1];
+        }
+
+        return text.IsEmpty ? null : text.ToString();
+    }
+
+    private static bool IsEdgeMark(char c) => char.IsPunctuation(c) || char.IsSymbol(c) || c == '\u0640';
+
+    private static bool TryStripOneFiller(ref ReadOnlySpan<string> words, ref int offset)
     {
         foreach (string[] filler in Leading)
         {
             if (words.StartsWith(filler))
             {
                 words = words[filler.Length..];
+                offset += filler.Length;
                 return true;
             }
         }

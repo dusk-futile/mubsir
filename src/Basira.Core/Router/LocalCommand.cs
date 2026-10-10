@@ -44,7 +44,12 @@ public enum LocalCommand
 
 /// <summary>
 /// A local command recognized in an utterance. <paramref name="Argument"/> is set for
-/// <see cref="LocalCommand.OpenApp"/> (the folded app name). <paramref name="Confidence"/> is 1.0
-/// for an exact phrase and lower when polite fillers were stripped or the verb form was adapted.
+/// <see cref="LocalCommand.OpenApp"/> (the folded app name, for matching installed apps).
+/// <paramref name="Confidence"/> is 1.0 for an exact phrase and lower when polite fillers were
+/// stripped or the verb form was adapted.
 /// </summary>
-public sealed record CommandMatch(LocalCommand Command, string? Argument, double Confidence);
+public sealed record CommandMatch(LocalCommand Command, string? Argument, double Confidence)
+{
+    /// <summary>The argument as the user wrote or said it (for narration), or <see cref="Argument"/> when it cannot be recovered.</summary>
+    public string? ArgumentText { get; init; } = Argument;
+}

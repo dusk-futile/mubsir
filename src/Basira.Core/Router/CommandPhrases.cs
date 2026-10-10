@@ -328,6 +328,10 @@ internal static class CommandPhrases
         "window", "windows", "tab", "page", "link", "website", "site", "song", "music", "video", "movie",
         "podcast", "radio", "episode", "playlist", "email", "mail", "message", "messages", "picture", "photo",
         "image", "document", "new", "another", "reading", "over", "again", "everything", "all",
+
+        // Question words: "افتح إيه؟" / "open what" is a question, not an app.
+        "ماذا", "ما", "ايه", "إيه", "شو", "ايش", "إيش", "شنو", "شن", "واش", "أي", "اي", "مين", "من", "وين", "فين",
+        "كيف", "ازاي", "إزاي", "ليش", "ليه", "لماذا", "what", "which", "who", "where", "how", "why",
     ];
 
     /// <summary>App-name words that start with و (so they are not a conjunction): "مايكروسوفت وورد".</summary>

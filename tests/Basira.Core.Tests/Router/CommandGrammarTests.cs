@@ -205,6 +205,54 @@ public class CommandGrammarTests
         { "تكفى انزل تحت", LocalCommand.ScrollDown },
         { "بالله عليك وطي الصوت", LocalCommand.VolumeDown },
         { "could you please scroll down", LocalCommand.ScrollDown },
+
+        // More dialect coverage
+        { "اقريلي الشاشة", LocalCommand.ReadScreen },          // Maghrebi
+        { "قرالي الشاشة", LocalCommand.ReadScreen },           // Libyan
+        { "اقرا اللي ع الشاشة", LocalCommand.ReadScreen },     // Levantine
+        { "فين انا", LocalCommand.WhereAmI },                 // Egyptian
+        { "روح لتحت", LocalCommand.ScrollDown },              // Levantine
+        { "انزل لوطا", LocalCommand.ScrollDown },             // Libyan
+        { "نزل شوي", LocalCommand.ScrollDown },               // Gulf
+        { "اطلع لفوق", LocalCommand.ScrollUp },
+        { "خلاص بس", LocalCommand.Stop },
+        { "يكفي", LocalCommand.Stop },
+        { "بطل كلام", LocalCommand.Stop },
+        { "عيدها", LocalCommand.Repeat },
+        { "إيش قلت", LocalCommand.Repeat },                   // Gulf
+        { "واش قلت", LocalCommand.Repeat },                   // Maghrebi
+        { "قلت إيه", LocalCommand.Repeat },                   // Egyptian
+        { "زيد السرعة", LocalCommand.SpeakFaster },           // Maghrebi
+        { "على راحتك", LocalCommand.SpeakSlower },
+        { "الساعة قداش", LocalCommand.WhatTime },             // Libyan / Tunisian
+        { "شحال فالساعة", LocalCommand.WhatTime },            // Moroccan
+        { "كم الوقت", LocalCommand.WhatTime },
+        { "شو التاريخ اليوم", LocalCommand.WhatDate },         // Levantine
+        { "شن التاريخ", LocalCommand.WhatDate },              // Libyan
+        { "النهاردة إيه", LocalCommand.WhatDate },            // Egyptian
+        { "شحال البطارية", LocalCommand.BatteryStatus },
+        { "battery status", LocalCommand.BatteryStatus },
+        { "زود الصوت", LocalCommand.VolumeUp },
+        { "turn it down", LocalCommand.VolumeDown },
+        { "سكر التبويب", LocalCommand.CloseTab },
+        { "افتح تبويبة جديدة", LocalCommand.NewTab },
+        { "رجعني ورا", LocalCommand.GoBack },
+        { "شو بقدر قول", LocalCommand.Help },                 // Levantine
+        { "واش نقول", LocalCommand.Help },                    // Maghrebi
+        { "استنا", LocalCommand.Pause },
+        { "تسنى", LocalCommand.Pause },                       // Maghrebi
+        { "واصل", LocalCommand.Resume },
+        { "اعمل تقرير للعيلة", LocalCommand.SaveReport },
+        { "اطفي الوضع الخاص", LocalCommand.PrivateModeOff },
+        { "ok basira, stop", LocalCommand.Stop },
+        { "hey basira read the screen", LocalCommand.ReadScreen },
+        { "اسكت يا بصيرة", LocalCommand.Stop },
+        { "يا بصيرة الساعة كام", LocalCommand.WhatTime },
+        { "الله يخليك عيد", LocalCommand.Repeat },
+        { "طيب انزل", LocalCommand.ScrollDown },
+        { "stop, thanks", LocalCommand.Stop },
+        { "انزل تحت شكرًا", LocalCommand.ScrollDown },
+        { "تقرا الشاشة", LocalCommand.ReadScreen },             // second-person verb, no opener
     };
 
     [Theory]
@@ -239,6 +287,10 @@ public class CommandGrammarTests
         { "افتح جوجل من فضلك", "جوجل" },
         { "ممكن تفتح يوتيوب", "يوتيوب" },
         { "please open whatsapp", "whatsapp" },
+        { "شغللي سبوتيفاي", "سبوتيفاي" },
+        { "افتح الآلة الحاسبة", "الاله الحاسبه" },
+        { "open Microsoft Word", "microsoft word" },
+        { "يا بصيرة افتح الواتس", "الواتس" },
     };
 
     [Theory]
@@ -309,6 +361,26 @@ public class CommandGrammarTests
         "نعم",
         "yes",
 
+        // Questions after an open verb, and other near misses.
+        "افتح إيه",
+        "افتح ايش",
+        "open what",
+        "open which one",
+        "افتح وين",
+        "انزل وين",
+        "لا تقرأ الشاشة",
+        "don't stop",
+        "ما تسكتش",
+        "مش عايز أنزل",
+        "stop and read the screen",
+        "اسكت وافتح جوجل",
+        "عيد آخر رسالة",
+        "repeat after me",
+        "time to go",
+        "الساعة كام في دبي",
+        "اقرأ الشاشة الثانية",
+        "faster than light",
+
         // Fillers or punctuation alone, empty, overlong.
         "",
         "   ",
@@ -325,6 +397,54 @@ public class CommandGrammarTests
     public void ReturnsNullWhenUnsure(string utterance)
     {
         Assert.Null(CommandGrammar.Match(utterance));
+    }
+
+    [Theory]
+    [InlineData("افتح جوجل", "جوجل")]
+    [InlineData("افتح الآلة الحاسبة من فضلك", "الآلة الحاسبة")]
+    [InlineData("شغّل المفكرة", "المفكرة")]
+    [InlineData("افتح لي برنامج الحاسبة", "الحاسبة")]
+    [InlineData("Open Google Chrome!", "Google Chrome")]
+    [InlineData("please launch the Calculator app", "Calculator")]
+    [InlineData("ممكن تفتح يوتيوب؟", "يوتيوب")]
+    [InlineData("افتح «واتساب»", "واتساب")]
+    public void OpenApp_ArgumentTextKeepsTheUsersSpelling(string utterance, string text)
+    {
+        CommandMatch? m = CommandGrammar.Match(utterance);
+
+        Assert.NotNull(m);
+        Assert.Equal(LocalCommand.OpenApp, m.Command);
+        Assert.Equal(text, m.ArgumentText);
+        Assert.Equal(ArabicFolding.Fold(text), m.Argument);
+    }
+
+    [Fact]
+    public void ArgumentText_IsNullForCommandsWithoutArguments()
+    {
+        CommandMatch? m = CommandGrammar.Match("اقرأ الشاشة");
+
+        Assert.NotNull(m);
+        Assert.Null(m.Argument);
+        Assert.Null(m.ArgumentText);
+    }
+
+    [Fact]
+    public void ArgumentText_FallsBackToTheFoldedNameWhenTokensDoNotLineUp()
+    {
+        // Punctuation glued between words splits one written token into two folded words.
+        CommandMatch? m = CommandGrammar.Match("افتح،جوجل");
+
+        Assert.NotNull(m);
+        Assert.Equal("جوجل", m.Argument);
+        Assert.Equal("جوجل", m.ArgumentText);
+    }
+
+    [Fact]
+    public void CaseCount_CoversAtLeast120Utterances()
+    {
+        int total = Rows(Positives) + Rows(OpenAppPositives) + Rows(Negatives);
+
+        Assert.True(total >= 120, $"only {total} router cases");
     }
 
     [Fact]
@@ -429,4 +549,6 @@ public class CommandGrammarTests
     {
         Assert.Null(CommandGrammar.Match(new string('ا', 500)));
     }
+
+    private static int Rows(IEnumerable<object[]> data) => data.Count();
 }
