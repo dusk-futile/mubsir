@@ -57,6 +57,39 @@ public static class SettingsSerializer
         return Normalize(profile ?? new UserProfile());
     }
 
+    /// <summary>
+    /// Reads settings without throwing: false (and the defaults) when <paramref name="json"/> is
+    /// malformed. Missing or empty input is not an error.
+    /// </summary>
+    public static bool TryDeserializeSettings(string? json, out BasiraSettings settings)
+    {
+        try
+        {
+            settings = DeserializeSettings(json ?? string.Empty);
+            return true;
+        }
+        catch (JsonException)
+        {
+            settings = new BasiraSettings();
+            return false;
+        }
+    }
+
+    /// <summary>Reads a profile without throwing: false (and an empty profile) when <paramref name="json"/> is malformed.</summary>
+    public static bool TryDeserializeProfile(string? json, out UserProfile profile)
+    {
+        try
+        {
+            profile = DeserializeProfile(json ?? string.Empty);
+            return true;
+        }
+        catch (JsonException)
+        {
+            profile = new UserProfile();
+            return false;
+        }
+    }
+
     /// <summary>Replaces nulls and out-of-range values with safe ones.</summary>
     public static BasiraSettings Normalize(BasiraSettings s)
     {

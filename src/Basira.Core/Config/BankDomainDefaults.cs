@@ -16,13 +16,15 @@ public static class BankDomainDefaults
 
         // Saudi Arabia
         "alrajhibank.com.sa", "alahli.com", "riyadbank.com", "sab.com", "alinma.com", "bankalbilad.com",
-        "bankaljazira.com", "anb.com.sa", "alfransi.com.sa", "stcpay.com.sa", "sadad.com", "absher.sa",
+        "bankaljazira.com", "anb.com.sa", "alfransi.com.sa", "stcpay.com.sa", "sadad.com", "absher.sa", "my.gov.sa",
 
         // Libya
-        "cbl.gov.ly", "bcd.ly", "jumhouriabank.ly", "wahdabank.ly", "saharabank.com.ly", "ncb.ly", "amanbank.ly",
+        "cbl.gov.ly", "bcd.ly", "jumhouriabank.ly", "wahdabank.ly", "wahdabank.com.ly", "saharabank.com.ly", "ncb.ly",
+        "amanbank.ly", "moamalat.net", "sadad.ly",
 
         // United Arab Emirates
         "emiratesnbd.com", "adcb.com", "bankfab.com", "mashreq.com", "dib.ae", "adib.ae", "rakbank.ae", "cbd.ae",
+        "uaepass.ae",
 
         // International payments
         "paypal.com", "wise.com", "payoneer.com", "westernunion.com", "moneygram.com", "skrill.com",

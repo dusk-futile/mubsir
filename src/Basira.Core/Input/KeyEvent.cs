@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json.Serialization;
 
 namespace Basira.Core.Input;
 
@@ -31,18 +32,24 @@ public readonly record struct KeyIdentity(int VirtualKey, int ScanCode, bool Ext
 
     public static KeyIdentity ScrollLock { get; } = new(VirtualKeys.SCROLL, ScanCodes.ScrollLock, false);
 
+    [JsonIgnore]
     public bool IsCtrl => VirtualKeys.IsCtrl(VirtualKey);
 
+    [JsonIgnore]
     public bool IsShift => VirtualKeys.IsShift(VirtualKey);
 
+    [JsonIgnore]
     public bool IsAlt => VirtualKeys.IsAlt(VirtualKey);
 
+    [JsonIgnore]
     public bool IsWin => VirtualKeys.IsWin(VirtualKey);
 
     /// <summary>Ctrl, Shift, Alt or Windows key.</summary>
+    [JsonIgnore]
     public bool IsModifier => VirtualKeys.IsModifier(VirtualKey);
 
     /// <summary>True when no key is configured (all fields zero).</summary>
+    [JsonIgnore]
     public bool IsEmpty => VirtualKey == 0 && ScanCode == 0;
 
     public static KeyIdentity Of(in KeyEvent e) => new(e.VirtualKey, e.ScanCode, e.Extended);
