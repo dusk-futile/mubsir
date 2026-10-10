@@ -10,10 +10,12 @@ namespace Basira.Core.Text;
 /// <item>Arabic-script letters and marks are Arabic; every other letter (Latin, accented) is English.</item>
 /// <item>Neutral characters (spaces, punctuation, symbols) between two runs of the same language stay in it;
 /// between different languages they join the preceding run (or the following one when the preceding run is spelled out).</item>
-/// <item>Numbers follow the dominant language of their sentence by letter count (ties go to the default language).
+/// <item>Numbers follow the dominant language of their sentence by letter count (ties go to the default language;
+/// letters of URLs and e-mail addresses do not count).
 /// A number glued to a word without a space (Win10, 2026م) follows that word instead.</item>
-/// <item>Short all-caps Latin acronyms (2–5 letters) inside Arabic sentences become English runs with
+/// <item>Short all-caps Latin acronyms (2–5 letters) in sentences that are otherwise Arabic become English runs with
 /// <see cref="TextRun.SpellOut"/> set.</item>
+/// <item>URLs and e-mail addresses stay whole in one English run, digits included.</item>
 /// <item>Run texts always concatenate back to the exact input.</item>
 /// </list>
 /// </remarks>
@@ -27,6 +29,7 @@ public static class ScriptSegmenter
         Digit,
     }
 
+    /// <summary>Splits <paramref name="text"/> into language runs whose texts concatenate back to it exactly.</summary>
     public static IReadOnlyList<TextRun> Segment(string text, Lang defaultLang)
     {
         ArgumentNullException.ThrowIfNull(text);
@@ -43,15 +46,28 @@ public static class ScriptSegmenter
             return [new TextRun(text, defaultLang)];
         }
 
-        Lang textDominant = ScriptInfo.Dominant(arabicTotal, latinTotal, defaultLang);
-        Lang[] sentenceLang = SentenceDominance(text, cls, textDominant, defaultLang);
+        bool[] isProtected = MarkUrlsAndEmails(text);
+        bool[] acronym = FindAcronyms(text, cls, isProtected);
+        bool[] protectedOrAcronym = new bool[n];
+        for (int i = 0; i < n; i++)
+        {
+            protectedOrAcronym[i] = isProtected[i] || acronym[i];
+        }
+
+        Lang[] sentenceLang = SentenceDominance(text, cls, isProtected, defaultLang);
+        Lang[] acronymContext = SentenceDominance(text, cls, protectedOrAcronym, defaultLang);
 
         var lang = new Lang[n];
         var assigned = new bool[n];
         var spell = new bool[n];
         for (int i = 0; i < n; i++)
         {
-            if (cls[i] == Cls.Arabic)
+            if (isProtected[i])
+            {
+                lang[i] = Lang.English;
+                assigned[i] = true;
+            }
+            else if (cls[i] == Cls.Arabic)
             {
                 lang[i] = Lang.Arabic;
                 assigned[i] = true;
@@ -63,18 +79,25 @@ public static class ScriptSegmenter
             }
         }
 
-        MarkAcronyms(text, cls, sentenceLang, spell);
+        for (int i = 0; i < n; i++)
+        {
+            spell[i] = acronym[i] && acronymContext[i] == Lang.Arabic;
+        }
+
         AssignNumbers(text, cls, sentenceLang, lang, assigned);
         AssignNeutrals(lang, assigned, spell);
         return BuildRuns(text, lang, spell);
     }
 
-    /// <summary>The language with more letters in <paramref name="text"/>; ties and letterless text give <paramref name="defaultLang"/>.</summary>
+    /// <summary>
+    /// The language with more letters in <paramref name="text"/>, not counting URLs and e-mail addresses;
+    /// ties and letterless text give <paramref name="defaultLang"/>.
+    /// </summary>
     public static Lang DominantLanguage(string text, Lang defaultLang)
     {
         ArgumentNullException.ThrowIfNull(text);
-        var (arabic, other) = ScriptInfo.CountLetters(text);
-        return ScriptInfo.Dominant(arabic, other, defaultLang);
+        var (arabic, latin) = CountLetters(text, Classify(text), 0, text.Length, MarkUrlsAndEmails(text));
+        return ScriptInfo.Dominant(arabic, latin, defaultLang);
     }
 
     private static Cls[] Classify(string text)
@@ -108,12 +131,12 @@ public static class ScriptSegmenter
         return cls;
     }
 
-    private static (int Arabic, int Latin) CountLetters(string text, Cls[] cls, int start, int end)
+    private static (int Arabic, int Latin) CountLetters(string text, Cls[] cls, int start, int end, bool[]? exclude = null)
     {
         int arabic = 0, latin = 0;
         for (int i = start; i < end; i++)
         {
-            if (!char.IsLetter(text[i]))
+            if (!char.IsLetter(text[i]) || (exclude is not null && exclude[i]))
             {
                 continue;
             }
@@ -131,10 +154,15 @@ public static class ScriptSegmenter
         return (arabic, latin);
     }
 
-    /// <summary>Dominant language per character, computed sentence by sentence.</summary>
-    private static Lang[] SentenceDominance(string text, Cls[] cls, Lang textDominant, Lang defaultLang)
+    /// <summary>
+    /// Dominant language per character, computed sentence by sentence from letters not in <paramref name="exclude"/>.
+    /// A sentence without such letters takes the whole text's dominant language.
+    /// </summary>
+    private static Lang[] SentenceDominance(string text, Cls[] cls, bool[]? exclude, Lang defaultLang)
     {
         int n = text.Length;
+        var (arabicTotal, latinTotal) = CountLetters(text, cls, 0, n, exclude);
+        Lang textDominant = ScriptInfo.Dominant(arabicTotal, latinTotal, defaultLang);
         var result = new Lang[n];
         int start = 0;
         for (int i = 0; i < n; i++)
@@ -147,7 +175,7 @@ public static class ScriptSegmenter
                 continue;
             }
 
-            var (arabic, latin) = CountLetters(text, cls, start, i + 1);
+            var (arabic, latin) = CountLetters(text, cls, start, i + 1, exclude);
             Lang d = arabic + latin == 0 ? textDominant : ScriptInfo.Dominant(arabic, latin, defaultLang);
             Array.Fill(result, d, start, i + 1 - start);
             start = i + 1;
@@ -158,9 +186,11 @@ public static class ScriptSegmenter
 
     private static bool IsSentenceTerminator(char c) => c is '.' or '!' or '?' or '؟' or '…' or '۔' or '！' or '？';
 
-    private static void MarkAcronyms(string text, Cls[] cls, Lang[] sentenceLang, bool[] spell)
+    /// <summary>Marks all-caps ASCII words of 2–5 letters (PDF, USB) outside URLs and e-mails.</summary>
+    private static bool[] FindAcronyms(string text, Cls[] cls, bool[] isProtected)
     {
         int n = text.Length;
+        var acronym = new bool[n];
         int i = 0;
         while (i < n)
         {
@@ -177,7 +207,7 @@ public static class ScriptSegmenter
             }
 
             int length = i - start;
-            if (length is < 2 or > 5 || sentenceLang[start] != Lang.Arabic)
+            if (length is < 2 or > 5 || isProtected[start])
             {
                 continue;
             }
@@ -190,9 +220,81 @@ public static class ScriptSegmenter
 
             if (allCaps)
             {
-                Array.Fill(spell, true, start, length);
+                Array.Fill(acronym, true, start, length);
             }
         }
+
+        return acronym;
+    }
+
+    /// <summary>
+    /// Marks URLs (scheme or www.) and e-mail addresses written without Arabic letters, minus any surrounding
+    /// brackets and trailing punctuation, so they are read whole by the English voice.
+    /// </summary>
+    private static bool[] MarkUrlsAndEmails(string text)
+    {
+        int n = text.Length;
+        var marks = new bool[n];
+        int i = 0;
+        while (i < n)
+        {
+            if (char.IsWhiteSpace(text[i]))
+            {
+                i++;
+                continue;
+            }
+
+            int start = i;
+            while (i < n && !char.IsWhiteSpace(text[i]))
+            {
+                i++;
+            }
+
+            int s = start, e = i;
+            while (s < e && text[s] is '(' or '[' or '{' or '<' or '"' or '\'' or '«' or '“')
+            {
+                s++;
+            }
+
+            while (e > s && text[e - 1] is '.' or ',' or ';' or ':' or '!' or '?' or '؟' or '،' or '؛' or ')' or ']' or '}'
+                or '>' or '"' or '\'' or '»' or '”' or '…')
+            {
+                e--;
+            }
+
+            if (e - s >= 4 && IsUrlOrEmail(text.AsSpan(s, e - s)))
+            {
+                Array.Fill(marks, true, s, e - s);
+            }
+        }
+
+        return marks;
+    }
+
+    private static bool IsUrlOrEmail(ReadOnlySpan<char> token)
+    {
+        foreach (char c in token)
+        {
+            if (ScriptInfo.IsArabicScript(c))
+            {
+                return false;
+            }
+        }
+
+        if (token.Contains("://", StringComparison.Ordinal) || token.StartsWith("www.", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        int at = token.IndexOf('@');
+        if (at <= 0 || at != token.LastIndexOf('@') || !char.IsLetterOrDigit(token[at - 1]))
+        {
+            return false;
+        }
+
+        ReadOnlySpan<char> domain = token[(at + 1)..];
+        int dot = domain.IndexOf('.');
+        return dot > 0 && dot < domain.Length - 1;
     }
 
     private static bool IsNumberSeparator(char c) => c is '.' or ',' or ':' or '/' or '-' or '٫' or '٬';
@@ -203,7 +305,7 @@ public static class ScriptSegmenter
         int i = 0;
         while (i < n)
         {
-            if (cls[i] != Cls.Digit)
+            if (cls[i] != Cls.Digit || assigned[i])
             {
                 i++;
                 continue;
@@ -212,11 +314,11 @@ public static class ScriptSegmenter
             int start = i++;
             while (i < n)
             {
-                if (cls[i] == Cls.Digit)
+                if (cls[i] == Cls.Digit && !assigned[i])
                 {
                     i++;
                 }
-                else if (IsNumberSeparator(text[i]) && i + 1 < n && cls[i + 1] == Cls.Digit)
+                else if (IsNumberSeparator(text[i]) && i + 1 < n && cls[i + 1] == Cls.Digit && !assigned[i + 1])
                 {
                     i += 2;
                 }

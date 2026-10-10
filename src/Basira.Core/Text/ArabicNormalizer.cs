@@ -9,19 +9,27 @@ namespace Basira.Core.Text;
 /// </summary>
 public static class ArabicNormalizer
 {
-    /// <summary>Very common words; their reversed spellings are not Arabic words (palindromes and look-alikes are left out).</summary>
-    private static readonly string[] FunctionWords =
-    [
-        "في", "من", "على", "إلى", "الى", "عن", "أن", "إن", "هذا", "التي", "الذي", "كان", "كانت", "لكن", "بعد",
-        "قبل", "عند", "بين", "لن", "هو", "هي", "أو", "ثم", "حتى", "لا", "أنا", "منذ", "خلال", "ذلك", "تلك",
-        "الله", "يكون", "لقد", "عليه", "أيضا", "جدا", "هذه", "إذا",
-    ];
+    /// <summary>
+    /// Very common words. Words whose reversal is also a common word (كل/لك, هل/له, مع/عم, ما/ام) are left out.
+    /// </summary>
+    private static readonly HashSet<string> FunctionWords = new(StringComparer.Ordinal)
+    {
+        "في", "من", "على", "إلى", "الى", "عن", "أن", "إن", "هذا", "هذه", "التي", "الذي", "الذين", "كان", "كانت",
+        "لكن", "بعد", "قبل", "عند", "بين", "لن", "هو", "هي", "أو", "ثم", "حتى", "لا", "أنا", "نحن", "أنت", "منذ",
+        "خلال", "ذلك", "تلك", "الله", "يكون", "لقد", "عليه", "عليكم", "أيضا", "جدا", "إذا", "يا", "كيف", "تم", "لم",
+        "قد", "هناك", "هنا", "الآن", "اليوم", "غير", "بعض", "مثل", "حول", "نعم", "شكرا", "يجب", "يمكن", "أين", "متى",
+        "لماذا", "ماذا", "عندما", "كما", "أكثر", "أي",
+    };
 
-    private static readonly HashSet<string> NormalWords = new(FunctionWords, StringComparer.Ordinal);
+    /// <summary>Hamza-alef letters: they often start an Arabic word and rarely end one.</summary>
+    private const string TypicalFirst = "أإآ";
 
-    private static readonly HashSet<string> ReversedWords = BuildReversed();
+    /// <summary>Teh marbuta, alef maksura and hamza: they end words and never start them.</summary>
+    private const string FinalOnly = "ةىء";
 
     private static readonly string[] ArticlePrefixes = ["ال", "وال", "بال", "فال", "كال", "لل"];
+
+    private static readonly string[] PluralSuffixes = ["ات", "ون", "ين"];
 
     /// <summary>Applies NFKC to Arabic presentation forms only (U+FB50–FDFF, U+FE70–FEFF), including lam-alef ligatures.</summary>
     public static string NormalizePresentationForms(string text)
@@ -61,23 +69,31 @@ public static class ArabicNormalizer
     }
 
     /// <summary>
-    /// Heuristic: true when a line's Arabic words look stored in reverse character order
-    /// (words ending in "لا" from a reversed "ال", words starting with ة or ى, reversed common words).
-    /// Needs at least three Arabic words and clearly more reversed than normal evidence.
+    /// Heuristic: true when a line's Arabic words look stored in reverse character order, as text extracted from
+    /// some PDFs is. Each word is scored as written and reversed (common words, the "ال" article, letters that
+    /// typically start or end words, impossible starts such as ة and ى); the line counts as reversed when it has at
+    /// least three Arabic words and the reversed reading wins clearly.
     /// </summary>
     public static bool LooksReversed(string line)
     {
         ArgumentNullException.ThrowIfNull(line);
         int words = 0, reversed = 0, normal = 0;
-        foreach (string word in ArabicWords(line))
+        foreach (string raw in ArabicWords(line))
         {
+            string word = NormalizePresentationForms(raw);
             words++;
-            var (r, n) = Score(word);
-            reversed += r;
-            normal += n;
+            int difference = Plausibility(Reverse(word)) - Plausibility(word);
+            if (difference > 0)
+            {
+                reversed += difference;
+            }
+            else
+            {
+                normal -= difference;
+            }
         }
 
-        return words >= 3 && reversed >= 2 && reversed > 2 * normal;
+        return words >= 3 && reversed >= 3 && 2 * reversed > 3 * normal;
     }
 
     /// <summary>
@@ -85,6 +101,10 @@ public static class ArabicNormalizer
     /// (Latin words, numbers, and the spaces and punctuation between them) in their original order.
     /// Brackets in the reversed parts are mirrored.
     /// </summary>
+    /// <remarks>
+    /// Call this before <see cref="NormalizePresentationForms"/>: a lam-alef ligature is one character here and
+    /// keeps its letters in the right order, whereas its normalized "لا" would come out reversed.
+    /// </remarks>
     public static string FixReversedLine(string line)
     {
         ArgumentNullException.ThrowIfNull(line);
@@ -208,79 +228,78 @@ public static class ArabicNormalizer
         }
     }
 
-    /// <summary>Evidence that a word is reversed or normal; strong signs count 2, weak signs 1.</summary>
-    private static (int Reversed, int Normal) Score(string w)
+    /// <summary>How much a word (diacritics removed) looks like Arabic written in logical order.</summary>
+    internal static int Plausibility(string w)
     {
-        int r = 0, n = 0;
-        if (NormalWords.Contains(w))
+        int score = 0;
+        if (FunctionWords.Contains(w))
         {
-            n += 2;
+            score += 3;
         }
 
-        if (ReversedWords.Contains(w))
+        // Words ending in "لا" (قليلا، أهلا) are common, so a reversed-looking article is weaker evidence on short words.
+        if (w.Length >= 5 && StartsWithAny(w, ArticlePrefixes))
         {
-            r += 2;
+            score += 1;
         }
 
-        if (w.Length >= 3)
+        if (w.Length >= 4 && EndsWithAny(w, PluralSuffixes))
         {
-            foreach (string prefix in ArticlePrefixes)
-            {
-                if (w.StartsWith(prefix, StringComparison.Ordinal))
-                {
-                    n += 2;
-                    break;
-                }
-            }
-
-            if (w.EndsWith("لا", StringComparison.Ordinal))
-            {
-                r += 1;
-            }
+            score += 1;
         }
 
-        if (w[0] is 'ة' or 'ى' or 'ء')
+        char first = w[0], last = w[^1];
+        if (FinalOnly.Contains(first))
         {
-            r += 2;
+            score -= 3;
+        }
+        else if (TypicalFirst.Contains(first))
+        {
+            score += 1;
         }
 
-        if (w[^1] is 'إ')
+        if (last is 'إ' or 'آ')
         {
-            r += 2;
+            score -= 3;
+        }
+        else if (FinalOnly.Contains(last))
+        {
+            score += 1;
         }
 
-        if (w[^1] is 'ة' or 'ى')
-        {
-            n += 2;
-        }
-
-        if (w[0] is 'أ' or 'إ')
-        {
-            n += 1;
-        }
-
-        if (w[^1] is 'أ')
-        {
-            r += 1;
-        }
-
-        return (r, n);
+        return score;
     }
 
-    private static HashSet<string> BuildReversed()
+    private static bool StartsWithAny(string w, string[] prefixes)
     {
-        var set = new HashSet<string>(StringComparer.Ordinal);
-        foreach (string word in FunctionWords)
+        foreach (string prefix in prefixes)
         {
-            char[] chars = word.ToCharArray();
-            Array.Reverse(chars);
-            string reversed = new(chars);
-            if (reversed != word)
+            if (w.StartsWith(prefix, StringComparison.Ordinal))
             {
-                set.Add(reversed);
+                return true;
             }
         }
 
-        return set;
+        return false;
+    }
+
+    private static bool EndsWithAny(string w, string[] suffixes)
+    {
+        foreach (string suffix in suffixes)
+        {
+            if (w.EndsWith(suffix, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string Reverse(string word)
+    {
+        char[] chars = word.ToCharArray();
+        Array.Reverse(chars);
+        return new string(chars);
     }
 }

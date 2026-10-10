@@ -17,9 +17,9 @@ public static class OcrLineOrder
     }
 
     /// <summary>
-    /// Joins one line's words in logical order. Arabic-dominant lines read right to left, with consecutive
-    /// Latin/number words kept left to right; English-dominant lines read left to right, with consecutive
-    /// Arabic words kept right to left.
+    /// Joins one line's words in logical order. Arabic-dominant lines (at least as many Arabic words as Latin ones)
+    /// read right to left, with consecutive Latin/number words kept left to right; English-dominant lines read
+    /// left to right, with consecutive Arabic words kept right to left.
     /// </summary>
     public static string ToLogicalLine(IReadOnlyList<OcrWordBox> words)
     {
@@ -34,15 +34,22 @@ public static class OcrLineOrder
             .ThenBy(w => w.Y)
             .ToList();
 
-        int arabic = 0, latin = 0;
+        // Words, not letters, decide the base direction: one long product name should not turn an Arabic line around.
+        int arabicWords = 0, latinWords = 0;
         foreach (var word in visual)
         {
             var (a, l) = ScriptInfo.CountLetters(word.Text);
-            arabic += a;
-            latin += l;
+            if (a > 0 && a >= l)
+            {
+                arabicWords++;
+            }
+            else if (l > 0)
+            {
+                latinWords++;
+            }
         }
 
-        bool rtlBase = arabic > 0 && arabic >= latin;
+        bool rtlBase = arabicWords > 0 && arabicWords >= latinWords;
         var groups = GroupEmbedded(visual, rtlBase ? Direction.Ltr : Direction.Rtl);
         var ordered = new List<string>(visual.Count);
         if (rtlBase)

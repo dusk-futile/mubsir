@@ -47,6 +47,13 @@ public static class Arabizi
         ["7aga"] = "حاجة", ["7aja"] = "حاجة", ["3ayez"] = "عايز", ["3ayz"] = "عايز", ["3awez"] = "عاوز",
         ["wa7ed"] = "واحد", ["wa7da"] = "واحدة", ["ana"] = "أنا", ["eh"] = "إيه", ["eih"] = "إيه",
         ["bas"] = "بس", ["mesh"] = "مش", ["salam"] = "سلام", ["sabah"] = "صباح", ["ya"] = "يا", ["w"] = "و",
+        ["3aref"] = "عارف", ["3arfa"] = "عارفة", ["ba2a"] = "بقى", ["ba2et"] = "بقيت", ["2awi"] = "أوي", ["awi"] = "أوي",
+        ["bina"] = "بينا", ["beit"] = "بيت", ["bait"] = "بيت", ["basha"] = "باشا", ["fi"] = "في", ["fih"] = "فيه",
+        ["mafeesh"] = "مفيش", ["mafish"] = "مفيش", ["kont"] = "كنت", ["ahu"] = "أهو", ["bardo"] = "برضه",
+        ["lessa"] = "لسه", ["zay"] = "زي", ["rabena"] = "ربنا", ["a7san"] = "أحسن", ["ba7ebak"] = "بحبك",
+        ["ba7ebek"] = "بحبك", ["w7ashtini"] = "وحشتني", ["wa7ashtini"] = "وحشتني", ["sadi2i"] = "صديقي",
+        ["ezayko"] = "ازيكو", ["3amlin"] = "عاملين", ["el"] = "ال", ["il"] = "ال", ["wenta"] = "وانت",
+        ["tab"] = "طب", ["ah"] = "آه", ["la"] = "لا", ["mama"] = "ماما", ["baba"] = "بابا", ["allah"] = "الله",
     };
 
     /// <summary>
@@ -56,6 +63,7 @@ public static class Arabizi
     private static readonly HashSet<string> Ambiguous = new(StringComparer.OrdinalIgnoreCase)
     {
         "ana", "eh", "bas", "mesh", "ya", "w", "sabah", "salama", "insan", "zaman", "ramadan", "mubarak", "fein",
+        "fi", "el", "il", "tab", "ah", "la", "mama", "baba", "allah", "zay", "bait",
     };
 
     /// <summary>Digit-bearing tokens that are English or technical, not Arabizi.</summary>
@@ -118,7 +126,7 @@ public static class Arabizi
             return false;
         }
 
-        int letters = 0, upper = 0;
+        int letters = 0, upper = 0, digitCount = 0;
         bool hasDigit = false, hasVowel = false, digitInside = false;
         for (int i = 0; i < core.Length; i++)
         {
@@ -144,14 +152,17 @@ public static class Arabizi
             }
 
             hasDigit = true;
+            digitCount++;
             bool letterBefore = i > 0 && ScriptInfo.IsAsciiLetter(core[i - 1]);
             bool letterAfter = i + 1 < core.Length && (ScriptInfo.IsAsciiLetter(core[i + 1]) || IsApostrophe(core[i + 1]));
             digitInside |= letterBefore && letterAfter;
         }
 
-        if (!hasDigit || letters < 2 || upper == letters)
+        // "9a7", "7a2": a single vowel between two Arabizi digits.
+        digitInside |= letters == 1 && hasVowel && digitCount == 2 && core.Length == 3;
+        if (!hasDigit || upper == letters || (letters < 2 && !digitInside))
         {
-            return false; // no Arabizi digit, or an acronym such as MP3 / H2O
+            return false; // no Arabizi digit, an acronym such as MP3 / H2O, or "2x"
         }
 
         if (char.IsAsciiDigit(lower[0]) && UnitSuffixes.Contains(lower[1..]))
@@ -188,50 +199,46 @@ public static class Arabizi
     private static string Transliterate(string text, bool all)
     {
         var tokens = Tokenize(text);
-        bool context = all;
-        if (!all)
+        var convert = new bool[tokens.Count];
+        bool context = all; // in word mode, true once a token is clearly Arabizi rather than also English
+        for (int k = 0; k < tokens.Count; k++)
         {
-            foreach (var t in tokens)
+            var t = tokens[k];
+            if (t.IsSpace)
             {
-                if (!t.IsSpace && LooksLikeArabizi(t.Text) && !Ambiguous.Contains(CoreOf(t.Text)))
-                {
-                    context = true;
-                    break;
-                }
+                continue;
             }
 
-            if (!context && !tokens.Exists(t => !t.IsSpace && LooksLikeArabizi(t.Text)))
+            if (all)
             {
-                return text;
+                convert[k] = IsLatinWordToken(t.Text);
             }
+            else if (LooksLikeArabizi(t.Text))
+            {
+                convert[k] = true;
+                context |= !Ambiguous.Contains(CoreOf(t.Text));
+            }
+        }
+
+        if (!context)
+        {
+            return text; // nothing, or only words such as "ana" or "bas" that are also English
         }
 
         var sb = new StringBuilder(text.Length);
         for (int k = 0; k < tokens.Count; k++)
         {
             var token = tokens[k];
-            if (token.IsSpace)
+            if (!convert[k])
             {
                 sb.Append(token.Text);
                 continue;
             }
 
-            bool convert = all
-                ? IsLatinWordToken(token.Text)
-                : LooksLikeArabizi(token.Text) && (context || !Ambiguous.Contains(CoreOf(token.Text)));
-            if (!convert)
+            // "el beit" → "البيت", "w enta" → "وانت": the article and "and" join the next word.
+            if (JoiningPrefix(token.Text) is { } prefix && k + 2 < tokens.Count && tokens[k + 1].IsSpace && convert[k + 2])
             {
-                sb.Append(token.Text);
-                continue;
-            }
-
-            // "el bet" → "البت": the article joins the next word.
-            string core = CoreOf(token.Text);
-            if (all && core.ToLowerInvariant() is "el" or "al" or "il"
-                && k + 2 < tokens.Count && tokens[k + 1].IsSpace && IsLatinWordToken(tokens[k + 2].Text)
-                && CoreRange(token.Text) is var (s, e) && s == 0 && e == token.Text.Length)
-            {
-                sb.Append("ال");
+                sb.Append(prefix);
                 k++; // skip the space; the next word is appended without it
                 continue;
             }
@@ -241,6 +248,13 @@ public static class Arabizi
 
         return sb.ToString();
     }
+
+    private static string? JoiningPrefix(string token) => token.ToLowerInvariant() switch
+    {
+        "el" or "al" or "il" => "ال",
+        "w" or "wa" => "و",
+        _ => null,
+    };
 
     private readonly record struct Token(string Text, bool IsSpace);
 
@@ -369,12 +383,21 @@ public static class Arabizi
             char c = w[i];
             bool first = sb.Length == 0;
 
+            if (c == '2' && first && i + 1 < n && IsVowel(w[i + 1]))
+            {
+                // Word-initial hamza carries its vowel: "2ana" → أنا, "2ism" → إسم.
+                sb.Append(w[i + 1] is 'e' or 'i' ? 'إ' : 'أ');
+                previous = c;
+                i += 2;
+                continue;
+            }
+
             if (char.IsAsciiDigit(c))
             {
                 bool apostrophe = i + 1 < n && IsApostrophe(w[i + 1]);
                 sb.Append(c switch
                 {
-                    '2' => first ? (i + 1 < n && w[i + 1] is 'e' or 'i' ? "إ" : "أ") : "ء",
+                    '2' => first ? "أ" : HamzaSeat(w, i),
                     '3' => apostrophe ? "غ" : "ع",
                     '5' => "خ",
                     '6' => apostrophe ? "ظ" : "ط",
@@ -481,6 +504,28 @@ public static class Arabizi
         }
 
         return 1; // other short vowels are not written
+    }
+
+    /// <summary>Medial hamza sits on ي, و or ا by the strongest neighbouring vowel (i over u over a); final hamza stands alone.</summary>
+    private static string HamzaSeat(string w, int i)
+    {
+        if (i == w.Length - 1)
+        {
+            return "ء";
+        }
+
+        char before = w[i - 1], after = w[i + 1];
+        if (before is 'i' or 'e' || after is 'i' or 'e')
+        {
+            return "ئ";
+        }
+
+        if (before is 'o' or 'u' || after is 'o' or 'u')
+        {
+            return "ؤ";
+        }
+
+        return before == 'a' || after == 'a' ? "أ" : "ء";
     }
 
     private static bool IsConsonantLike(char c) => char.IsAsciiDigit(c) || (ScriptInfo.IsAsciiLetter(c) && !IsVowel(c));

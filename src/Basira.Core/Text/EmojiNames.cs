@@ -142,7 +142,7 @@ public static class EmojiNames
         ["👉"] = new("إصبع يشير لليمين", "pointing right"),
         ["💪"] = new("عضلة مفتولة", "flexed biceps"),
         ["✍"] = new("يد تكتب", "writing hand"),
-        ["\u1FAF6"] = new("يدان على شكل قلب", "heart hands"),
+        ["\U0001FAF6"] = new("يدان على شكل قلب", "heart hands"),
         ["👀"] = new("عينان", "eyes"),
 
         // People
