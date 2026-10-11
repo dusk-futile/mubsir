@@ -107,6 +107,14 @@ public class RedactorTests
     [InlineData("Chapter 3, page 45, 2nd edition")]
     public void KeepsOrdinaryNumbers(string input) => Assert.Equal(input, Redactor.Redact(input));
 
+    [Theory]
+    [InlineData("+966-50-123-4567", "[phone]")]
+    [InlineData("Your WhatsApp code: 123-456", "Your WhatsApp code: [code]")]
+    [InlineData("رمز التحقق: 4821 صالح لمدة 10 دقائق", "رمز التحقق: [code] صالح لمدة 10 دقائق")]
+    [InlineData("Season 2019-2020 results", "Season 2019-2020 results")]
+    [InlineData("Room 404, floor 3", "Room 404, floor 3")]
+    public void MoreEdgeCases(string input, string expected) => Assert.Equal(expected, Redactor.Redact(input));
+
     [Fact]
     public void HandlesSeveralKindsInOneText()
     {

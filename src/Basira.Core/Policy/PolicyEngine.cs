@@ -591,7 +591,8 @@ public sealed class PolicyEngine
             }
         }
 
-        if (chords.Contains("delete") && (t is null || !IsEditable(t)))
+        bool deleteKey = chords.Contains("delete") || (PolicyRules.IsExplorer(a.Screen) && chords.Contains("ctrl+d"));
+        if (deleteKey && (t is null || !IsEditable(t)))
         {
             return Confirm(ReasonCodes.ConfirmDeleteKey, new ConfirmationFacts
             {
@@ -672,8 +673,12 @@ public sealed class PolicyEngine
             return byName;
         }
 
-        // An id like "submit" on a button named "Search" says less than the name does.
-        return VerbTable.IsHarmlessName(t.Name) ? null : VerbTable.Classify(t.AutomationId);
+        // A generic id like "submit" on a button named "Search" says less than the name does,
+        // but an id that names money, deletion or sending ("Continue" with id "payNow") still counts.
+        var byId = VerbTable.Classify(t.AutomationId);
+        return byId is ConfirmKind.Submit or ConfirmKind.Accept or ConfirmKind.SignOut && VerbTable.IsHarmlessName(t.Name)
+            ? null
+            : byId;
     }
 
     private static ConfirmationFacts Facts(AgentAction a, ConfirmKind kind, string? button, bool suggested) => new()

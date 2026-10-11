@@ -345,6 +345,17 @@ public class PolicyEngineTests
     {
         var link = new UiNode { Id = 8, Role = "link", Name = "Show more", Value = "javascript:void(0)" };
         AssertAllowed(Eval(Act(ToolNames.Invoke, Browser("example.com"), link)));
+        AssertAllowed(Eval(Act(ToolNames.Invoke, Browser("example.com"), link with { Value = "java\tscript:void(0)" })));
+    }
+
+    [Fact]
+    public void UnparsableLinkTargetsAreStillChecked()
+    {
+        var link = new UiNode { Id = 8, Role = "link", Name = "Get it" };
+        AssertBlocked(Eval(Act(ToolNames.Invoke, Browser("example.com"), link with { Value = "https://example.com/free app.exe" })), ReasonCodes.Executable);
+        AssertBlocked(Eval(Act(ToolNames.Invoke, Browser("example.com"), link with { Value = "search-ms:query=x y" })), ReasonCodes.UrlScheme);
+        AssertBlocked(Eval(Act(ToolNames.Invoke, Browser("example.com"), link with { Value = "  ms-\nmsdt:/id x" })), ReasonCodes.UrlScheme);
+        AssertAllowed(Eval(Act(ToolNames.Invoke, Browser("example.com"), link with { Value = "https://example.com/a page" })));
     }
 
     [Theory]
@@ -750,6 +761,15 @@ public class PolicyEngineTests
         AssertConfirm(Eval(Act(ToolNames.Invoke, WhatsApp, Button(null, "compose-btn-send"))), ReasonCodes.ConfirmVerb, ConfirmKind.Send);
         AssertConfirm(Eval(Act(ToolNames.Invoke, WhatsApp, Button("", "deleteButton"))), ReasonCodes.ConfirmVerb, ConfirmKind.Delete);
         AssertAllowed(Eval(Act(ToolNames.Invoke, Browser("google.com"), Button("Search", "submit"))));
+        AssertAllowed(Eval(Act(ToolNames.Invoke, Browser("google.com"), Button("OK", "acceptButton"))));
+    }
+
+    [Fact]
+    public void AHarmlessNameDoesNotHideAMoneyOrDeleteId()
+    {
+        AssertConfirm(Eval(Act(ToolNames.Invoke, Browser("shop.example"), Button("Continue", "payNow"))), ReasonCodes.ConfirmVerb, ConfirmKind.Pay);
+        AssertConfirm(Eval(Act(ToolNames.Invoke, Browser("shop.example"), Button("OK", "btnDeleteAccount"))), ReasonCodes.ConfirmVerb, ConfirmKind.Delete);
+        AssertConfirm(Eval(Act(ToolNames.Invoke, Browser("shop.example"), Button("Next", "transfer-submit"))), ReasonCodes.ConfirmVerb, ConfirmKind.Transfer);
     }
 
     [Theory]
@@ -841,6 +861,8 @@ public class PolicyEngineTests
     public void DeleteKeyOnItemsNeedsConfirmationButNotInText()
     {
         AssertConfirm(Eval(Act(ToolNames.PressKeys, Explorer, Button("report.docx", role: "listitem"), keys: "delete")), ReasonCodes.ConfirmDeleteKey, ConfirmKind.Delete);
+        AssertConfirm(Eval(Act(ToolNames.PressKeys, Explorer, Button("report.docx", role: "listitem"), keys: "ctrl+d")), ReasonCodes.ConfirmDeleteKey, ConfirmKind.Delete);
+        AssertAllowed(Eval(Act(ToolNames.PressKeys, Browser("youtube.com"), keys: "ctrl+d"))); // a bookmark in browsers
         AssertAllowed(Eval(Act(ToolNames.PressKeys, Notepad, Edit("Text editor"), keys: "delete")));
     }
 
