@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['docs/**', '**/*.md']
+  pull_request:
+    branches: [main]
+    paths-ignore: ['docs/**', '**/*.md']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  DOTNET_NOLOGO: '1'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1'
+
+jobs:
+  core:
+    name: Core tests, add-on, privacy checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: No audio or private eval data in git
+        run: bash scripts/check-no-audio.sh
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+
+      - name: Core tests (locked restore)
+        run: dotnet test tests/Basira.Core.Tests/Basira.Core.Tests.csproj
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+
+      - name: Add-on and eval tests
+        run: |
+          python3 -m pip install --disable-pip-version-check --quiet pytest==9.1.1
+          python3 -m pytest -q -p no:cacheprovider nvda-addon/tests evals/tests
+
+      - name: Build the NVDA add-on
+        run: python3 scripts/build-addon.py
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: basiraBridge-nvda-addon
+          path: dist/*.nvda-addon
+          if-no-files-found: error
+          retention-days: 14
+
+  windows:
+    name: Windows build
+    needs: core
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+
+      # Restore once without a runtime identifier: "-r" on build/publish would also apply to
+      # Basira.Core's restore and break its RID-free lock file in locked mode.
+      - name: Restore (locked)
+        run: dotnet restore src/Basira.App
+
+      - name: Build
+        run: dotnet build src/Basira.App -c Release --no-restore
+
+      - name: Publish win-x64
+        run: dotnet publish src/Basira.App -c Release -r win-x64 --no-restore -o publish
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: basira-win-x64
+          path: publish/
+          if-no-files-found: error
+          retention-days: 14

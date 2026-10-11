@@ -121,10 +121,11 @@ function Stop-Setup([string]$Message) {
     exit 2
 }
 
-# Runs $Action unless this is a dry run. Returns $true when it ran.
-function Invoke-Change([string]$Target, [string]$Operation, [scriptblock]$Action) {
-    if ($PSCmdlet.ShouldProcess($Target, $Operation)) {
-        & $Action
+# Runs $ChangeScript unless this is a dry run; returns $true when it ran. The script block runs in a
+# child scope of this function, so a parameter named like a caller variable ($Target) would hide it.
+function Invoke-Change([string]$ChangeTarget, [string]$ChangeDescription, [scriptblock]$ChangeScript) {
+    if ($PSCmdlet.ShouldProcess($ChangeTarget, $ChangeDescription)) {
+        & $ChangeScript
         return $true
     }
     return $false
@@ -145,8 +146,8 @@ function Assert-SupportedWindows {
             'A 32-bit Windows cannot be upgraded in place; it needs a fresh 64-bit installation if the processor supports it.')
     }
     if ([Environment]::OSVersion.Version.Major -lt 10 -or $build -lt 19045) {
-        Stop-Setup ('This PC runs {0} (build {1}). Basira needs Windows 10 version 22H2 (build 19045) or Windows 11. ' -f $os.Caption, $build) +
-            'Install the Windows updates (Settings > Update & Security > Windows Update), then run this script again.'
+        Stop-Setup (('This PC runs {0} (build {1}). Basira needs Windows 10 version 22H2 (build 19045) or Windows 11. ' -f $os.Caption, $build) +
+            'Install the Windows updates (Settings > Update & Security > Windows Update), then run this script again.')
     }
     if (-not [Environment]::Is64BitProcess) {
         Stop-Setup 'This is 32-bit PowerShell. Open "Windows PowerShell" (not the x86 one) as administrator and run the script again.'

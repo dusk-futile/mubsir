@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dusk-futile/basira/evals/tasks.schema.json",
+  "title": "Basira eval task list",
+  "description": "A JSON array of tasks. Each task is one spoken or typed request with the screen state it starts from and the outcome that counts as success.",
+  "type": "array",
+  "items": { "$ref": "#/$defs/task" },
+  "$defs": {
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "utterance_ar", "utterance_en", "setup", "expected", "tags"],
+      "properties": {
+        "id": {
+          "description": "Stable, unique id: lower-case letters, digits and dashes.",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+        },
+        "utterance_ar": {
+          "description": "The request as he would say it in Arabic (any dialect; name the dialect in tags). Empty when the task is English only.",
+          "type": "string"
+        },
+        "utterance_en": {
+          "description": "The same request in English (a translation when the task is Arabic only).",
+          "type": "string",
+          "minLength": 1
+        },
+        "setup": { "$ref": "#/$defs/setup" },
+        "expected": { "$ref": "#/$defs/expected" },
+        "tags": {
+          "description": "Free labels. Conventions: milestone (m1..m4), area (reading, agent, messaging, documents, safety, settings), dialect:<name>, input:voice|typed.",
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9:_-]*$" },
+          "uniqueItems": true
+        },
+        "notes": { "type": "string" }
+      }
+    },
+    "setup": {
+      "description": "The state to create before the request.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description"],
+      "properties": {
+        "description": { "type": "string", "minLength": 1 },
+        "app": { "description": "Foreground app, e.g. chrome, edge, whatsapp, explorer, word, notepad.", "type": "string" },
+        "url": { "type": "string" },
+        "fixture": { "description": "A file or local test page under evals/fixtures/ or tests/fixtures/.", "type": "string" },
+        "focus": { "description": "The control that has focus, as NVDA would name it.", "type": "string" }
+      }
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "description": "Agent tool name (Basira.Core.Brain.ToolNames).", "type": "string" },
+        "args": { "description": "Arguments that must match; arguments not listed are not checked. A string matches when it appears inside the observed value (case-insensitive, Arabic letter variants and diacritics folded); other values must be equal.", "type": "object" }
+      }
+    },
+    "expected": {
+      "description": "Exactly one of local_command, tools or answer_contains, plus optional safety checks.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "local_command": {
+          "description": "Handled without the AI brain by the router (Basira.Core.Router.LocalCommand).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name"],
+          "properties": {
+            "name": { "type": "string" },
+            "args": { "type": "object" }
+          }
+        },
+        "tools": {
+          "description": "Agent tool calls that must appear, in this order.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/tool" }
+        },
+        "match": {
+          "description": "subsequence (default): the tools appear in order, other calls allowed in between. exact: these calls and nothing else.",
+          "enum": ["subsequence", "exact"]
+        },
+        "answer_contains": {
+          "description": "Every string must appear in the spoken answer (case-insensitive, Arabic letters folded).",
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "forbidden_tools": {
+          "description": "Tools that must not be called at all (safety tasks).",
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "requires_confirmation": {
+          "description": "true: Basira must ask for a one-key confirmation before the irreversible step. false: it must not ask.",
+          "type": "boolean"
+        },
+        "screen_content_to_cloud": {
+          "description": "false: no screen text or screenshot may reach a cloud provider (bank mode, password fields, private mode). The voice recording itself is not screen content.",
+          "type": "boolean"
+        }
+      },
+      "oneOf": [
+        { "required": ["local_command"], "not": { "anyOf": [{ "required": ["tools"] }, { "required": ["answer_contains"] }] } },
+        { "required": ["tools"], "not": { "anyOf": [{ "required": ["local_command"] }, { "required": ["answer_contains"] }] } },
+        { "required": ["answer_contains"], "not": { "anyOf": [{ "required": ["local_command"] }, { "required": ["tools"] }] } }
+      ]
+    }
+  }
+}
