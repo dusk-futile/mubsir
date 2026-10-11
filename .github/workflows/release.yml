@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+env:
+  CI: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  DOTNET_NOLOGO: '1'
+
+jobs:
+  windows:
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+        with:
+          global-json-file: global.json
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13'
+
+      - name: Build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $name = "Mubsir-$env:GITHUB_REF_NAME-win-x64"
+          $root = "out/$name"
+          dotnet restore src/Mubsir.App
+          dotnet publish src/Mubsir.App -c Release -r win-x64 --no-restore -o "$root/Mubsir"
+          python scripts/build-addon.py --out-dir $root
+          if (-not (Test-Path "$root/Mubsir/Mubsir.exe")) { throw 'Mubsir.exe was not published' }
+          Copy-Item scripts/setup.ps1, LICENSE $root
+          Compress-Archive -Path "$root/*" -DestinationPath "out/$name.zip"
+          $hash = (Get-FileHash "out/$name.zip" -Algorithm SHA256).Hash.ToLower()
+          [IO.File]::WriteAllText("$PWD/out/$name.zip.sha256", "$hash  $name.zip`n")
+          "ASSET=$name" | Out-File $env:GITHUB_ENV -Append
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          gh release create $env:GITHUB_REF_NAME "out/$env:ASSET.zip" "out/$env:ASSET.zip.sha256" `
+            --title "Mubsir $env:GITHUB_REF_NAME" --notes-file .github/release-notes.md --prerelease --verify-tag
