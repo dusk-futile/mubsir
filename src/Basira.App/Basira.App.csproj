@@ -24,7 +24,14 @@
   <ItemGroup>
     <PackageReference Include="Anthropic" Version="12.55.0" />
     <PackageReference Include="Interop.UIAutomationClient" Version="10.19041.0" />
+    <PackageReference Include="PdfPig" Version="0.1.16" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Native helpers shipped next to Basira.exe (e.g. NVDA's controller client, LGPL-2.1). -->
+    <None Include="native\x64\*.dll" CopyToOutputDirectory="PreserveNewest" Link="%(Filename)%(Extension)" />
+    <None Include="native\*.txt" CopyToOutputDirectory="PreserveNewest" Link="licenses\%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>
