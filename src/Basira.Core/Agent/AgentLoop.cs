@@ -28,6 +28,8 @@ public sealed class AgentLoop(
     /// <summary>Reason code used when the policy itself fails; the action is refused.</summary>
     public const string PolicyErrorReason = "blocked.policy_error";
 
+    public const string PrepareFailedResult = "error: this tool call could not be prepared";
+
     public async Task<AgentOutcome> RunAsync(AgentRequest request, AgentControl control, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -208,7 +210,12 @@ public sealed class AgentLoop(
         }
         catch (Exception e) when (e is not OutOfMemoryException)
         {
-            return (new ToolResult(call.Id, "error: this tool call could not be prepared", IsError: true), false);
+            return (new ToolResult(call.Id, PrepareFailedResult, IsError: true), false);
+        }
+
+        if (prepared?.Action is null)
+        {
+            return (new ToolResult(call.Id, PrepareFailedResult, IsError: true), false);
         }
 
         PolicyDecision decision;
