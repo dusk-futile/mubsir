@@ -19,9 +19,17 @@ public interface IToolExecutor
     /// </summary>
     Task<PreparedAction> PrepareAsync(ToolCall call, TaskContext task, CancellationToken ct);
 
+    /// <summary>
+    /// Runs an allowed or confirmed action. Only the reading tools (see <see cref="PolicyEngine.MarksUntrusted"/>) may
+    /// return screen content; if another tool's result carries page or message text, the executor must set
+    /// <see cref="TaskContext.UntrustedContentSeen"/> itself.
+    /// </summary>
     Task<ToolResult> ExecuteAsync(PreparedAction action, CancellationToken ct);
 
-    /// <summary>Bank mode: focus the real button and read the amount and payee locally so the user presses Enter.</summary>
+    /// <summary>
+    /// Bank mode: focus the real button and read the amount and payee locally so the user presses Enter.
+    /// This speaks to the user itself: the loop ends the task afterwards and sends nothing more to the cloud.
+    /// </summary>
     Task<ToolResult> HandOffAsync(PreparedAction action, CancellationToken ct);
 
     /// <summary>One short phrase spoken before the step, e.g. "فتح يوتيوب".</summary>

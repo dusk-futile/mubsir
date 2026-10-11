@@ -91,6 +91,13 @@ public sealed class PolicyEngine
             return keys;
         }
 
+        // Enter on a focused file, link or button opens it just like invoke does.
+        if (tool == ToolNames.PressKeys && chords.Any(IsEnterChord) && (a.Target is null || !IsEditable(a.Target))
+            && CheckInvokeTarget(a) is { } opened)
+        {
+            return opened;
+        }
+
         var specific = tool switch
         {
             ToolNames.OpenUrl => CheckOpenUrl(a),
@@ -176,6 +183,12 @@ public sealed class PolicyEngine
         var t = a.Target;
         bool browser = a.Screen?.IsBrowser == true;
 
+        // The executor resolves file items (Explorer hides known extensions) to their real paths.
+        if (a.FilePaths.Any(PolicyRules.HasBlockedExtension))
+        {
+            return Block(ReasonCodes.Executable);
+        }
+
         var href = a.Url ?? (t is { Role: "link" } ? t.Value : null);
         if (PolicyRules.TryParseUrl(href, allowSchemeless: false, out var url))
         {
@@ -199,6 +212,19 @@ public sealed class PolicyEngine
                     break; // in-page script, or a mail compose that is confirmed below
                 default:
                     return Block(ReasonCodes.UrlScheme); // search-ms:, ms-msdt:, shell: and other protocol handlers
+            }
+        }
+        else if (PolicyRules.LooseScheme(href) is { } scheme)
+        {
+            // An unparsable target, e.g. "ms-msdt:/id x" or "https://host/a b.exe".
+            if (scheme is not ("http" or "https" or "javascript" or "mailto" or "about"))
+            {
+                return Block(ReasonCodes.UrlScheme);
+            }
+
+            if (scheme is "http" or "https" && PolicyRules.HasBlockedExtension(href!.Split('?', '#')[0]))
+            {
+                return Block(ReasonCodes.Executable);
             }
         }
 
@@ -231,11 +257,8 @@ public sealed class PolicyEngine
             return Block(PolicyRules.HasBlockedExtension(name) ? ReasonCodes.Executable : ReasonCodes.Path);
         }
 
-        // A plain name goes to the app launcher; "notepad.exe" resolves like "notepad", scripts never do.
-        var ext = PolicyRules.ExtensionOf(name);
-        return ext is not null && ext is not ("exe" or "com") && PolicyRules.BlockedExtensions.Contains(ext)
-            ? Block(ReasonCodes.Executable)
-            : null;
+        // Only a plain app name goes to the app launcher; a file name ("setup.exe", "run.bat") is never launched.
+        return PolicyRules.HasBlockedExtension(name) ? Block(ReasonCodes.Executable) : null;
     }
 
     private static PolicyDecision? CheckTyping(AgentAction a, TaskContext task)
@@ -666,6 +689,8 @@ public sealed class PolicyEngine
     };
 
     private static bool IsEditable(UiNode node) => node.IsEditable || node.Role == "edit";
+
+    private static bool IsEnterChord(string chord) => chord == "enter" || chord.EndsWith("+enter", StringComparison.Ordinal);
 
     private static bool IsCancelOrHelp(string? name) =>
         PolicyText.Tokens(name).Any(t => t is "cancel" or "help" or "الغاء" or "تعليمات" or "مساعده");

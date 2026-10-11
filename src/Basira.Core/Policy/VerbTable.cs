@@ -30,7 +30,7 @@ public static class VerbTable
     private static readonly (string[] Phrase, ConfirmKind Kind)[] Phrases = BuildPhrases(
         (ConfirmKind.Transfer, ["send money", "حول الآن", "حول المبلغ", "حول الأموال", "حول الفلوس", "حول الرصيد"]),
         (ConfirmKind.Pay, ["pay now"]),
-        (ConfirmKind.Buy, ["buy now", "place order", "order now", "complete purchase", "check out", "اطلب الآن", "إتمام الشراء"]),
+        (ConfirmKind.Buy, ["buy now", "place order", "place your order", "place my order", "order now", "complete purchase", "check out", "اطلب الآن", "إتمام الشراء"]),
         (ConfirmKind.Delete, ["move to trash", "move to bin", "move to recycle bin"]),
         (ConfirmKind.Submit, ["تأكيد الطلب"]),
         (ConfirmKind.SignOut, ["sign out", "log out", "log off", "sign off", "تسجيل الخروج"]),
@@ -95,12 +95,21 @@ public static class VerbTable
     /// </summary>
     internal static HashSet<ConfirmKind> UtteranceKinds(string? utterance) => Match(utterance, lenient: true);
 
-    private static readonly string[] LenientSendPrefixes = ["ابعت", "بعت", "ارسل", "ابعث", "رد", "قول", "قل", "اكتب"];
+    // Verb stems that take dialect suffixes freely ("ابعتله", "اكتبلها", "قوله").
+    private static readonly string[] LenientSendPrefixes = ["ابعت", "بعت", "ارسل", "ابعث", "قول", "اكتب"];
 
+    // Short stems that only count alone or with a pronoun suffix ("رد", "ردي", "قله"), not inside other words ("قليل").
+    private static readonly string[] ShortSendStems = ["رد", "قل"];
+    private static readonly string[] PronounSuffixes = ["", "ه", "ها", "هم", "ي", "لي", "له", "لها", "لهم", "ك", "لك", "ني", "نا", "لنا"];
+
+    // Verbs only. Nouns such as "message" or "email" do not count: "read the message" is not a request to send.
     private static readonly HashSet<string> LenientSendWords = new(StringComparer.Ordinal)
     {
-        "reply", "respond", "answer", "tell", "write", "message", "email", "رساله", "رسالة",
+        "reply", "respond", "answer", "tell", "write",
     };
+
+    // Nouns that are verbs at the start of a request: "email Sara that I am late", "message Ahmed".
+    private static readonly HashSet<string> ImperativeSendWords = new(StringComparer.Ordinal) { "email", "message", "text", "mail" };
 
     private static HashSet<ConfirmKind> Match(string? text, bool lenient)
     {
@@ -139,10 +148,19 @@ public static class VerbTable
                     kinds.Add(kind);
                 }
 
-                if (lenient && (LenientSendWords.Contains(v) || LenientSendPrefixes.Any(p => v.StartsWith(PolicyText.Fold(p), StringComparison.Ordinal))))
+                if (lenient && IsLenientSend(v))
                 {
                     kinds.Add(ConfirmKind.Send);
                 }
+            }
+        }
+
+        if (lenient)
+        {
+            int first = tokens[0] == "please" && tokens.Count > 1 ? 1 : 0;
+            if (ImperativeSendWords.Contains(tokens[first]))
+            {
+                kinds.Add(ConfirmKind.Send);
             }
         }
 
@@ -153,6 +171,11 @@ public static class VerbTable
 
         return kinds;
     }
+
+    private static bool IsLenientSend(string token) =>
+        LenientSendWords.Contains(token)
+        || LenientSendPrefixes.Any(p => token.StartsWith(PolicyText.Fold(p), StringComparison.Ordinal))
+        || ShortSendStems.Any(stem => PronounSuffixes.Any(s => token == stem + s));
 
     private static bool HasShaddaHawwil(string text)
     {

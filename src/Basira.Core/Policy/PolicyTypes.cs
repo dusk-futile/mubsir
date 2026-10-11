@@ -37,7 +37,10 @@ public sealed record AgentAction
     /// <summary>Normalized chord such as "enter", "ctrl+enter", "alt+s" or "win+r"; several chords may be space-separated.</summary>
     public string? KeyChord { get; init; }
 
-    /// <summary>Absolute source paths, resolved by the executor (library names like "Desktop" already expanded).</summary>
+    /// <summary>
+    /// Absolute source paths, resolved by the executor (library names like "Desktop" already expanded).
+    /// For invoke or Enter on a file item (e.g. in File Explorer, which hides known extensions) this is the file's real path.
+    /// </summary>
     public IReadOnlyList<string> FilePaths { get; init; } = [];
 
     /// <summary>Absolute destination path for move, copy and rename, resolved by the executor.</summary>

@@ -137,6 +137,21 @@ public class VerbTableTests
     public void UtteranceKindsAreLenient(string utterance, ConfirmKind kind) =>
         Assert.Contains(kind, VerbTable.UtteranceKinds(utterance));
 
-    [Fact]
-    public void ReadingRequestNamesNoKind() => Assert.Empty(VerbTable.UtteranceKinds("اقرأ لي الرسائل الجديدة"));
+    [Theory]
+    [InlineData("email Sara that I am late")]
+    [InlineData("please message Ahmed")]
+    [InlineData("ردي عليها")]
+    [InlineData("قله إني جاي")]
+    [InlineData("اكتبلها شكرا")]
+    public void ImperativeAndDialectSendsCount(string utterance) =>
+        Assert.Contains(ConfirmKind.Send, VerbTable.UtteranceKinds(utterance));
+
+    [Theory]
+    [InlineData("اقرأ لي الرسائل الجديدة")]
+    [InlineData("read my last email")]
+    [InlineData("read the message from Ahmed")]
+    [InlineData("اقرأ الرسالة الأخيرة")]
+    [InlineData("اقرأ قليلا من الصفحة")]
+    [InlineData("what is on the screen")]
+    public void ReadingRequestsNameNoKind(string utterance) => Assert.Empty(VerbTable.UtteranceKinds(utterance));
 }

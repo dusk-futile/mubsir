@@ -157,6 +157,27 @@ internal static class PolicyRules
         return true;
     }
 
+    /// <summary>
+    /// The scheme a browser would see, even when the text does not parse: browsers drop tabs and newlines anywhere
+    /// and spaces or control characters at the ends ("java\tscript:" is javascript:). Null for no scheme or a drive letter.
+    /// </summary>
+    public static string? LooseScheme(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return null;
+        }
+
+        var s = new string(raw.Where(c => c is not ('\t' or '\n' or '\r')).ToArray()).Trim().Trim('\0');
+        int colon = s.IndexOf(':');
+        if (colon < 2 || !char.IsAsciiLetter(s[0]) || !s[..colon].All(c => char.IsAsciiLetterOrDigit(c) || c is '+' or '-' or '.'))
+        {
+            return null;
+        }
+
+        return s[..colon].ToLowerInvariant();
+    }
+
     // ---------------------------------------------------------------- paths
 
     private static readonly FrozenSet<string> DeniedSegments = new[]

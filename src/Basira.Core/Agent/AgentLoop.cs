@@ -25,6 +25,9 @@ public sealed class AgentLoop(
     public const string DeclinedResult = "declined by user";
     public const string BlockedPrefix = "blocked: ";
 
+    /// <summary>Reason code used when the policy itself fails; the action is refused.</summary>
+    public const string PolicyErrorReason = "blocked.policy_error";
+
     public async Task<AgentOutcome> RunAsync(AgentRequest request, AgentControl control, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -42,18 +45,26 @@ public sealed class AgentLoop(
 
         bool quick = request.Options.Mode == BrainMode.QuickAnswer;
         var options = quick ? request.Options with { Tools = [] } : request.Options;
-        long deadline = clock.NowMs + Math.Max(1, request.MaxSeconds) * 1000L;
-        var state = new RunState();
+        var state = new RunState(clock.NowMs + Math.Max(1, request.MaxSeconds) * 1000L);
         IBrainSession? session = null;
         try
         {
-            await control.WaitIfPausedAsync(ct).ConfigureAwait(false);
-            session = brain.StartSession(options);
+            await WaitIfPausedAsync(control, state, ct).ConfigureAwait(false);
+            try
+            {
+                session = brain.StartSession(options);
+            }
+            catch (Exception e) when (e is not OutOfMemoryException and not OperationCanceledException)
+            {
+                return new AgentOutcome(AgentEnd.BrainError, 0, BrainErrorKind.Other);
+            }
+
             BrainInput input = new UserTurn(request.Utterance, request.InitialContextText, request.InitialImage);
 
             while (true)
             {
                 var turn = await RunTurnAsync(session, input, ct).ConfigureAwait(false);
+                ct.ThrowIfCancellationRequested(); // a session may end its stream quietly on cancellation
                 if (turn.Error is { } error)
                 {
                     if (turn.Text.Length > 0)
@@ -81,7 +92,7 @@ public sealed class AgentLoop(
                     return new AgentOutcome(AgentEnd.StepLimit, steps);
                 }
 
-                if (clock.NowMs >= deadline)
+                if (clock.NowMs - state.PausedMs >= state.Deadline)
                 {
                     narrator.Narrate(AgentText.TimeLimit(lang), NarrationKind.Warning);
                     return new AgentOutcome(AgentEnd.TimeLimit, steps);
@@ -99,7 +110,7 @@ public sealed class AgentLoop(
                     }
                 }
 
-                await control.WaitIfPausedAsync(ct).ConfigureAwait(false);
+                await WaitIfPausedAsync(control, state, ct).ConfigureAwait(false);
                 input = new ToolResults(results);
             }
         }
@@ -171,10 +182,18 @@ public sealed class AgentLoop(
         return new TurnResult(calls, text.ToString(), error);
     }
 
+    /// <summary>Waits while paused; the paused time does not count toward the task's time limit.</summary>
+    private async Task WaitIfPausedAsync(AgentControl control, RunState state, CancellationToken ct)
+    {
+        long start = clock.NowMs;
+        await control.WaitIfPausedAsync(ct).ConfigureAwait(false);
+        state.PausedMs += Math.Max(0, clock.NowMs - start);
+    }
+
     private async Task<(ToolResult Result, bool Stop)> HandleCallAsync(
         ToolCall call, TaskContext task, AgentControl control, RunState state, CancellationToken ct)
     {
-        await control.WaitIfPausedAsync(ct).ConfigureAwait(false);
+        await WaitIfPausedAsync(control, state, ct).ConfigureAwait(false);
         ct.ThrowIfCancellationRequested();
         var lang = task.Lang;
 
@@ -192,7 +211,16 @@ public sealed class AgentLoop(
             return (new ToolResult(call.Id, "error: this tool call could not be prepared", IsError: true), false);
         }
 
-        var decision = policy.Evaluate(prepared.Action, task);
+        PolicyDecision decision;
+        try
+        {
+            decision = policy.Evaluate(prepared.Action, task);
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            decision = new PolicyDecision(ActionTier.Block, PolicyErrorReason); // fail closed
+        }
+
         ToolResult result;
         bool stop = false;
         switch (decision.Tier)
@@ -231,7 +259,7 @@ public sealed class AgentLoop(
 
                 narrator.Play(Earcon.NeedsConfirmation);
                 var facts = decision.Facts ?? new ConfirmationFacts { ToolName = prepared.Action.Tool };
-                var answer = await confirmer.ConfirmAsync(ConfirmationBuilder.Build(facts, lang), ct).ConfigureAwait(false);
+                var answer = await ConfirmAsync(ConfirmationBuilder.Build(facts, lang), ct).ConfigureAwait(false);
                 if (answer == ConfirmOutcome.Accepted)
                 {
                     result = await ExecuteAsync(prepared, call, task, ct).ConfigureAwait(false);
@@ -275,6 +303,23 @@ public sealed class AgentLoop(
         }
 
         return (result, stop);
+    }
+
+    /// <summary>Asks the user; a confirmer that fails counts as no answer (fail closed).</summary>
+    private async Task<ConfirmOutcome> ConfirmAsync(string prompt, CancellationToken ct)
+    {
+        try
+        {
+            return await confirmer.ConfirmAsync(prompt, ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            return ConfirmOutcome.TimedOut;
+        }
     }
 
     private async Task<ToolResult> ExecuteAsync(PreparedAction prepared, ToolCall call, TaskContext task, CancellationToken ct)
@@ -336,8 +381,13 @@ public sealed class AgentLoop(
         return sb.ToString();
     }
 
-    private sealed class RunState
+    private sealed class RunState(long deadline)
     {
+        /// <summary>Clock time (ms) after which no new step starts, not counting paused time.</summary>
+        public long Deadline { get; } = deadline;
+
+        public long PausedMs { get; set; }
+
         public int Blocks { get; set; }
 
         public HashSet<string> Declined { get; } = new(StringComparer.Ordinal);

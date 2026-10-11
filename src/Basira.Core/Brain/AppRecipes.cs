@@ -58,21 +58,23 @@ public static class AppRecipes
             + "Ctrl+Shift+N makes a new folder. Never open program or script files (.exe, .msi, .bat, .ps1, .lnk and similar).",
     }.ToFrozenDictionary(StringComparer.Ordinal);
 
+    // Whole words only, so "Knowledge base" is not Edge and "Password manager" is not Word.
     private static readonly (string Alias, string Key)[] Aliases =
     [
-        ("whatsapp", WhatsApp), ("واتساب", WhatsApp), ("واتس", WhatsApp),
+        ("whatsapp", WhatsApp), ("واتساب", WhatsApp), ("واتس", WhatsApp), ("الواتس", WhatsApp), ("الواتساب", WhatsApp),
         ("gmail", Gmail), ("جيميل", Gmail), ("google mail", Gmail),
-        ("outlook", Outlook), ("hotmail", Outlook), ("أوتلوك", Outlook), ("اوتلوك", Outlook),
-        ("youtube", YouTube), ("يوتيوب", YouTube),
-        ("word", Word), ("وورد", Word), ("ورد", Word),
-        ("explorer", FileExplorer), ("file explorer", FileExplorer), ("مستكشف", FileExplorer), ("الملفات", FileExplorer),
-        ("chrome", Browser), ("edge", Browser), ("browser", Browser), ("كروم", Browser), ("جوجل كروم", Browser),
-        ("ايدج", Browser), ("إيدج", Browser), ("المتصفح", Browser),
+        ("outlook", Outlook), ("hotmail", Outlook), ("olk", Outlook), ("أوتلوك", Outlook), ("اوتلوك", Outlook),
+        ("youtube", YouTube), ("يوتيوب", YouTube), ("اليوتيوب", YouTube),
+        ("word", Word), ("winword", Word), ("وورد", Word), ("الوورد", Word),
+        ("explorer", FileExplorer), ("مستكشف الملفات", FileExplorer), ("الملفات", FileExplorer),
+        ("chrome", Browser), ("edge", Browser), ("msedge", Browser), ("browser", Browser), ("كروم", Browser),
+        ("ايدج", Browser), ("إيدج", Browser), ("المتصفح", Browser), ("متصفح", Browser),
     ];
 
-    /// <summary>Recipe keys for the user's app names (case-insensitive, Arabic or English), in <see cref="Order"/>.</summary>
+    /// <summary>Recipe keys for the user's app names (case-insensitive, Arabic or English, whole words), in <see cref="Order"/>.</summary>
     public static IReadOnlyList<string> Match(IEnumerable<string> appNames)
     {
+        ArgumentNullException.ThrowIfNull(appNames);
         var wanted = new HashSet<string>(StringComparer.Ordinal);
         foreach (var raw in appNames)
         {
@@ -81,15 +83,15 @@ public static class AppRecipes
                 continue;
             }
 
-            var name = raw.Trim().ToLowerInvariant();
             if (All.ContainsKey(raw.Trim()))
             {
                 wanted.Add(raw.Trim());
             }
 
+            var words = Words(raw);
             foreach (var (alias, key) in Aliases)
             {
-                if (name.Contains(alias, StringComparison.Ordinal))
+                if (words.Contains(Words(alias), StringComparison.Ordinal))
                 {
                     wanted.Add(key);
                 }
@@ -97,5 +99,29 @@ public static class AppRecipes
         }
 
         return Order.Where(wanted.Contains).ToList();
+    }
+
+    /// <summary>Lowercase words separated and surrounded by single spaces: "WhatsApp.exe" -> " whatsapp exe ".</summary>
+    private static string Words(string s)
+    {
+        var sb = new System.Text.StringBuilder(s.Length + 2).Append(' ');
+        foreach (var c in s.ToLowerInvariant())
+        {
+            if (char.IsLetterOrDigit(c))
+            {
+                sb.Append(c);
+            }
+            else if (sb[^1] != ' ')
+            {
+                sb.Append(' ');
+            }
+        }
+
+        if (sb[^1] != ' ')
+        {
+            sb.Append(' ');
+        }
+
+        return sb.ToString();
     }
 }
