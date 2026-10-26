@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Mubsir.App/Mubsir.App.csproj" />
+    <Project Path="src/Mubsir.Core/Mubsir.Core.csproj" />
+  </Folder>
+</Solution>
