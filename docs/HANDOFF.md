@@ -56,12 +56,22 @@ Update this file at the end of every session. Newest entry on top.
 - **Owner to-do:** upload `assets/brand/social-preview.png` in GitHub → Settings → General →
   Social preview (GitHub has no API for it).
 
-### Next session
-1. Owner reviews the prototype link. Fix anything they flag in the look or motion.
-2. Then the backend, following `docs/EXECUTION.md` (owner: "show me first the UI, then work on the
-   backend").
-3. Later, for the native overlay: port the notch and Hudhud to WPF with the same springs.
+- **Also opened in this session:**
+  - #10 fixes CI by pinning the SDK to 10.0.401. Merge it first; #9 and #11 need it for green checks.
+  - #11 is Phase 1's relay, server side, in `cloud/proxy/`: register, Messages pass-through with
+    metering, speech with an R2 cache, limits, budget alerts, and pause and block switches. It has
+    37 tests and its numbers are in `docs/RESULTS.md`.
 
+### Next session
+1. Merge #10, then #9 and #11.
+2. Owner: deploy the relay (steps in `cloud/proxy/README.md`; needs the Cloudflare login and the
+   Anthropic and Fish keys as Wrangler secrets), or let a session do it with a Cloudflare API token.
+3. App side of Phase 1 (on a Windows PC): register on first start and keep the token with the other
+   DPAPI secrets; point `AnthropicClient` (`ClaudeBrain.cs`) at the relay with the token as its key;
+   speak through `/v1/tts`; handle `quota_exceeded` / `budget_exhausted` / `service_paused` with
+   the quiet fallback. Phase 1 is done when the zip runs with zero keys and no account.
+4. Phase 0 spikes (listening test, STT bake-off) need the owner's keys and testers.
+5. Look and motion: fix anything the owner flags on the prototype link.
 ---
 
 ## 2026-11-04 (end of planning chat)
