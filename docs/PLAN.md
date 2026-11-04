@@ -4,8 +4,20 @@
 > **Blind mode** talks you through the PC with no visuals. **Normal mode** shows a small "notch",
 > points at things on screen and draws on it to teach you.
 >
-> Status: plan only. No code in this document has been written yet.
-> Date: 2026-11-04.
+> Status: plan approved by the owner on 2026-11-04. No code from this plan has been written yet.
+> Next step: see [`docs/HANDOFF.md`](HANDOFF.md).
+
+### Decisions locked (2026-11-04)
+
+| Topic | Decision |
+| --- | --- |
+| Price | **Completely free** for users. The owner pays all AI and voice costs through one server |
+| Distribution | Owner sends a **zip**. Unzip, run, it is already connected to the owner's server. No keys, no account, no sign-in |
+| Platform | **Windows only** (10 22H2 and 11) |
+| Voice | **ElevenLabs everywhere** (conversation and reading). Windows voices only as an emergency fallback |
+| Access | **Full access**, including passwords and payments, behind a deliberate confirmation gesture (§6) |
+| Name | Mubsir · مُبصِر |
+| Repository | Private; everything (plan, decisions, handoff) lives in the repo so work can continue from any device |
 
 ---
 
@@ -89,7 +101,7 @@ The existing Mubsir code (29k lines of C#) already has #1, #2 and #4 in part (§
 | Pointing | Speaks location instead ("the Save button, bottom right") | Blue pointer flies to the element and pulses |
 | Teaching | Explains in words, reads maths aloud properly | Draws on screen: arrows, highlights, handwritten-style working for maths, underlined grammar |
 | Reading | Book reader: pages, chapters, sentences, timed reading, bookmarks | Same, with the current line highlighted on screen |
-| Confirmations | Spoken: "I'm about to send this email to Ahmed. Say yes or press Enter." | Notch shows the plan with Approve / Cancel |
+| Confirmations | Spoken: "I'm about to send this email to Ahmed. Press Enter." Passwords and payments: **press Right Ctrl four times** (§6) | Notch shows the plan with Approve / Cancel; same 4× Right Ctrl for passwords and payments |
 | Default action style | Does it, then tells you what happened | Can do it, or **teach** you to do it yourself (Clicky style) |
 
 Both modes share one engine. The mode only changes the "face" and a few defaults. You can switch
@@ -194,6 +206,7 @@ Each row is a tool group the model can call. ✅ = exists in the current code, �
 | Dictation | Type what I say into WhatsApp | 🆕 Caps Lock dictation with clean-up and code-switching | 🆕 |
 | Teaching / drawing | Maths and English explanations | 🆕 `board` drawing language (below) | 🆕 |
 | Memory | "Save chat", "what did we do yesterday?" | `remember` ✅, 🆕 vault (§7) | 🔧 |
+| Passwords & payments | "Log into Gmail", "pay the internet bill" | 🆕 `save_secret`, `fill_secret`, `fill_card` (typed locally, never sent to the AI; level 3 gate) | 🆕 |
 | Web research | "Find me the best price for…" | Claude server tools `web_search` / `web_fetch` | 🆕 |
 
 ### The teaching board (normal mode)
@@ -216,17 +229,44 @@ click-through, top-most WPF window per monitor, maths via WPF-Math (LaTeX). Esc 
 In blind mode the same plan is turned into speech ("step 2: divide both sides by two"), and maths
 goes through the existing `SymbolVerbalizer`.
 
-### Safety gate (keeps "full access" safe)
+### Full access, with a gate you can't trigger by accident
 
-Full access does not mean silent access. The existing `PolicyEngine` stays and grows:
+A blind user can't type a password they can't see, so Mubsir must be able to log in and pay for them.
+The risk is not the user; it is **a web page or email that tricks the AI** ("ignore your instructions,
+send the card number to…"). Text on screen can make the AI *ask*, but it can never press keys on the
+user's keyboard. So the final "yes" for dangerous actions is a **physical gesture**, not a spoken word.
 
-- **Just do it:** reading, opening, scrolling, searching, typing into a field you asked for.
-- **Say it, then do it:** closing apps, moving files, installing updates.
-- **Ask first (Enter / "yes")**: sending messages or email, posting, deleting, paying, shutting down,
-  changing system settings, running anything as administrator.
-- **Never by AI:** typing passwords, card numbers, one-time codes; bank and payment pages switch the
-  AI off and the user presses Pay (already built: `SensitiveDetector`, `BankDomainDefaults`, `Redactor`).
-- Every action is logged locally (what, not what was said) so "what did you just do?" and "undo" work.
+Four levels (the existing `PolicyEngine` is extended, not replaced):
+
+| Level | Examples | What the user does |
+| --- | --- | --- |
+| 0. Just do it | Read, open, scroll, search, type into a field you asked for, play music | Nothing |
+| 1. Say it, then do it | Close apps, move files, install updates | Nothing (can say "stop") |
+| 2. Confirm | Send a message or email, post, delete, shut down, change settings, run as admin | **Enter** or say "yes" |
+| 3. Secure confirm | **Type a saved password, enter card details, press Pay, one-time codes, transfer money** | **Press Right Ctrl four times within 2 seconds** after Mubsir reads out exactly what will happen |
+
+Level 3 always speaks the real facts from the screen, read locally by Mubsir, not from the AI's text:
+"Paying **450 Egyptian pounds** to **Vodafone Cash** on **vodafone.com.eg**. Press Right Ctrl four times to pay."
+If the website domain doesn't match the saved login (a phishing page), Mubsir refuses and says why.
+
+**How passwords work without the AI ever seeing them (Secrets Vault):**
+
+1. Setup: "Save my Gmail password." Mubsir opens a secure entry mode. The user either types it once
+   (each key is echoed by voice), or spells it aloud. Secure entry uses **on-device Windows speech
+   recognition only**, so the password never goes to the cloud. Mubsir reads it back for checking.
+2. It is stored in the Windows Credential Manager (encrypted with the user's Windows login), tied to the
+   site's domain, e.g. `accounts.google.com`.
+3. Later: "Log into Gmail." The AI calls `fill_secret("gmail")`. Mubsir checks the domain, asks for the
+   4× Right Ctrl gesture, then types the password **locally**. The AI only ever gets back "filled".
+4. Card numbers work the same way (`fill_card("visa")`), with the CVV asked for each time unless the
+   user chooses to save it.
+5. Screen text sent to the AI is still redacted (`Redactor`, `SensitiveDetector` already exist), so
+   passwords and card numbers visible on screen never leave the PC.
+
+The old rule "bank pages switch the AI off" becomes: **bank pages switch to level 3 for every action.**
+
+Every action is logged locally (what was done, never what was said or typed) so "what did you just do?"
+and "undo" work.
 
 ---
 
@@ -277,18 +317,25 @@ saved passwords.
 
 ## 8. First run: install and onboarding
 
-### Install (one file, no keys, no PowerShell)
+### Install (one zip, no keys, no PowerShell, no account)
 
-1. Download **`MubsirSetup.exe`** (signed, so Windows SmartScreen does not block it; we use
-   Azure Trusted Signing).
-2. The installer **speaks from the first second** (it plays its own audio, in Arabic and English) and
-   needs only Enter to continue. No admin prompt for the normal install.
+1. The owner sends **`Mubsir.zip`** (WhatsApp, Drive, a download link). Inside: `Mubsir Setup.exe` and
+   a short audio file "how to install" for anyone who needs a sighted helper.
+2. Running `Mubsir Setup.exe` **speaks from the first second** (it plays its own audio, in Arabic and
+   English) and needs only Enter to continue. No admin prompt for the normal install.
 3. It installs per-user with **Velopack** (C#-native, delta auto-updates, silent background updates,
-   rollback if an update fails).
-4. If NVDA is not present and the user is blind, it offers to install NVDA and the Mubsir Bridge add-on
+   rollback if an update fails). Updates come from the owner's server, so the zip only has to be sent once.
+4. On first start it **registers the device** with the owner's server automatically (§9). The zip contains
+   **no API keys**: only the server address.
+5. If NVDA is not present and the user is blind, it offers to install NVDA and the Mubsir Bridge add-on
    (existing `setup.ps1` logic moves into the installer).
-5. Mubsir registers itself to start at sign-in (Task Scheduler, already done by `setup.ps1`) and
+6. Mubsir registers itself to start at sign-in (Task Scheduler, already done by `setup.ps1`) and
    starts immediately.
+
+Code signing: an unsigned `.exe` downloaded from the internet triggers the Windows SmartScreen
+"Windows protected your PC" box, which a screen reader user can get stuck on. Plan for a signing
+certificate (Azure Trusted Signing, about $10/month) before the pilot. Until then, the audio guide in
+the zip explains "More info → Run anyway".
 
 ### Onboarding conversation (spoken, ~2 minutes)
 
@@ -310,49 +357,75 @@ The profile goes into the system prompt (`ProfileBlock` already exists), so "rea
 "read aloud, slowly, remember the page" for this user, and "explain this" means teaching level
 pitched to an English teacher.
 
-Account: a phone number or email sign-in by voice (one-time code read aloud from SMS/email is
-**typed by the user**, never by the AI). Free tier with a monthly limit, paid tier above it.
+No account, no sign-in: the device registration is invisible to the user.
 
 ---
 
-## 9. Cloud and cost
+## 9. Cloud and cost (free for users, paid by the owner)
 
-### Why a proxy is required
+### The server
 
-The current Mubsir asks users to paste two API keys into PowerShell. A blind, non-technical user
-cannot do that. Like Clicky, all keys live on our server:
+The zip must never contain an API key: anyone could unzip it, copy the key and spend the owner's money.
+All keys live on the owner's server, like Clicky does:
 
 ```
-Mubsir.exe ──HTTPS──▶ Mubsir Cloud (Cloudflare Workers)
+Mubsir.exe ──HTTPS──▶ Mubsir Cloud (Cloudflare Workers, owner's account)
+                       /register    → first start: device gets its own random token
                        /chat        → Anthropic Messages API (streaming)
                        /stt-token   → short-lived token for the STT websocket
-                       /tts         → ElevenLabs streaming
-                       /account     → sign-in, plan, usage
-                       Storage: accounts + usage counters only (Cloudflare D1 or Supabase)
+                       /tts         → ElevenLabs streaming (+ audio cache)
+                       /update      → Velopack update feed
+                       Storage: device tokens + usage counters only (Cloudflare D1 / KV)
+                       Secrets: ANTHROPIC_API_KEY, ELEVENLABS_API_KEY, STT key (Wrangler secrets)
 ```
 
-The proxy never stores audio, transcripts or screen text. It counts tokens and seconds for billing.
-Users who want to bring their own keys can still do that (keeps the current `--set-key` path).
+The server never stores audio, transcripts or screen text. It counts tokens and characters per device.
 
-### Voice providers
+### Protecting the owner's money (required because it is free)
 
-| Job | Primary | Fallback / offline |
+| Protection | Why |
+| --- | --- |
+| One token per device, created on first start | A leaked token can be switched off without breaking everyone |
+| **Daily caps per device** (e.g. 300 AI turns, 90 minutes of ElevenLabs audio), set from the server | One heavy user or a script can't run up the bill |
+| **Global monthly budget** with an alert at 50 % / 80 % and a hard stop at 100 % | No surprise bills |
+| Over-cap behaviour: keep working with Windows voices, say "premium voice is back tomorrow" | The user is never left without speech |
+| Invite codes (optional switch) | If the zip spreads beyond the people it was sent to |
+| Kill switch per device and for everyone | Abuse or a bug |
+| Also set spend limits in the Anthropic and ElevenLabs consoles | Second line of defence |
+
+### Voices: ElevenLabs everywhere
+
+Decision: ElevenLabs for everything, because it sounds natural and Windows voices sounded bad to the
+owner. Note: the voices that sounded bad were most likely the old SAPI voices. Windows 11 also has
+"natural" neural voices that are much better; they are the fallback when the daily cap is reached or
+the internet is down, not the main voice.
+
+| Job | ElevenLabs model | Why |
 | --- | --- | --- |
-| Speech-to-text | Streaming STT with Egyptian Arabic + English code-switching. **Bake-off in week 1** between the current Gemini path, ElevenLabs Scribe realtime, Deepgram and Soniox, on 50 real Egyptian/English recordings | Windows on-device recognition (English only, lower quality) |
-| Conversation voice | ElevenLabs streaming: Flash v2.5 for speed in English; test Multilingual v2 / v3 for Egyptian Arabic quality (early reports say Flash is weak in Arabic) | Windows OneCore / natural voices (already built) |
-| Long reading (books) | Windows natural voices by default (free, offline, unlimited); ElevenLabs as a paid "premium reader" option | — |
+| Conversation (short answers) | **Flash v2.5**, streaming websocket | Lowest delay (~75 ms model time) and half the price |
+| Arabic, especially Egyptian | **Multilingual v2 / v3**, test in week 1 | Early reports say Flash sounds weak in Arabic; pick per language after listening tests |
+| Reading books and documents | Same voices, with an **audio cache** | A page already read is replayed from disk, never paid twice |
+| Speech-to-text | Bake-off in week 1: current Gemini path, ElevenLabs Scribe realtime, Deepgram, Soniox on 50 real Egyptian/English recordings | Egyptian code-switching accuracy decides |
 
-Reason for the reading split: ElevenLabs bills per character. Reading a 300-page book with it
-would cost more than a month of all other usage, so long reading uses local voices unless the user
-chooses premium.
+### What it will cost (estimate, verify on elevenlabs.io/pricing)
 
-### Rough monthly cost for an active user (to verify in the pilot)
+Reported API list prices (October 2026): **Flash v2.5 ≈ $0.04 per 1,000 characters**,
+**Multilingual v2 / v3 ≈ $0.08 per 1,000 characters**. 1,000 characters ≈ 1 minute of speech.
 
-- Claude (mostly Haiku, some Sonnet): low single-digit dollars.
-- STT: depends on vendor; about an hour of speech per month for an active user.
-- TTS: the biggest variable; capped by plan.
+| User type | Speech per day | ElevenLabs / month | Claude (Haiku-first) / month | Total / month |
+| --- | --- | --- | --- | --- |
+| Light (questions, commands) | 10 min | ≈ $12 (Flash) – $24 (Multilingual) | < $1 | **≈ $13 – $25** |
+| Heavy reader (1 h of books daily) | 70 min | ≈ $85 – $170 | ≈ $1–2 | **≈ $85 – $170** |
 
----
+ElevenLabs is cheap **per sentence**, but **reading books is the expensive part**. For 10 pilot users
+that is roughly $150 – $1,000 a month depending on how much they read. Ways to bring it down, in order:
+
+1. Audio cache (same page never billed twice; shared across users for the same public book file).
+2. Flash v2.5 wherever the listening test says it is good enough, Multilingual only for Arabic if needed.
+3. A daily premium-audio cap, with Windows natural voices after it.
+4. Apply to ElevenLabs' programmes for non-profit / accessibility projects and ask Anthropic about
+   startup or non-profit credits. A free tool for blind Arabic speakers is a strong case. (Not verified
+   what is on offer today; check before the pilot.)
 
 ## 10. Staying light on old PCs
 
@@ -375,11 +448,11 @@ cost ledger, encrypted secret storage.
 
 | Keep as is | Rework | New |
 | --- | --- | --- |
-| `Mubsir.Core` text pipeline, policy engine, input state machine, context builder | Brain: add model router (Haiku → Sonnet), prompt caching, streaming-first speech | Cloud proxy + accounts |
+| `Mubsir.Core` text pipeline, input state machine, context builder | Brain: add model router (Haiku → Sonnet), prompt caching, streaming-first speech | Cloud proxy, device tokens, usage caps |
 | UIA reader/actions, OCR, document reader | Ears: provider interface + streaming STT bake-off winner | Normal mode: notch, pointer, teaching board (WPF) |
 | NVDA bridge add-on | Keys: tap/hold Right Ctrl, Caps Lock dictation, resume | Memory vault (§7), onboarding conversation |
-| Speech service (Windows voices) | Speech: streaming ElevenLabs path | Installer (Velopack, signed), auto-update |
-| Policy / bank safety | `MemoryStore` → vault | Tools: window, mouse, power, install_updates, startup_apps, disk_report, Spotify, web search |
+| Speech service (Windows voices, now the fallback) | Speech: streaming ElevenLabs path + audio cache | Installer (zip + Velopack), auto-update |
+| `Redactor`, `SensitiveDetector` | Policy engine: 4 levels, 4× Right Ctrl gesture; `MemoryStore` → vault | Secrets Vault; tools: window, mouse, power, install_updates, startup_apps, disk_report, Spotify, web search |
 
 Repository layout after the change:
 
@@ -393,7 +466,8 @@ cloud/
   proxy/              🆕 Cloudflare Worker (TypeScript)
 nvda-addon/
 tests/                🆕 Core unit tests + voice-latency harness
-docs/PLAN.md
+docs/          PLAN.md, HANDOFF.md
+CLAUDE.md     (instructions every Claude Code session reads first)
 ```
 
 ---
@@ -405,12 +479,12 @@ Each phase ends with something a blind tester can use. Weeks assume one full-tim
 | Phase | Weeks | Deliverable | Done when |
 | --- | --- | --- | --- |
 | **0. Spikes** | 1 | STT bake-off (Egyptian/English), ElevenLabs Arabic voice test, Haiku 5.5 tool-use + computer-use check, latency baseline on a 4 GB PC | Vendor choices written down with numbers |
-| **1. Cloud proxy** | 1–2 | Worker with `/chat`, `/stt-token`, `/tts`, sign-in, usage limits | App runs with **zero user keys** |
+| **1. Cloud proxy** | 1–2 | Worker with `/register`, `/chat`, `/stt-token`, `/tts` (+ cache), `/update`, per-device caps, budget alerts, kill switch | App from a zip runs with **zero keys and no account** |
 | **2. Live conversation** | 2–4 | Tap/hold Right Ctrl, streaming STT → Haiku → streaming TTS, barge-in, resume, 6 s follow-up window, local router | First word < 1.2 s on simple commands, interrupt < 150 ms |
-| **3. Model router + tools** | 4–6 | Haiku→Sonnet escalation, new tools (window, mouse, power, updates, startup apps, disk, Spotify, web search), safety gate updates | 50-task test list passes ≥ 90 % (open settings, find book, read TOC, go to page 1400, update then shut down…) |
+| **3. Model router + tools** | 4–6 | Haiku→Sonnet escalation, new tools (window, mouse, power, updates, startup apps, disk, Spotify, web search), 4-level safety gate, Secrets Vault with 4× Right Ctrl | 50-task test list passes ≥ 90 % (open settings, find book, read TOC, go to page 1400, update then shut down…) |
 | **4. Reading** | 5–7 | TOC, go to page, read N lines / N seconds, bookmarks per book, scanned Arabic PDF OCR | A 1,500-page PDF opens at page 1,400 in < 3 s |
 | **5. Memory vault** | 6–7 | Save chat, auto-save on shutdown, resume by date/topic, forget | "Yesterday at 6 PM" resumes correctly after a reboot |
-| **6. Onboarding + installer** | 7–9 | Speaking installer, Velopack updates, onboarding conversation, profile | A blind tester installs and finishes onboarding **alone** |
+| **6. Onboarding + installer** | 7–9 | `Mubsir.zip` with speaking installer, Velopack updates, onboarding conversation, profile | A blind tester installs from the zip and finishes onboarding **alone** |
 | **7. Normal mode** | 8–11 | Notch, pointer, teaching board, maths rendering, Caps Lock dictation | Sighted tester learns a new app with pointer guidance |
 | **8. Pilot** | 11–13 | 10 blind + 5 sighted users in Egypt, weekly fixes, cost per user measured | Testers keep using it for 2 weeks |
 
@@ -434,13 +508,17 @@ this repo can use them:
 
 ---
 
-## 14. Decisions I need from you
+## 14. Decisions
 
-1. **Business model:** free tier + subscription through our proxy (recommended), or users bring their own keys?
-2. **Platform:** Windows only for v1 (recommended; the current code and most blind users in Egypt are on Windows)?
-3. **Name:** keep "Mubsir / مُبصِر" for both modes?
-4. **Budget for voices:** OK to make ElevenLabs the default conversation voice and Windows voices the default book reader?
-5. **Pilot users:** can you find 10 blind testers (schools, associations) for phase 8?
+Decided on 2026-11-04: see "Decisions locked" at the top.
+
+Still open:
+
+1. **Monthly budget** the owner is willing to spend during the pilot. This sets the per-device daily caps (§9).
+2. **Pilot users:** can the owner find ~10 blind testers (schools, associations) for phase 8?
+3. **Code signing certificate** before the pilot (about $10/month) — recommended.
+4. **Distribution link:** the repo is private, so GitHub Releases can't be downloaded by testers. The zip
+   will be hosted on the owner's Cloudflare account (R2) next to the server, or shared by Drive/WhatsApp.
 
 ## Sources
 
@@ -449,4 +527,5 @@ this repo can use them:
 - Agent Reach: [Panniantong/Agent-Reach](https://github.com/Panniantong/Agent-Reach) (MIT)
 - REA: [morluto/rea](https://github.com/morluto/rea) (MIT)
 - ElevenLabs models: [elevenlabs.io/docs/overview/models](https://elevenlabs.io/docs/overview/models)
+- ElevenLabs API prices (third-party summaries, Oct 2026): [cartesia.ai](https://www.cartesia.ai/learn/elevenlabs-pricing), [texttolab.com](https://texttolab.com/blog/elevenlabs-pricing), [micdrop.dev](https://micdrop.dev/blog/elevenlabs-api-pricing-voice-agent)
 - Claude model IDs and prices: Anthropic API reference, as of 2026-10-06
