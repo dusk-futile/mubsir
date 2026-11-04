@@ -17,7 +17,10 @@
 | Voice | **Fish Audio (hosted API) is the lead choice**, confirmed by a blind listening test in week 1 against ElevenLabs, Azure and Google. Two voice jobs: conversation and reading. Windows voices only as an emergency fallback (§9) |
 | Access | **Full access**, including passwords and payments, behind a deliberate confirmation gesture (§6) |
 | Name | Mubsir · مُبصِر |
-| Repository | Private; everything (plan, decisions, handoff) lives in the repo so work can continue from any device |
+| Repository | **Stays public** (making it private would permanently erase its stars and watchers). Everything (plan, decisions, handoff) lives in the repo. Never commit keys or secrets |
+| Authorship | Every commit is authored by **dusk-futile** only, with no AI co-author lines |
+| Identity | **Hudhud (the hoopoe)** is Mubsir's character (`docs/BRAND.md`). In normal mode it lives in the **bottom-right corner** above the taskbar. Prototype: `prototypes/hudhud-companion/` |
+| Code base | The build may restructure or replace old code freely, keeping only the best parts; the repo itself (and its stars) is never deleted |
 
 ---
 
@@ -209,7 +212,11 @@ Each row is a tool group the model can call. ✅ = exists in the current code, �
 | --- | --- | --- | --- |
 | Screen reading | "What's on this page?" "Read the titles" | `read_screen`, `describe_screen`, `ocr_window` | ✅ |
 | UI control | Click, type, scroll, focus, menus, maximise | `invoke`, `set_text`, `type_text`, `press_keys`, `scroll`, `focus`, 🆕 `window` (max/min/move/close) | ✅🔧 |
-| Raw mouse | "Drag this here", apps with no UIA | 🆕 `mouse` (move, click, drag, coordinates from UIA or computer-use) | 🆕 |
+| Raw mouse | "Drag this here", apps with no UIA | 🆕 `mouse` (move, click, double/right click, drag, hover, scroll at a point; targets from UIA or computer-use) | 🆕 |
+| Windows & layout | "Make it full screen", "put it in the top left", "split screen with Word", "make it smaller", "move it to the other monitor" | 🆕 `window`: maximise, minimise, restore, snap (left/right/quarters), resize, move, monitor, always-on-top, close | 🆕 |
+| Websites | "Search Google for…", "open the third result", "go back", "fill this form", "zoom in" | Browser via UIA + keyboard; links, buttons, forms, tabs, back/forward, zoom; screenshot + computer-use only when the page has no accessible names | 🔧 |
+| Settings | "Turn on dark mode", "change the display scale", "connect to my Wi-Fi" | `open_settings` with direct `ms-settings:` pages, then UIA on the page; system changes are level 2 | 🔧 |
+| Text editing | "Select this paragraph", "copy it", "paste in WhatsApp", "undo" | Selection, clipboard, keyboard shortcuts through UIA text patterns | 🔧 |
 | Apps & web | "Open settings", "open the browser and search" | `open_app`, `open_url`, `browse_search`, `open_settings`, `switch_to` | ✅ |
 | Files | "Open the book about tigers", "which one is newest?" | `find_files`, `list_folder`, `move/copy/rename/recycle` | ✅ |
 | Books & documents | Table of contents, "book number three", go to page 1400, read 2 lines, read for 30 s | `read_document` (PDF/DOCX/EPUB/TXT), 🔧 `toc`, 🔧 `goto_page`, 🔧 `read_for(seconds|lines|sentences)`, bookmarks (`ReadingPositions`) | ✅🔧 |
@@ -242,6 +249,51 @@ Steps appear one at a time, synced with the spoken explanation. Rendering: a tra
 click-through, top-most WPF window per monitor, maths via WPF-Math (LaTeX). Esc clears the board.
 In blind mode the same plan is turned into speech ("step 2: divide both sides by two"), and maths
 goes through the existing `SymbolVerbalizer`.
+
+### The companion (normal mode): look, motion and how it is built
+
+Blind mode has no visuals at all. Normal mode has one small, beautiful thing: **Hudhud**, an animated
+hoopoe in a round badge in the **bottom-right corner** above the taskbar (owner's choice, 2026-11-04;
+it replaces the earlier "notch at the top" idea). When it has something to show, a dark glass card
+grows out of it to the left. Its crest opens when listening, its beak moves with the voice, and
+Clicky-style pointing flies from Hudhud to the target. **Working prototype:**
+`prototypes/hudhud-companion/index.html` (also published as a private link for the owner).
+Users can drag Hudhud to another corner; the position is remembered.
+
+| State | What the user sees | Motion |
+| --- | --- | --- |
+| Idle | Nothing, or a tiny 6 px dot (setting) | Fades out 1 s after the last activity |
+| Listening | Pill (≈ 200 × 36 px) with a live waveform from the microphone and the words appearing as they are recognised | Pill springs open from the dot; bars follow the mic level at 60 fps |
+| Thinking | A soft shimmer moving across the pill, one-line plan ("Opening Settings…") | Shimmer loop 1.2 s; text cross-fades |
+| Speaking | Waveform following Mubsir's own voice + live caption, word highlighted as it is spoken | Bars follow TTS output level |
+| Doing | Card with the steps ticking off: "✓ Opened Settings · Clicking Update…" | Each step slides in; tick draws itself |
+| Confirm | Card with the exact action and two buttons: Approve / Cancel (and the key hints) | Card springs to full height; buttons fade in last |
+| Reading | Book title, page, a thin progress ring; the current line is highlighted on the page itself | Ring fills smoothly; highlight glides line to line |
+| Teaching | Pill shrinks; the pointer flies to targets and the board draws step by step | Pointer flies on a curved (bezier) path, pulses, shows a label |
+| Offline / error | Pill turns amber with one short sentence | Gentle shake (off when "reduce motion" is on) |
+
+Motion rules:
+- Everything moves with **springs** (no straight-line timing): open ≈ 300 ms, close ≈ 220 ms, no bounce
+  that overshoots more than a few pixels. One thing moves at a time.
+- Respects Windows "Show animations" / reduce-motion: then only fades.
+- **Never steals focus or clicks**: the window is click-through except its buttons, top-most, on the
+  monitor with the mouse, DPI-aware, dark by default with a light theme.
+- Performance budget (for 4 GB PCs): GPU-composited, draws only while something moves, 0 % CPU when
+  idle, < 30 MB extra memory, the window is closed after 10 s of idle.
+
+How it is built:
+1. **Prototype first in HTML/CSS/JS**, using the `taste-skill` (design direction, no "AI-made" look) and
+   real-browser screenshots. All states above, on one page, published as a private link the owner can
+   open on a phone and click through.
+2. The owner picks a direction. Its colours, sizes, durations and spring values are written once into
+   `src/Mubsir.Overlay/motion-tokens.json`.
+3. **Native build in WPF** (.NET 10) reading those tokens: a layered transparent window
+   (`WS_EX_NOACTIVATE | WS_EX_TRANSPARENT`, buttons hit-testable), animations on the GPU. No web
+   engine inside the app, because a browser engine would add 100 MB+ of memory on a 4 GB PC.
+4. Tests: a scripted run through every state, recorded to GIF, with frame-rate, CPU and memory numbers.
+
+References to study (ideas only, our own code): Clicky's `OverlayWindow` (MIT), Ripple (MIT),
+Dynamic-Island-for-Windows by devcode90 (MIT). DynamicWin is CC-BY-SA, so look but don't copy code.
 
 ### Reading anything: two languages and strange symbols
 
@@ -287,11 +339,207 @@ TTS voice mangles or skips. Mubsir handles them itself, before the voice sees th
    garbage ("fYnim"). Mubsir checks each page: if letters are unknown, private-use (U+E000–F8FF) or
    don't form words, it sends **that page image** to Claude vision (Haiku first, Sonnet if unsure), which
    returns clean Unicode text with the IPA. The fixed page is cached so it is paid for once.
+   **Font map trick:** a legacy font maps the same wrong code to the same symbol on every page. After
+   vision fixes the first 1–3 broken pages, Mubsir learns that font's code → real symbol map and fixes
+   the rest of the book **locally, for free, and exactly** (no image guessing). Vision is used again only
+   for codes the map has not seen yet.
 5. **Never skip silently.** If a symbol is still unknown, Mubsir says "unknown symbol" and offers to
    spell its Unicode name, so the reader always knows something was there.
 
 Done when: a 30-page test set (phonology textbook, Arabic grammar book with tashkeel, maths worksheet,
 dictionary page, scanned PDF with legacy IPA font) is read with no skipped or wrong symbols.
+
+### Book preparation: process once, read many times
+
+Goal: a book on the PC should cost almost nothing to read again, with the same word-for-word accuracy,
+on a 4 GB RAM PC.
+
+**What actually costs money when reading** (so we cut the right thing):
+
+| Cost | When it happens | How preparation removes it |
+| --- | --- | --- |
+| Claude tokens | Only for broken pages (vision fix), missing table of contents, and questions | Fix each page **once**, cache it; answer questions from a local index, not the whole book |
+| Voice characters | Every time text is spoken | Speak each sentence **once**, keep the audio on disk |
+| Time | Opening a 1,500-page PDF, OCR | Done in the background, stored as a small prepared file |
+
+**Two levels of preparation** (so 400 books on a weak PC cost almost nothing):
+
+*Level 1 — library card, for every book on the PC (background, free, once per file):*
+title and author from the file's metadata, the first 2–3 pages, and the table of contents (PDF bookmarks
+or detected headings). Scanned books go through Windows' built-in OCR for those pages only. If a file has
+no usable title ("scan_0042.pdf"), Haiku names it **from that extracted text** (text, not images):
+≈ $0.0005 per book, ≈ $0.20 for 400 books, once. Cards are shared through the server, so a book that any
+user has already catalogued is identified instantly. See "Finding a book" below.
+
+*Level 2 — page window, only for the book that is open:*
+
+1. **Fingerprint** the file (SHA-256) and also each page's text, so the same page is recognised even in
+   a re-saved or different copy of the book.
+2. **Prepare only the current page, the previous page and the next page**: extract text (PDF text layer,
+   or Windows OCR for scanned pages; free, local), then **check it locally** (unknown or private-use
+   characters, non-words, text layer that disagrees with OCR). Only a page that fails goes to the server
+   for a Claude vision fix (Haiku; Sonnet if unsure). When the reader moves to page 35, page 36 is
+   prepared; page 33 is kept. Nothing else in the book is touched.
+3. **Structure**: table of contents, page numbers as printed in the book ("page 1400" means the printed
+   number), sentences and paragraphs, language runs (English / Arabic), symbol spans (IPA, maths).
+   Haiku is asked once only if the book has no usable TOC; the answer is stored in the library.
+4. **Local book file** (`.mvb`) in the vault folder: compressed text of the pages prepared so far +
+   structure + a small search index (SQLite FTS5) that grows as pages are read.
+5. **Before preparing anything, ask the server's library.** If the page (by its text fingerprint) was
+   already prepared or voiced by anyone, download it instead of paying again.
+6. **Audio only for what is actually read.** Voice is made sentence by sentence, at most **~30 seconds
+   ahead** of the reader (a few sentences), and **never past the end of what was asked**: "read pages
+   46 to 80" never voices page 81; "read the first quarter of the page" stops there. Worst-case waste
+   when the user stops: ~30 seconds of audio (≈ $0.01). Audio is saved on the PC as Opus (~10 MB per
+   hour of speech, disk cap 1 GB, oldest evicted first) and in the server library. Re-reading is free.
+7. **Reading amounts the user can ask for** (all understood in Arabic and English): a range of pages
+   ("46 to 80"), a part of a page ("first quarter", "the last paragraph"), N lines / sentences /
+   paragraphs, a section or chapter from the TOC, or a time ("read for 30 seconds", "for 10 minutes").
+   The reader stops exactly there and says where it stopped.
+8. **Speed changes are free**: audio is made once at normal speed and sped up or slowed down on the PC
+   (pitch-preserving time-stretch), so "read faster" never re-buys the audio.
+9. **One pronunciation list per book**: names and terms are fixed once ("Chomsky", "allophone") and
+   reused for every page, so the book sounds consistent.
+
+**Limits: free things vs paid things (decided 2026-11-04).** Users never hear "you reached your limit".
+
+*Free things* (run only on the user's PC, or audio already saved): screen reading with the Windows voice,
+replaying cached or library audio, local commands, OCR, file and app control. **No cost limit.** The only
+pause is the **listening check-in**: continuous reading pauses after the user's chosen time (default
+2 minutes, choose 1–30 or "never") with a soft sound: "Shall I continue? One: continue. Two: stop.
+Three: read without stopping." If the user says "read the whole book without stopping" and the audio
+is free, it reads to the end with no check-ins.
+
+*Paid things* (new voice audio, AI, speech-to-text). Recommended combination, all invisible:
+
+1. **Check-in every 2 minutes** while new (paid) audio is being made; 15 s of silence stops it and saves
+   the place. "Read pages 46 to 80" is allowed; it still checks in every 10 minutes. A forgotten reader
+   can never cost more than a few minutes of audio.
+2. **Always the premium voice** (owner's decision 2026-11-04: no daily switch to Windows voices). The
+   only per-device ceiling is a very high **abuse guard** (e.g. 8 hours of new audio a day) that a real
+   person never reaches; it exists to stop scripts or a stolen device token. Windows voices are used
+   only when the PC is offline.
+3. **Cached audio is always premium and free**, so popular books stay in the good voice forever.
+4. **AI and speech-to-text** are so cheap (§9 price list) that their daily soft cap (e.g. 500 requests)
+   is only an abuse guard; normal users never get near it.
+5. **Global monthly budget** for the owner: alerts at 50 %, 80 % and 100 %. The owner decides then
+   (raise the budget, or switch to a cheaper premium voice); there is a hard stop only at an emergency
+   ceiling the owner sets (e.g. 2× the budget), so a bug can never empty the bank account.
+
+**Questions about the book with few tokens:** "what does chapter 3 say about allophones?" searches the
+local index and sends Haiku only the 3–5 best-matching passages (a few thousand tokens), not the
+chapter. Chapter summaries are written once on first request and cached. When several questions in a
+row are about the same chapter, that chapter goes into a cached prompt prefix (prompt caching), which
+makes follow-up questions much cheaper.
+
+**4 GB RAM rules for preparation:** one page in memory at a time, background thread at low priority,
+paused while the user is talking or reading aloud, about 150 MB peak, stops on battery saver.
+
+**Shared library on the owner's server (decided 2026-11-04: the owner has the rights to the books).**
+What is shared and what is personal:
+
+| Shared by everyone (server library) | Personal to each user |
+| --- | --- |
+| Library cards (title, author, TOC, first pages) | Which books they have, reading position, bookmarks |
+| Prepared page text, vision fixes, font maps | Reading history, questions asked, saved chats |
+| Voice audio per sentence | Settings (voice speed, check-in time, mode) |
+
+- **Audio is stored by the exact sentence text + voice**, not by file. If two different copies or
+  editions of a book contain the same sentence, it is voiced once. If even one letter differs, it is a
+  different key, so shared audio is always word-for-word right.
+- **The server makes everything itself.** A PC sends text (or, for a broken page, its image); the
+  server calls Fish Audio or Claude and stores the result. PCs only download. So one faulty or
+  tampered PC can never put wrong audio or text into everyone's library.
+- **Corrections improve it for everyone.** "That sounded wrong" / "الكلمة دي غلط" marks the sentence;
+  the server re-checks that page with Sonnet and replaces the shared copy if needed.
+- **Personal data stays on the user's PC only** (encrypted vault). One user = one PC; there is no
+  multi-device sync (owner's decision, 2026-11-04).
+
+The first person to read a page pays for it once; **everyone after that downloads it** for the cost of
+storage. Popular books can be fully voiced on the server once, in advance. Storage: a 600-page book is
+roughly 40–50 hours of speech ≈ 0.5 GB of Opus audio; on Cloudflare R2 that is about a cent a month,
+with no download fees.
+
+Done when: a 600-page English phonology PDF is prepared in the background on a 4 GB PC without
+slowing it down, any page opens in under 1 second, and reading the same page twice costs 0 tokens and
+0 voice characters.
+
+### Finding a book among hundreds (even untitled ones)
+
+1. "Open the book about the history of phonetics" → local search over all library cards on the PC
+   (title, author, TOC, first pages). Free.
+2. If more than one fits, Mubsir always answers with a **numbered list, at most 4 at a time**: "I found
+   6. One: *Introducing Phonology*, by …. Two: an untitled scan that starts with 'Chapter 1: Sounds of
+   English'. Three: … Four: … Say a number, or 'more'." Numbers are spoken in the user's language.
+3. The user can say the number, or part of a title or author ("the Roach one").
+4. Not sure which one? "Read me the first page of number two" reads it, then asks again.
+5. Once chosen: the book opens full screen and Mubsir offers numbered starting points:
+   "One: table of contents. Two: chapter 1, *Phonetics*, page 1. Three: where you stopped last time,
+   page 34. Four: the first page." Then it goes there, says the chapter, page and title, and how
+   the section is divided ("this chapter has 4 sections: …"), and starts reading.
+
+### Example session and what each step costs
+
+```
+PC starts           → Mubsir starts at sign-in, "Mubsir is ready"                        local, $0
+"Hey Mubsir" / Right Ctrl → listening earcon                                              local, $0
+"Find the book whose contents have chapters on allophones and stress"
+                    → local search over the TOCs of every prepared book on the PC        local, $0
+                    → Haiku ranks the matches and phrases the answer                     ~$0.001
+"I found 4. One: Introducing Phonology. Two: … Which one?"   "Number one."
+                    → opens it, maximises the window                                     local, $0
+"Read me the table of contents"   → from the prepared file, read aloud                   voice only
+"Go to the start of chapter 1"    → "Chapter 1, Phonetics, page 1. It has 4 sections: …" ~$0.001
+"Read"  → straight from page to voice (no AI), audio cached / downloaded                 voice only
+Right Ctrl → stops on the word.   "Read that again" → replays cached audio                $0
+"Continue" → resumes at the stopped word                                                 voice only
+"يعني إيه allophone؟" → local index finds passages → Haiku answers in Arabic             ~$0.002
+```
+
+Wake word: the default trigger is the Right Ctrl key. An optional "Hey Mubsir" / "يا مبصر" wake word
+runs a small **on-device** keyword spotter (no audio leaves the PC until it hears the name; low CPU).
+Off by default on shared PCs.
+
+### Cost estimate: one person reads 5 books of 600 pages
+
+**Cost follows what is read, not the book's size.** Price per page (≈ 2,200 characters) with Fish
+Audio ≈ **$0.03**; with ElevenLabs Flash ≈ $0.09. Examples for a first reader (0 for later readers of the
+same pages):
+
+| What the user reads | Fish Audio | ElevenLabs Flash |
+| --- | --- | --- |
+| First quarter of one page | ≈ $0.01 | ≈ $0.02 |
+| One page | ≈ $0.03 | ≈ $0.09 |
+| Pages 46 to 80 (35 pages) | ≈ $1.15 | ≈ $3 |
+| One 30-page chapter | ≈ $1 | ≈ $2.60 |
+| A whole 600-page book | ≈ $20 | ≈ $53 |
+
+The table below is the **upper bound**: someone reading five whole books cover to cover.
+
+Assumptions (textbook): ~2,200 characters per page → **~1.3 M characters per book, ~6.6 M for 5 books**,
+about **110 hours of listening** at normal speed (≈ 1,000 characters per minute). 5 % of pages need a
+vision fix before the font map takes over. ~1,000 voice commands and questions.
+
+| Part | First reader of these 5 books | Next readers of the same books (shared library) |
+| --- | --- | --- |
+| Voice — Fish Audio (~$15 per 1 M bytes; English ≈ 1 byte/char) | **≈ $100** | $0 |
+| Voice — if ElevenLabs Flash instead (~$0.04 / 1K chars) | ≈ $265 | $0 |
+| Vision fixes (≈ 150 pages × Haiku ≈ $0.0006 / page; worst case all 3,000 pages ≈ $2) | ≈ $0.10 | $0 |
+| Commands and questions (Haiku, ≈ $0.001–0.002 each) | ≈ $1–2 | ≈ $1–2 |
+| Speech-to-text for commands (≈ 1–2 hours of talking) | ≈ $1 (depends on the STT winner) | ≈ $1 |
+| Server storage (≈ 2.5 GB audio) | ≈ $0.05 / month | shared |
+| **Total** | **≈ $100–105** (≈ $20 per book) | **≈ $2–3** |
+
+Takeaways:
+- **The voice is ~95 % of the cost; the AI is ~2 %.** Tokens are already near zero, because reading
+  never goes through the AI. The way to save money is to voice each book only once (shared library).
+- Speed is free: listening at 2× halves the time (55 hours), not the cost, and changes nothing on the bill.
+- A denser book (2,800 chars/page) costs ~25 % more; a lighter one (1,500) ~30 % less.
+- Fish prices and per-byte billing to be confirmed on Fish's pricing page before the pilot.
+
+**Goal: anything a mouse and keyboard can do, the voice can do.** If a target has an accessible name
+(most apps and websites), Mubsir uses it directly: exact and cheap. If not, it falls back to a
+screenshot and the computer-use toolset (Sonnet), and remembers that app needs it.
 
 ### Full access, with a gate you can't trigger by accident
 
@@ -315,9 +563,19 @@ If the website domain doesn't match the saved login (a phishing page), Mubsir re
 
 **How passwords work without the AI ever seeing them (Secrets Vault):**
 
-1. Setup: "Save my Gmail password." Mubsir opens a secure entry mode. The user either types it once
-   (each key is echoed by voice), or spells it aloud. Secure entry uses **on-device Windows speech
-   recognition only**, so the password never goes to the cloud. Mubsir reads it back for checking.
+1. Setup: "Save my Gmail password." Mubsir opens a **secure entry mode** (a distinct sound tells the user
+   it is on; the AI is paused). The user types it, or **says and spells it**:
+   ```
+   You:    "My password is one two four, dusk, spelled D U S K, capital D."
+   Mubsir: "I have: 1, 2, 4, capital D as in David, u, s, k. Is that right?"
+   You:    "No, the s is a capital S."
+   Mubsir: "Changed. 1, 2, 4, capital D, u, capital S, k. Is that right?"   You: "Yes."
+   ```
+   Every character is read back with its case and a clear example word ("S as in Sara"), digits one
+   by one, symbols by name ("at sign", "underscore"). Corrections work by position ("the third letter"),
+   by character ("the s"), "delete the last one", "start again". Secure entry uses **on-device
+   recognition** (a small local speech model loaded only for this, then unloaded), so the password never
+   goes to the cloud; no logs, no history.
 2. It is stored in the Windows Credential Manager (encrypted with the user's Windows login), tied to the
    site's domain, e.g. `accounts.google.com`.
 3. Later: "Log into Gmail." The AI calls `fill_secret("gmail")`. Mubsir checks the domain, asks for the
@@ -397,9 +655,14 @@ saved passwords.
    starts immediately.
 
 Code signing: an unsigned `.exe` downloaded from the internet triggers the Windows SmartScreen
-"Windows protected your PC" box, which a screen reader user can get stuck on. Plan for a signing
-certificate (Azure Trusted Signing, about $10/month) before the pilot. Until then, the audio guide in
-the zip explains "More info → Run anyway".
+"Windows protected your PC" box, which a screen reader user can get stuck on. Ways to avoid paying:
+
+| Option | Cost | Notes |
+| --- | --- | --- |
+| **Microsoft Store (MSIX)** — recommended | Free (individual registration is free since 2025) | Microsoft signs the package, so no SmartScreen warning; Store handles updates; the owner sends a Store link instead of a zip. To check in phase 6: low-level keyboard hook, UI Automation and the admin helper inside a full-trust MSIX (the helper may need a different design, e.g. an elevated scheduled task created at first run) |
+| **SignPath Foundation** | Free for open-source projects | Repo must stay public with an OSI licence (MIT is fine) and MFA on GitHub; the certificate is issued to SignPath Foundation as publisher. Signs the zip/installer in GitHub Actions |
+| Azure Trusted Signing | ≈ $10 / month | Fallback if both of the above don't work |
+| No signing | Free | Users must click "More info → Run anyway"; the zip's audio guide explains it. Only for early testing |
 
 ### Onboarding conversation (spoken, ~2 minutes)
 
@@ -423,6 +686,23 @@ pitched to an English teacher.
 
 No account, no sign-in: the device registration is invisible to the user.
 
+### Full-access setup (once, spoken, right after onboarding)
+
+Mubsir walks the user through each step by voice, checks it worked, and says what it is for:
+
+1. **Microphone allowed for desktop apps** (Windows Privacy settings). Mubsir opens the page and checks.
+2. **Start at sign-in** (Task Scheduler entry, already done by `setup.ps1`).
+3. **One administrator approval** to install a tiny **Mubsir Helper** service. Windows shows its
+   "Do you want to allow…" box once; NVDA reads it. After that, the helper does an allow-listed set of
+   admin jobs (install updates, restart / shut down, change system settings) **without new pop-ups**,
+   and only when the main app asks with a valid level 2–3 confirmation (§6). The AI can't call it
+   directly.
+4. **NVDA and the Mubsir Bridge add-on** for blind users.
+5. **Library scan**: "Which folders have your books?" (default: Documents, Downloads, Desktop).
+6. **Test**: "Tap Right Ctrl and say: what time is it?"
+
+Everything a user says during onboarding (mode, job, needs) is saved to their profile on their PC.
+
 ---
 
 ## 9. Cloud and cost (free for users, paid by the owner)
@@ -438,21 +718,42 @@ Mubsir.exe ──HTTPS──▶ Mubsir Cloud (Cloudflare Workers, owner's accoun
                        /chat        → Anthropic Messages API (streaming)
                        /stt-token   → short-lived token for the STT websocket
                        /tts         → TTS provider chosen by server config (Fish Audio first) + audio cache
+                       /library     → shared book library: cards, prepared pages, audio (R2)
                        /update      → Velopack update feed
                        Storage: device tokens + usage counters only (Cloudflare D1 / KV)
                        Secrets: ANTHROPIC_API_KEY, ELEVENLABS_API_KEY, STT key (Wrangler secrets)
 ```
 
-The server never stores audio, transcripts or screen text. It counts tokens and characters per device.
+The server never stores a user's recordings, transcripts, questions or screen text. It stores only the
+shared book library (§6) and counts tokens and characters per device.
+
+### Where things run: balancing the owner's PC, the users' PCs and the cloud
+
+The owner's own PC is not strong and can't be on 24/7 (power cuts, home internet, changing IP address,
+and it would expose a home machine to the internet). So **the owner's PC runs nothing for users**.
+The work is split three ways:
+
+| Where | What it does | Load |
+| --- | --- | --- |
+| **Each user's PC** | Everything that is free to do locally: keyboard, screen reading (UIA), Windows OCR, PDF text extraction, page checks, font maps, library cards, search index, audio cache and playback, speed changes, memory vault, Secrets Vault, settings | Light: < 80 MB idle, ~150 MB while preparing a page; storage capped (~1 GB audio cache) |
+| **Cloudflare (the "server")**, on the owner's account | A thin relay: holds the API keys, checks the device token and daily caps, forwards requests to Claude / Fish / STT and streams the answers back, stores the shared library in R2 | Tiny: no AI runs here, it only passes data. Free tier ≈ 100,000 requests a day; paid plan ≈ $5 a month for millions. R2 storage ≈ $0.015 per GB-month, 10 GB free, no download fees (check current limits) |
+| **Anthropic, Fish Audio, STT provider** | The heavy work: AI thinking, image reading, voice generation | Paid per use (§9 costs) |
+| **The owner's PC** | Only for the owner: deploy updates, set caps and voices, look at the usage and cost dashboard | Nothing while users use Mubsir; it can be switched off |
+
+Why this is "equal": each user's PC carries its own storage and its own local work, so adding users
+adds no load to the owner's PC and almost none to the relay. The only thing that grows with users is
+the per-use bill to Anthropic and Fish, which the caps control.
+
+Rough relay traffic: 10 users reading 2 hours a day ≈ 20,000 requests a day, inside the free tier.
 
 ### Protecting the owner's money (required because it is free)
 
 | Protection | Why |
 | --- | --- |
 | One token per device, created on first start | A leaked token can be switched off without breaking everyone |
-| **Daily caps per device** (e.g. 300 AI turns, 90 minutes of premium audio), set from the server | One heavy user or a script can't run up the bill |
+| **Abuse guard per device** (e.g. 8 hours of new audio, 500 AI requests a day), set from the server; real users never reach it | A script or stolen token can't run up the bill |
 | **Global monthly budget** with an alert at 50 % / 80 % and a hard stop at 100 % | No surprise bills |
-| Over-cap behaviour: keep working with Windows voices, say "premium voice is back tomorrow" | The user is never left without speech |
+| Over-cap behaviour: reading continues in the Windows natural voice, silently or with one soft tone; no "limit reached" message | The user is never stopped or lectured |
 | Invite codes (optional switch) | If the zip spreads beyond the people it was sent to |
 | Kill switch per device and for everyone | Abuse or a bug |
 | Also set spend limits in the Anthropic and voice provider consoles | Second line of defence |
@@ -483,6 +784,42 @@ Rules:
   with roughly 7–20 GB of VRAM. They can never run on users' 4 GB PCs. Self-hosting on the owner's GPU
   server is a later cost option, only after a written licence from Fish Audio.
 
+### Price list: every item (estimates, November 2026; confirm on each vendor's page)
+
+| Item | Unit price | What one action costs |
+| --- | --- | --- |
+| Claude Haiku 5.5 (main brain) | $0.10 / 1 M input tokens, $0.50 / 1 M output | A command ≈ $0.001; a question about a book ≈ $0.002; reading one page image ≈ $0.0006; naming an untitled book ≈ $0.0005 |
+| Claude Sonnet 5.5 (hard tasks only) | $2 / 1 M input, $10 / 1 M output | A hard multi-step task ≈ $0.01–0.03; a vision re-check of a page ≈ $0.01 |
+| Claude Batch API (non-urgent jobs) | 50 % off | Library cards for 400 books ≈ $0.10 instead of $0.20 |
+| Fish Audio voice | ≈ $15 / 1 M bytes | English ≈ $0.015 per minute of speech, ≈ $0.03 per page; Arabic ≈ double |
+| ElevenLabs Flash (backup voice) | ≈ $0.04 / 1,000 characters | ≈ $0.04 per minute; ≈ $0.09 per page |
+| Speech-to-text (user's voice) | Soniox real-time ≈ $0.12 / hour; ElevenLabs Scribe v2 RT ≈ $0.39 / hour; Deepgram ≈ $0.35–0.75 / hour (sources disagree) | A 5-second command ≈ $0.0002–0.001 |
+| Windows voices, Windows OCR, local work | $0 | $0 |
+| Cloudflare Workers (relay) | Free ≈ 100 k requests / day; paid ≈ $5 / month | ≈ $0–5 / month in total |
+| Cloudflare R2 (shared library) | ≈ $0.015 / GB-month, 10 GB free, no download fees | A 600-page book's audio (≈ 0.5 GB) ≈ $0.008 / month |
+| Code-signing certificate | ≈ $10 / month | Fixed |
+| Domain for the server (optional) | ≈ $10–15 / year | Fixed |
+
+**Per user per month** (first reader of every page; the shared library lowers the reading part):
+
+| User | Daily use | Brain | STT | Replies (voice) | Reading (voice) | Total / month |
+| --- | --- | --- | --- | --- | --- | --- |
+| Light | 20 commands, 5 pages | $0.60 | $0.30 | $2.25 | $4.50 | **≈ $8** |
+| Typical | 50 commands, 20 pages | $1.50 | $0.90 | $4.50 | $18 | **≈ $25** |
+| Heavy reader | 50 commands, 60 pages | $1.50 | $0.90 | $4.50 | $54 | **≈ $60** |
+
+There is no daily switch to Windows voices, so a heavy reader really costs ≈ $60 / month as first reader;
+pages already in the shared library cost $0, so in practice it is lower.
+
+**What the user types mean:** "light" = uses Mubsir for commands and a little reading, about 10 minutes
+of talking and 5 book pages a day; "typical" = about 25 minutes of talking and 20 pages (~45 minutes of
+listening) a day; "heavy reader" = about 2 hours of listening a day (60 pages). These are planning
+assumptions; the pilot measures real usage per user (counts only, never content).
+
+**Owner's total**: pilot of 10 users (5 light, 4 typical, 1 heavy) ≈ **$200 / month** + ≈ $15 fixed.
+100 users with the same mix ≈ $2,000 / month before library savings; when many users read the same
+books, the reading column falls towards $0 for everyone after the first reader.
+
 ### What it will cost (estimates; verify on each provider's pricing page)
 
 Reported API list prices (October 2026): **Flash v2.5 ≈ $0.04 per 1,000 characters**,
@@ -498,7 +835,7 @@ cost roughly $50 – $400 a month depending on how much they read. Ways to bring
 
 1. Audio cache (same page never billed twice; shared across users for the same public book file).
 2. The cheapest voice that wins the listening test for each job (Azure is ~$15 per 1M for reading).
-3. A daily premium-audio cap, with Windows natural voices after it.
+3. Check-ins so a forgotten reader stops after a few minutes (no daily voice switch: owner's decision).
 4. Apply to voice providers' programmes for non-profit / accessibility projects and ask Anthropic about
    startup or non-profit credits. A free tool for blind Arabic speakers is a strong case. (Not verified
    what is on offer today; check before the pilot.)
@@ -570,10 +907,10 @@ Each phase ends with something a blind tester can use. Weeks assume one full-tim
 | **1. Cloud proxy** | 1–2 | Worker with `/register`, `/chat`, `/stt-token`, `/tts` (+ cache), `/update`, per-device caps, budget alerts, kill switch | App from a zip runs with **zero keys and no account** |
 | **2. Live conversation** | 2–4 | Tap/hold Right Ctrl, streaming STT → Haiku → streaming TTS, barge-in, resume, 6 s follow-up window, local router | First word < 1.2 s on simple commands, interrupt < 150 ms |
 | **3. Model router + tools** | 4–6 | Haiku→Sonnet escalation, new tools (window, mouse, power, updates, startup apps, disk, Spotify, web search), 4-level safety gate, Secrets Vault with 4× Right Ctrl | 50-task test list passes ≥ 90 % (open settings, find book, read TOC, go to page 1400, update then shut down…) |
-| **4. Reading** | 5–7 | TOC, go to page, read N lines / N seconds, bookmarks per book, scanned Arabic PDF OCR | A 1,500-page PDF opens at page 1,400 in < 3 s |
+| **4. Reading** | 5–7 | TOC, go to page, read N lines / N seconds, bookmarks per book, scanned Arabic PDF OCR, **book preparation** (prepared file, audio cache, local search index) | A 1,500-page PDF opens at page 1,400 in < 3 s; re-reading a page costs 0 tokens and 0 voice characters |
 | **5. Memory vault** | 6–7 | Save chat, auto-save on shutdown, resume by date/topic, forget | "Yesterday at 6 PM" resumes correctly after a reboot |
 | **6. Onboarding + installer** | 7–9 | `Mubsir.zip` with speaking installer, Velopack updates, onboarding conversation, profile | A blind tester installs from the zip and finishes onboarding **alone** |
-| **7. Normal mode** | 8–11 | Notch, pointer, teaching board, maths rendering, Caps Lock dictation | Sighted tester learns a new app with pointer guidance |
+| **7. Normal mode** | 8–11 | HTML prototype of every notch state (taste-skill) → owner picks → `motion-tokens.json` → WPF notch, pointer, teaching board, maths rendering, Caps Lock dictation | Owner approves the prototype; WPF notch 60 fps while moving, 0 % CPU idle, < 30 MB; sighted tester learns a new app with pointer guidance |
 | **8. Pilot** | 11–13 | 10 blind + 5 sighted users in Egypt, weekly fixes, cost per user measured | Testers keep using it for 2 weeks |
 
 ---
@@ -604,9 +941,9 @@ Still open:
 
 1. **Monthly budget** the owner is willing to spend during the pilot. This sets the per-device daily caps (§9).
 2. **Pilot users:** can the owner find ~10 blind testers (schools, associations) for phase 8?
-3. **Code signing certificate** before the pilot (about $10/month) — recommended.
-4. **Distribution link:** the repo is private, so GitHub Releases can't be downloaded by testers. The zip
-   will be hosted on the owner's Cloudflare account (R2) next to the server, or shared by Drive/WhatsApp.
+3. **Code signing**: try the free routes first (Microsoft Store, then SignPath Foundation; §8).
+4. **Distribution link:** the repo stays public (to keep its stars), so the zip can be published as a
+   GitHub Release, or hosted on the owner's Cloudflare R2, or shared by Drive/WhatsApp.
 
 ## Sources
 

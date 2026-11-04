@@ -4,6 +4,52 @@ Update this file at the end of every session. Newest entry on top.
 
 ---
 
+## 2026-11-04 (later) — Book preparation added to the plan
+
+- PLAN §6 "Book preparation": extract and fix each book once locally, cache voice audio just ahead of
+  the reader, free speed changes, local search index so questions send only a few passages to Haiku,
+  4 GB RAM limits. Roadmap phase 4 includes it.
+- Owner confirmed they have the rights to the books: shared library on the owner's server (prepared
+  text + voice audio) so each book is voiced once for all users. Plan §6 has an example session with
+  per-step costs and a 5-book cost estimate (≈ $100 first reader with Fish, ≈ $2–3 after).
+- Reading check-in: continuous reading pauses after 2 minutes ("Shall I continue?"), stops after 15 s
+  of silence. Pay only for what is read: voice at most ~30 s ahead and never past the requested range
+  (pages 46–80, first quarter of a page, N lines, a section, a time). Plan §6 has per-page costs.
+- Library and page window: every book gets a free "library card" (metadata, first pages, TOC; Haiku names
+  untitled files from text, ≈ $0.20 per 400 books). The open book prepares only previous / current / next
+  page. Numbered choices (max 4), numbered starting points. Shared library stores audio by exact sentence
+  text + voice; the server generates everything itself; personal data stays on the user's PC.
+- **Hudhud chosen** as the identity; normal-mode companion lives **bottom-right**. Working prototype in
+  `prototypes/hudhud-companion/index.html`, also published for the owner at
+  https://claude.ai/artifact/UpBpC7m8hzQ3VCryB9LvyC (private link; republish from the file to update).
+- Code signing: try free routes first: Microsoft Store (MSIX, Microsoft signs) or SignPath Foundation
+  (free for open-source). PLAN §8.
+- Usage is irregular (some users read 20 minutes one day, then nothing for a week), so real cost per
+  user is usually below the planning tiers; idle users cost $0.
+- Owner allowed the build to restructure or replace old code, keeping the best parts; the repo and its
+  stars must never be deleted.
+- Owner decisions (latest): repo stays **public** (private would erase 71 stars); commits authored only
+  as dusk-futile, no AI attribution lines; **no daily switch to Windows voices** (premium always, only an
+  abuse guard + monthly budget alerts); password dictation with spelled read-back and corrections;
+  full mouse/keyboard parity (windows, websites, settings, text). Brand options in `docs/BRAND.md`
+  (recommended: Fanoos lantern) — owner to choose.
+- The build will run on the owner's Windows PC (Claude Desktop or `claude remote-control` there), which
+  also solves the "real Windows PC" testing need in EXECUTION.md.
+- Added `docs/EXECUTION.md`: build order, what runs where (real Windows PC needed for end-to-end),
+  tests and the numbers to report in `docs/RESULTS.md`.
+- Plan: notch design (states, motion, performance budget, HTML prototype → WPF), limits policy (free vs
+  paid, no "limit reached" messages), full price list and per-user monthly costs (≈ $8 / $25 / $35–60).
+- Added skills `taste-skill` and `find-skills` (MIT) to `.claude/skills/`.
+- Owner decisions: **no multi-device sync** (one user = one PC). The owner's own PC runs nothing for
+  users: users' PCs do the local work and storage, a Cloudflare relay holds keys and forwards to
+  Claude / Fish (PLAN §9 "Where things run"). Full-access setup with a one-time admin approval for a
+  small Mubsir Helper service (PLAN §8).
+- Font map trick: learn a legacy IPA font's code map from 1–3 vision-fixed pages, fix the rest locally.
+- Optional on-device wake word "Hey Mubsir" / "يا مبصر" (Right Ctrl stays the default).
+- Repo stays **public** to keep its 71 stars (making it private would erase them).
+
+---
+
 ## 2026-11-04 — Plan approved, nothing built yet
 
 ### Done
@@ -37,15 +83,34 @@ Fix, on a machine with the official .NET SDK 10.0.403 (Windows is fine):
 Alternatively, allow `builds.dotnet.microsoft.com` in the cloud environment's network settings and
 ask Claude to do it.
 
+### Pending: remove Claude from the contributors list
+The owner approved rewriting history so every commit is authored by dusk-futile (no Claude author, no
+Claude trailer lines). The rewrite was prepared, but force-pushing `main` was blocked by the cloud
+session's safety rules. To finish it (stars are not affected; the 6 forks keep the old copy), on a PC
+with git, in a fresh clone of the repo:
+
+```bash
+git clone https://github.com/dusk-futile/mubsir.git && cd mubsir
+git filter-branch -f --env-filter 'if [ "$GIT_AUTHOR_EMAIL" = "noreply@anthropic.com" ]; then export GIT_AUTHOR_NAME="dusk-futile" GIT_AUTHOR_EMAIL="omarelkabbaney2010@gmail.com"; fi; if [ "$GIT_COMMITTER_EMAIL" = "noreply@anthropic.com" ]; then export GIT_COMMITTER_NAME="dusk-futile" GIT_COMMITTER_EMAIL="omarelkabbaney2010@gmail.com"; fi' --msg-filter 'grep -v -E "^(Co-Authored-By: Claude|Claude-Session: )"' -- --all
+git push --force origin main
+```
+
+Or allow force-push for that session (a Bash permission rule) and ask Claude to do it.
+
 ### Owner to-do (can't be done from a Claude session)
-- [ ] Make the repo private: GitHub → repo **Settings** → **General** → bottom "Danger Zone" →
-      **Change repository visibility** → Private.
+- [x] ~~Make the repo private~~ — **cancelled**: GitHub permanently erases stars and watchers when a
+      public repo is made private. The repo stays public; never commit keys.
 - [ ] Create accounts and keys: Anthropic Console, ElevenLabs, Cloudflare (Workers + R2). Set a monthly
       spend limit in each console. Keys go into the Worker as secrets later, **never** into the repo.
 - [ ] Decide the pilot's monthly budget (sets per-device daily caps; see PLAN §9 cost table).
 - [ ] Optional before the pilot: code-signing certificate (Azure Trusted Signing).
 
-### Next session: start Phase 0 (PLAN §12)
+### Next session
+- "Show me the UI" → open `prototypes/hudhud-companion/index.html` (or the link above) and walk through
+  the states; the ▶ Play button runs the whole flow.
+- "Start working" → follow `docs/EXECUTION.md` from step 0.
+
+### Phase 0 details (PLAN §12)
 1. Fix CI (above) if a .NET SDK is available.
 2. Spike: ElevenLabs Arabic/Egyptian listening test (Flash v2.5 vs Multilingual v2 vs v3).
 3. Spike: STT bake-off on Egyptian/English recordings.
