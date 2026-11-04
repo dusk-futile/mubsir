@@ -26,5 +26,6 @@ secrets/
 *.key
 minisign.key
 
-.claude/
+.claude/*
+!.claude/skills/
 dist/
