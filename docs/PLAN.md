@@ -293,6 +293,62 @@ TTS voice mangles or skips. Mubsir handles them itself, before the voice sees th
 Done when: a 30-page test set (phonology textbook, Arabic grammar book with tashkeel, maths worksheet,
 dictionary page, scanned PDF with legacy IPA font) is read with no skipped or wrong symbols.
 
+### Book preparation: process once, read many times
+
+Goal: a book on the PC should cost almost nothing to read again, with the same word-for-word accuracy,
+on a 4 GB RAM PC.
+
+**What actually costs money when reading** (so we cut the right thing):
+
+| Cost | When it happens | How preparation removes it |
+| --- | --- | --- |
+| Claude tokens | Only for broken pages (vision fix), missing table of contents, and questions | Fix each page **once**, cache it; answer questions from a local index, not the whole book |
+| Voice characters | Every time text is spoken | Speak each sentence **once**, keep the audio on disk |
+| Time | Opening a 1,500-page PDF, OCR | Done in the background, stored as a small prepared file |
+
+**The pipeline** (starts by itself when a book is opened, or when the user says "prepare this book"):
+
+1. **Fingerprint** the file (SHA-256). If it changes, re-prepare only what changed.
+2. **Extract text locally, page by page**: the PDF text layer, or Windows' built-in OCR for scanned
+   pages (free, offline, already used by `OcrService`). Never loads the whole book into memory.
+3. **Check each page locally** (no AI): unknown or private-use characters, words that are not words,
+   text layer that disagrees with OCR. Only pages that fail go to Claude vision (Haiku; Sonnet if
+   unsure). Typically a few pages per book, not all of them.
+4. **Structure, locally first**: table of contents from PDF bookmarks or detected headings, page
+   numbers as printed in the book ("page 1400" means the printed number), sentence and paragraph
+   boundaries, language runs (English / Arabic), symbol spans (IPA, maths). Haiku is asked once only
+   if the book has no usable TOC.
+5. **Save a prepared book file** (`.mvb`) in the vault folder: compressed text per page + structure +
+   a small search index (SQLite FTS5). Roughly 1–3 MB for a 600-page book.
+6. **Audio, just ahead of the reader**: while you read page 40, pages 41–45 are already being voiced
+   in the background. Audio is saved as Opus (~16–24 kbps, about 10 MB per hour of speech) under a
+   disk cap (default 1 GB, oldest books evicted first). Re-reading costs nothing.
+   The whole book is **not** voiced up front: most people never finish most books, and that would
+   waste money. Optional per book: "prepare all audio tonight" for someone who will listen offline.
+7. **Speed changes are free**: audio is made once at normal speed and sped up or slowed down on the PC
+   (pitch-preserving time-stretch), so "read faster" never re-buys the audio.
+8. **One pronunciation list per book**: names and terms are fixed once ("Chomsky", "allophone") and
+   reused for every page, so the book sounds consistent.
+
+**Questions about the book with few tokens:** "what does chapter 3 say about allophones?" searches the
+local index and sends Haiku only the 3–5 best-matching passages (a few thousand tokens), not the
+chapter. Chapter summaries are written once on first request and cached. When several questions in a
+row are about the same chapter, that chapter goes into a cached prompt prefix (prompt caching), which
+makes follow-up questions much cheaper.
+
+**4 GB RAM rules for preparation:** one page in memory at a time, background thread at low priority,
+paused while the user is talking or reading aloud, about 150 MB peak, stops on battery saver.
+
+**Shared audio cache (later, with care):** the owner's server could keep audio by (file fingerprint +
+voice), so a second user with the identical file downloads it instead of paying again. This is
+redistributing a recording of a book, so it is limited to public-domain or user-owned material until
+legal advice says otherwise (check Egypt's position under the Marrakesh Treaty for accessible copies).
+Default: each user's audio stays on their own PC.
+
+Done when: a 600-page English phonology PDF is prepared in the background on a 4 GB PC without
+slowing it down, any page opens in under 1 second, and reading the same page twice costs 0 tokens and
+0 voice characters.
+
 ### Full access, with a gate you can't trigger by accident
 
 A blind user can't type a password they can't see, so Mubsir must be able to log in and pay for them.
@@ -570,7 +626,7 @@ Each phase ends with something a blind tester can use. Weeks assume one full-tim
 | **1. Cloud proxy** | 1–2 | Worker with `/register`, `/chat`, `/stt-token`, `/tts` (+ cache), `/update`, per-device caps, budget alerts, kill switch | App from a zip runs with **zero keys and no account** |
 | **2. Live conversation** | 2–4 | Tap/hold Right Ctrl, streaming STT → Haiku → streaming TTS, barge-in, resume, 6 s follow-up window, local router | First word < 1.2 s on simple commands, interrupt < 150 ms |
 | **3. Model router + tools** | 4–6 | Haiku→Sonnet escalation, new tools (window, mouse, power, updates, startup apps, disk, Spotify, web search), 4-level safety gate, Secrets Vault with 4× Right Ctrl | 50-task test list passes ≥ 90 % (open settings, find book, read TOC, go to page 1400, update then shut down…) |
-| **4. Reading** | 5–7 | TOC, go to page, read N lines / N seconds, bookmarks per book, scanned Arabic PDF OCR | A 1,500-page PDF opens at page 1,400 in < 3 s |
+| **4. Reading** | 5–7 | TOC, go to page, read N lines / N seconds, bookmarks per book, scanned Arabic PDF OCR, **book preparation** (prepared file, audio cache, local search index) | A 1,500-page PDF opens at page 1,400 in < 3 s; re-reading a page costs 0 tokens and 0 voice characters |
 | **5. Memory vault** | 6–7 | Save chat, auto-save on shutdown, resume by date/topic, forget | "Yesterday at 6 PM" resumes correctly after a reboot |
 | **6. Onboarding + installer** | 7–9 | `Mubsir.zip` with speaking installer, Velopack updates, onboarding conversation, profile | A blind tester installs from the zip and finishes onboarding **alone** |
 | **7. Normal mode** | 8–11 | Notch, pointer, teaching board, maths rendering, Caps Lock dictation | Sighted tester learns a new app with pointer guidance |

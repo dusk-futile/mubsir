@@ -4,6 +4,15 @@ Update this file at the end of every session. Newest entry on top.
 
 ---
 
+## 2026-11-04 (later) — Book preparation added to the plan
+
+- PLAN §6 "Book preparation": extract and fix each book once locally, cache voice audio just ahead of
+  the reader, free speed changes, local search index so questions send only a few passages to Haiku,
+  4 GB RAM limits. Roadmap phase 4 includes it.
+- Repo is still public until the owner changes it (Settings → General → Danger Zone).
+
+---
+
 ## 2026-11-04 — Plan approved, nothing built yet
 
 ### Done
