@@ -90,7 +90,9 @@ dotnet publish src/Mubsir.App -c Release -r win-x64 -o publish
 python scripts/build-addon.py
 ```
 
-The core library (`src/Mubsir.Core`) builds on any OS. The app itself (`src/Mubsir.App`) runs on Windows only.
+The core library (`src/Mubsir.Core`) builds on any OS, and `dotnet test tests/Mubsir.Core.Tests` runs its tests. The app itself (`src/Mubsir.App`) runs on Windows only.
+
+On Windows, `Mubsir.exe --overlay-demo` shows the normal-mode notch and Hudhud on their own. It listens to, sends and clicks nothing, and Esc quits.
 
 ## License
 

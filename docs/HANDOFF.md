@@ -42,7 +42,12 @@ opens the panel, and clicking the notch replays the story. Esc quits.
    then `UtteranceFlow` (listening, transcript), `TaskRunner` (thinking, doing steps, stop and undo),
    `Narrator` (speaking, voice level) and `Confirmer` (the four Ctrl presses).
 3. Still to build: the monitor with the mouse, dragging Hudhud to another corner, the teaching board,
-   and Readex Pro as the font (static TTFs; it uses Segoe UI for now).
+   Arabic for the notch's own labels (the app's words already show right-to-left; "Listening", "Thinking"
+   and the like are English for now), and Readex Pro as the font (static TTFs; it uses Segoe UI for now).
+4. Measure on a real PC: frame rate, CPU and memory against the app without the overlay
+   (`docs/EXECUTION.md`: 60 fps, 0 % idle, < 30 MB extra). CI has no GPU, so its numbers are a worst case.
+5. Dependabot: #5 (setup-python) passes and can be merged. #13 (vitest 5) fails the relay tests, so check
+   it against `@cloudflare/vitest-plugin` first.
 
 ---
 

@@ -53,6 +53,15 @@ public static class SmokeInput {
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr FindWindow(string className, string title);
     [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hwnd);
 
+    [DllImport("shell32.dll")] static extern int SHQueryUserNotificationState(out int state);
+
+    // 2, 3 and 4 mean a full-screen app has the screen, which is what makes the overlay step aside.
+    public static int NotificationState() {
+        int state;
+        SHQueryUserNotificationState(out state);
+        return state;
+    }
+
     public static bool IsVisible(string title) {
         return IsWindowVisible(FindWindow(null, title));
     }
@@ -202,6 +211,7 @@ for ($i = 0; $i -lt 40; $i++) {
     Start-Sleep -Milliseconds 100
 }
 $hiddenOver = -not [SmokeInput]::IsVisible('Hudhud')
+Note "Windows notification state over the test window: $([SmokeInput]::NotificationState()) (2, 3 or 4 = full-screen)"
 $cover.Close()
 $cover.Dispose()
 for ($i = 0; $i -lt 40; $i++) {
