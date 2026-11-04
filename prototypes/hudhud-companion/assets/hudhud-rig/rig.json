@@ -1,0 +1,32 @@
+{
+  "about": "Hudhud cutout rig. Art: ChatGPT puppet sheets of concept 4 (paper-cut), cut out into one PNG per part. Units are the sheets' pixels; the bird faces right here and is mirrored on screen. 'at' is where the part's pivot sits, 'pivot' is the joint inside the part, 'rot' its resting angle (clockwise degrees). Crest feathers grow from the crown: 'at'/'open' is the raised fan, 'at_closed'/'closed' the folded crest lying back, and 'len_closed' shortens a feather as it folds.",
+  "viewBox": [70, -20, 920, 1000],
+  "feet": [530, 965],
+  "export_scale": 0.45,
+  "paper_shadow": { "dy": 9, "blur": 6, "color": "#050826", "opacity": 0.55 },
+  "back_to_front": [
+    { "id": "hTail", "img": "tail", "s": 0.6, "pivot": [36, 400], "at": [362, 742], "rot": 232 },
+    { "id": "hLegB", "img": "legB", "pivot": [92, 6], "at": [575, 735] },
+    { "id": "hLegA", "img": "legA", "pivot": [96, 6], "at": [482, 735] },
+    { "id": "hP0", "img": "prim0", "s": 0.86, "pivot": [12, 52], "at": [470, 600], "rot": 186 },
+    { "id": "hP1", "img": "prim1", "s": 0.86, "pivot": [12, 58], "at": [474, 592], "rot": 194 },
+    { "id": "hP2", "img": "prim2", "s": 0.86, "pivot": [12, 74], "at": [478, 584], "rot": 202 },
+    { "id": "hTorso", "img": "body", "pivot": [182, 230], "at": [500, 560] },
+    { "id": "hWing", "img": "wing", "s": 0.92, "pivot": [270, 70], "at": [585, 475] }
+  ],
+  "head": {
+    "neck": [575, 400],
+    "face_center_x": 560,
+    "crest_pivot": [582, 272],
+    "crest_back_to_front": [
+      { "id": "hF0", "img": "crest1", "sx": 0.62, "sy": 0.76, "pivot": [56, 320], "at": [526, 290], "at_closed": [528, 284], "open": -58, "closed": -90, "len_closed": 0.85 },
+      { "id": "hF1", "img": "crest3", "sx": 0.62, "sy": 0.76, "pivot": [61, 406], "at": [548, 274], "at_closed": [534, 280], "open": -38, "closed": -87, "len_closed": 0.85 },
+      { "id": "hF2", "img": "crest5", "sx": 0.62, "sy": 0.76, "pivot": [67, 486], "at": [570, 266], "at_closed": [540, 277], "open": -17, "closed": -84, "len_closed": 0.85 },
+      { "id": "hF3", "img": "crest4", "sx": 0.62, "sy": 0.76, "pivot": [64, 446], "at": [592, 264], "at_closed": [546, 275], "open": 3, "closed": -81, "len_closed": 0.85 },
+      { "id": "hF4", "img": "crest2", "sx": 0.62, "sy": 0.76, "pivot": [58, 362], "at": [614, 268], "at_closed": [552, 274], "open": 22, "closed": -78, "len_closed": 0.85 },
+      { "id": "hF5", "img": "crest0", "sx": 0.62, "sy": 0.76, "pivot": [55, 274], "at": [636, 278], "at_closed": [558, 274], "open": 40, "closed": -75, "len_closed": 0.85 }
+    ],
+    "open": { "img": "head", "pivot": [105, 185] },
+    "closed": { "img": "head_closed", "pivot": [105, 185] }
+  }
+}

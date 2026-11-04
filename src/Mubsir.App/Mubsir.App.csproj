@@ -10,6 +10,7 @@
     <RootNamespace>Mubsir.App</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\..\assets\brand\mubsir.ico</ApplicationIcon>
     <InvariantGlobalization>false</InvariantGlobalization>
     <PublishReadyToRun>true</PublishReadyToRun>
     <SelfContained>true</SelfContained>

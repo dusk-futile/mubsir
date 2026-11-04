@@ -119,6 +119,13 @@ internal static unsafe partial class User32
     [LibraryImport(Dll, SetLastError = true)]
     public static partial nint LoadIconW(nint hInstance, nint lpIconName);
 
+    [LibraryImport(Dll, SetLastError = true)]
+    public static partial nint LoadImageW(nint hInst, nint name, uint type, int cx, int cy, uint fuLoad);
+
+    [LibraryImport(Dll, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool DestroyIcon(nint hIcon);
+
     [LibraryImport(Dll)]
     public static partial short GetAsyncKeyState(int vKey);
 

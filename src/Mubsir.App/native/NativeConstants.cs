@@ -94,6 +94,9 @@ internal static class Win32
     public const uint NIF_SHOWTIP = 0x80;
     public const uint NOTIFYICON_VERSION_4 = 4;
     public static readonly nint IDI_APPLICATION = 32512;
+    public const uint IMAGE_ICON = 1;
+    public const int SM_CXSMICON = 49;
+    public const int SM_CYSMICON = 50;
 
     public const uint MF_STRING = 0x0000;
     public const uint MF_SEPARATOR = 0x0800;

@@ -4,7 +4,118 @@ Update this file at the end of every session. Newest entry on top.
 
 ---
 
-## 2026-11-04 (end of planning chat) — read this first
+## 2026-11-04 (evening) — Hudhud rebuilt from ChatGPT-drawn parts, notch pass
+
+Owner feedback on version 3: the hand-drawn bird looked blocky and a bit uncanny, the white wing
+stripes did not reach the edges, the voice wave looked old. Asked for ChatGPT to draw the layers, more
+wing detail, a shake that throws off dust, sleep when idle, a minimal Thinking state, a real Doing
+checklist, and Ctrl to stop and undo. Published as version 4 on the owner's link.
+
+- **Hudhud is now a cutout puppet.** ChatGPT (the owner's account, in the desktop app's browser pane)
+  drew two part sheets on a lime-green background. The parts were cut out with soft chroma-key edges
+  into `prototypes/hudhud-companion/assets/hudhud-rig/` (16 PNGs). `rig.json` gives each part's joint,
+  place and resting angle; `build.py` bakes them into `index.html` as one layered SVG.
+  - The crest feathers grow from the crown: they slide forward and fan up when raised and lie back
+    when folded. The flight feathers tuck under the wing and spread when it lifts.
+  - Owner follow-up (version 5): Hudhud is smaller (92 × 100 px on the 960 px desktop), and every
+    part casts a soft shadow on the parts under it, so it reads as stacked paper like the chosen
+    concept (`paper_shadow` in `rig.json`).
+  - New motion: a full-body shake (wing, crest and tail follow; dust flies off). After 20 s with
+    nothing to do, Hudhud sleeps: eyes closed, head tucked, crest flat, slow breath, floating z's. Ctrl
+    or a click wakes it with a double blink and a shake. Clicking it when awake opens a small Mubsir
+    panel (Talk, Read this screen, Settings).
+- **Notch:**
+  - The voice wave is three soft glowing ribbons on a canvas, sized to the screen's pixels. A glowing
+    rim circles the notch while listening and speaking.
+  - Thinking is one breathing light and the word "Thinking".
+  - Doing is a real checklist: each step spins while it runs and is ticked only when it is finished.
+    Ctrl (or the Stop pill) stops it, undoes the finished steps in reverse on screen, and then says
+    "Stopped. Everything is back as it was." Ctrl also calls the pointer back and stops listening,
+    speaking and reading.
+- Checked:
+  - No console errors and 60 fps in the desktop app's browser pane.
+  - Scripted runs: Doing then Ctrl undoes in the right order and closes the window; sleep then Ctrl
+    wakes it; click opens the panel and Esc closes it.
+  - Every notch pane fits its size.
+  - Not checked on Windows or on a 120 Hz screen.
+
+### Next session
+1. Owner reviews version 4 on the link; fix what they flag.
+2. Then the items below (#10 → #9 and #11, relay deploy, Phase 1 app side).
+
+---
+
+## 2026-11-04 (design session) — app icon done, Hudhud concepts ready to pick
+
+- **Image generation works through the owner's own ChatGPT**, signed in inside the Claude desktop
+  app's browser pane. No API key was needed and none is in the repo. (Codex CLI's image tool also
+  works with the owner's ChatGPT login, but the owner rejected its quality.)
+- **App icon chosen: the seeing eye.** The owner picked it from two rounds of six concepts: an amber eye on
+  Night navy, iris = sound rings, lower lid sweeping into the tail of م. Hudhud stays the companion
+  (owner: "eye icon + Hudhud"). Details and rules: `docs/BRAND.md`.
+- Built on branch `brand/eye-icon-hudhud`:
+  - `assets/brand/`: SVG masters (full; medium for 24–48 px; small for 16–20 px; tile-less mark),
+    `png/` 16–1024 px, `mubsir.ico` (9 sizes, each from the right drawing), `brand-sheet.png` and
+    `social-preview.png` with their HTML sources.
+  - `scripts/build-icons.py` rebuilds the PNGs and the `.ico` from the SVGs (Pillow + Chrome/Edge).
+  - App: `Mubsir.App.csproj` embeds the icon (`ApplicationIcon`). `TrayIcon` loads it at the tray
+    size for the DPI (icon group 32512) and falls back to the system icon. The README shows the logo.
+  - Checked on macOS with SDK 10.0.401: `dotnet build src/Mubsir.App -c Release` → 0 errors,
+    0 warnings; `Mubsir.dll` holds RT_GROUP_ICON 32512 with 9 images; every `.ico` frame matches its PNG.
+  - **Not checked on Windows yet:** the tray icon at 100 / 125 / 150 / 200 % scaling and the exe icon
+    in Explorer. Resources are copied into `Mubsir.exe` only when building on Windows (the release
+    workflow does).
+- **Hudhud concepts**, all navy/amber with the icon's sound-wave eye: 6 characters and 3
+  companion-card states in `prototypes/hudhud-companion/assets/concepts/`. **Owner chose concept 4,
+  the layered paper-cut hoopoe** (`hudhud-4-paper-cut.jpg`).
+- **Prototype rebuilt** (`prototypes/hudhud-companion/index.html`, republished to the owner's link,
+  version 2). Owner asked for Apple-smooth motion and an iPhone-style notch:
+  - **The notch** hangs from the top edge (concave fillets like a MacBook notch) and pours out into
+    each state; its content cross-fades with a 10 px blur. It carries the app icon's eye, whose rings
+    ripple while listening and speaking.
+  - **Hudhud** is the paper-cut hoopoe redrawn as layered SVG (body, bib, wing, tail, legs, head,
+    6 crest feathers, beak with a moving jaw, eye with pupil). It breathes, blinks (sometimes twice),
+    glances up at the notch, opens its crest when listening, nods when thinking, looks down when
+    reading, raises its crest for payments and hops when paid.
+  - **Motion** is a small spring engine with Apple's parameters (response, damping). Every value
+    starts from where it is on screen, so states interrupt each other without jumps. The motion tokens
+    are listed on the page and are meant to be reused by the WPF overlay.
+  - States from the first prototype are kept (idle, listening, thinking, doing, pointing, speaking,
+    reading, payment with 4× Ctrl, paid). A link can open one state: `#listening`, `#payment`, etc.
+  - Checked: no console errors, 60 fps in the desktop app's browser, all states laid out at 2× with
+    reduced motion. Not checked on a 120 Hz screen or on Windows.
+  - Owner feedback, same day (published as version 3):
+    - No backend wording in the UI; the reading line now says what the user can say.
+    - Hudhud is smaller (116 px) with no ground shadow, visible legs with toes, and a detailed wing (three
+      flight feathers under a striped covert) that lifts and spreads.
+    - New idle moves: turns its head round to scratch its back while its tail wiggles, wing stretch,
+      glance, crest flick, and a hop with squash and stretch. It flaps when a payment is done.
+    - The stage scales with CSS zoom so text stays sharp.
+    - The page states that the notch is drawn by Mubsir, so it works on any PC.
+- Skills used this session: `apple-design` and `improve-animations` (Emil Kowalski, installed for
+  this Mac with `npx skills add emilkowalski/skills@<name> -g`), plus `find-skills`.
+- **Owner to-do:** upload `assets/brand/social-preview.png` in GitHub → Settings → General →
+  Social preview (GitHub has no API for it).
+
+- **Also opened in this session:**
+  - #10 fixes CI by pinning the SDK to 10.0.401. Merge it first; #9 and #11 need it for green checks.
+  - #11 is Phase 1's relay, server side, in `cloud/proxy/`: register, Messages pass-through with
+    metering, speech with an R2 cache, limits, budget alerts, and pause and block switches. It has
+    37 tests and its numbers are in `docs/RESULTS.md`.
+
+### Next session
+1. Merge #10, then #9 and #11.
+2. Owner: deploy the relay (steps in `cloud/proxy/README.md`; needs the Cloudflare login and the
+   Anthropic and Fish keys as Wrangler secrets), or let a session do it with a Cloudflare API token.
+3. App side of Phase 1 (on a Windows PC): register on first start and keep the token with the other
+   DPAPI secrets; point `AnthropicClient` (`ClaudeBrain.cs`) at the relay with the token as its key;
+   speak through `/v1/tts`; handle `quota_exceeded` / `budget_exhausted` / `service_paused` with
+   the quiet fallback. Phase 1 is done when the zip runs with zero keys and no account.
+4. Phase 0 spikes (listening test, STT bake-off) need the owner's keys and testers.
+5. Look and motion: fix anything the owner flags on the prototype link.
+---
+
+## 2026-11-04 (end of planning chat)
 
 - Full summary of the planning conversation: `docs/CONVERSATION-SUMMARY.md`.
 - **Owner's verdict on the Hudhud prototype: it looks bad.** Keep its behaviour (states, flow,
