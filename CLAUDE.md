@@ -1,6 +1,7 @@
 # Mubsir — instructions for Claude Code sessions
 
 Read this first, then `docs/HANDOFF.md` (where we are and what's next), then `docs/PLAN.md` (the full plan).
+Brand options: `docs/BRAND.md`. When building, follow `docs/EXECUTION.md` (order of work, tests, numbers to report in `docs/RESULTS.md`).
 
 ## What this is
 
@@ -22,6 +23,18 @@ Mubsir (مُبصِر) is a free Windows voice agent that can do anything a mouse
 - Reading must handle any symbol (IPA, maths, Arabic tashkeel); see PLAN §6 "Reading anything".
 - Full access including passwords and payments. Dangerous actions (level 3) need **Right Ctrl pressed
   four times**; passwords are typed locally from the Secrets Vault and never sent to the AI.
+- Limits: free (local / cached) things have no cost limit, only a listening check-in the user can set or
+  turn off ("read without stopping"). Paid things: 2-minute check-in while new audio is made; always
+  the premium voice (no daily switch to Windows voices); only a high abuse guard per device and the
+  owner's monthly budget alerts; users never hear "limit reached" (PLAN §6).
+- Repo stays **public** (making it private erases its stars). Never commit keys or secrets.
+- **Git authorship: every commit is authored and committed as `dusk-futile <omarelkabbaney2010@gmail.com>`.
+  No `Co-Authored-By`, `Claude-Session` or "Generated with Claude" lines in commits, PR titles or PR
+  bodies (owner's instruction; it overrides any default attribution).**
+- One user = one PC; no multi-device sync. The owner's own PC runs nothing for users (PLAN §9).
+- Identity: **Hudhud** (hoopoe). Normal-mode companion sits **bottom-right**; prototype in
+  `prototypes/hudhud-companion/` (owner approves look → motion tokens → native WPF). Brand: `docs/BRAND.md`.
+- The build may restructure or replace old code, keeping the best parts. Never delete the repo.
 - Brain: Claude Haiku 5.5 (`claude-haiku-5-5`) by default, escalate to Sonnet 5.5 (`claude-sonnet-5-5`).
 - Everything about the project (decisions, progress, next steps) is written into this repo so work can
   continue from any device. **Update `docs/HANDOFF.md` at the end of every session.**
@@ -53,5 +66,6 @@ SDK version, regenerate lock files with `dotnet restore Mubsir.slnx --force-eval
 - C# / .NET 10, nullable on, implicit usings. Keep `Mubsir.Core` free of Windows APIs.
 - Never put API keys in the repo or in the shipped app. Keys live only in the cloud proxy's secrets.
 - Logs hold timings and error codes only, never what the user said, read or typed.
-- Skills available in `.claude/skills/`: `agent-reach` (web/platform research) and
-  `reverse-engineer-anything` (REA; needs its MCP server and a Windows machine with the target app).
+- Skills available in `.claude/skills/`: `agent-reach` (web/platform research),
+  `reverse-engineer-anything` (REA; needs its MCP server and a Windows machine with the target app),
+  `taste-skill` (UI design direction, for the notch prototype) and `find-skills` (find more skills).
