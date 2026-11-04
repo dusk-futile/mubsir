@@ -310,27 +310,36 @@ on a 4 GB RAM PC.
 | Voice characters | Every time text is spoken | Speak each sentence **once**, keep the audio on disk |
 | Time | Opening a 1,500-page PDF, OCR | Done in the background, stored as a small prepared file |
 
-**The pipeline** (starts by itself when a book is opened, or when the user says "prepare this book"):
+**Two levels of preparation** (so 400 books on a weak PC cost almost nothing):
 
-1. **Fingerprint** the file (SHA-256). If it changes, re-prepare only what changed.
-2. **Extract text locally, page by page**: the PDF text layer, or Windows' built-in OCR for scanned
-   pages (free, offline, already used by `OcrService`). Never loads the whole book into memory.
-3. **Check each page locally** (no AI): unknown or private-use characters, words that are not words,
-   text layer that disagrees with OCR. Only pages that fail go to Claude vision (Haiku; Sonnet if
-   unsure). Typically a few pages per book, not all of them.
-4. **Structure, locally first**: table of contents from PDF bookmarks or detected headings, page
-   numbers as printed in the book ("page 1400" means the printed number), sentence and paragraph
-   boundaries, language runs (English / Arabic), symbol spans (IPA, maths). Haiku is asked once only
-   if the book has no usable TOC.
-5. **Save a prepared book file** (`.mvb`) in the vault folder: compressed text per page + structure +
-   a small search index (SQLite FTS5). Roughly 1–3 MB for a 600-page book.
+*Level 1 — library card, for every book on the PC (background, free, once per file):*
+title and author from the file's metadata, the first 2–3 pages, and the table of contents (PDF bookmarks
+or detected headings). Scanned books go through Windows' built-in OCR for those pages only. If a file has
+no usable title ("scan_0042.pdf"), Haiku names it **from that extracted text** (text, not images):
+≈ $0.0005 per book, ≈ $0.20 for 400 books, once. Cards are shared through the server, so a book that any
+user has already catalogued is identified instantly. See "Finding a book" below.
+
+*Level 2 — page window, only for the book that is open:*
+
+1. **Fingerprint** the file (SHA-256) and also each page's text, so the same page is recognised even in
+   a re-saved or different copy of the book.
+2. **Prepare only the current page, the previous page and the next page**: extract text (PDF text layer,
+   or Windows OCR for scanned pages; free, local), then **check it locally** (unknown or private-use
+   characters, non-words, text layer that disagrees with OCR). Only a page that fails goes to the server
+   for a Claude vision fix (Haiku; Sonnet if unsure). When the reader moves to page 35, page 36 is
+   prepared; page 33 is kept. Nothing else in the book is touched.
+3. **Structure**: table of contents, page numbers as printed in the book ("page 1400" means the printed
+   number), sentences and paragraphs, language runs (English / Arabic), symbol spans (IPA, maths).
+   Haiku is asked once only if the book has no usable TOC; the answer is stored in the library.
+4. **Local book file** (`.mvb`) in the vault folder: compressed text of the pages prepared so far +
+   structure + a small search index (SQLite FTS5) that grows as pages are read.
+5. **Before preparing anything, ask the server's library.** If the page (by its text fingerprint) was
+   already prepared or voiced by anyone, download it instead of paying again.
 6. **Audio only for what is actually read.** Voice is made sentence by sentence, at most **~30 seconds
    ahead** of the reader (a few sentences), and **never past the end of what was asked**: "read pages
-   46 to 80" never voices page 81; "read the first quarter of the page" stops there. Text extraction
-   (free, local) may cover the whole book, but **paid steps — voice and vision fixes — only run on the
-   part being read**. Worst-case waste when the user stops: ~30 seconds of audio (≈ $0.01).
-   Audio is saved as Opus (~16–24 kbps, about 10 MB per hour of speech) under a disk cap (default 1 GB,
-   oldest books evicted first) and in the shared library. Re-reading costs nothing.
+   46 to 80" never voices page 81; "read the first quarter of the page" stops there. Worst-case waste
+   when the user stops: ~30 seconds of audio (≈ $0.01). Audio is saved on the PC as Opus (~10 MB per
+   hour of speech, disk cap 1 GB, oldest evicted first) and in the server library. Re-reading is free.
 7. **Reading amounts the user can ask for** (all understood in Arabic and English): a range of pages
    ("46 to 80"), a part of a page ("first quarter", "the last paragraph"), N lines / sentences /
    paragraphs, a section or chapter from the TOC, or a time ("read for 30 seconds", "for 10 minutes").
@@ -357,20 +366,49 @@ makes follow-up questions much cheaper.
 **4 GB RAM rules for preparation:** one page in memory at a time, background thread at low priority,
 paused while the user is talking or reading aloud, about 150 MB peak, stops on battery saver.
 
-**Shared library on the owner's server (decided 2026-11-04: the owner has the rights to the books):**
-the server keeps, per book (file fingerprint) and voice:
-- the prepared text file (`.mvb`), including vision-fixed pages and the font map,
-- the voice audio, sentence by sentence (Opus).
+**Shared library on the owner's server (decided 2026-11-04: the owner has the rights to the books).**
+What is shared and what is personal:
+
+| Shared by everyone (server library) | Personal to each user |
+| --- | --- |
+| Library cards (title, author, TOC, first pages) | Which books they have, reading position, bookmarks |
+| Prepared page text, vision fixes, font maps | Reading history, questions asked, saved chats |
+| Voice audio per sentence | Settings (voice speed, check-in time, mode) |
+
+- **Audio is stored by the exact sentence text + voice**, not by file. If two different copies or
+  editions of a book contain the same sentence, it is voiced once. If even one letter differs, it is a
+  different key, so shared audio is always word-for-word right.
+- **The server makes everything itself.** A PC sends text (or, for a broken page, its image); the
+  server calls Fish Audio or Claude and stores the result. PCs only download. So one faulty or
+  tampered PC can never put wrong audio or text into everyone's library.
+- **Corrections improve it for everyone.** "That sounded wrong" / "الكلمة دي غلط" marks the sentence;
+  the server re-checks that page with Sonnet and replaces the shared copy if needed.
+- **Personal data stays on the PC** (encrypted vault). To continue on another PC, the user says "link
+  a new device": Mubsir reads out a 6-digit code, the user says it on the new PC, and position,
+  bookmarks and settings sync through the server, encrypted. No account, no email.
 
 The first person to read a page pays for it once; **everyone after that downloads it** for the cost of
-storage. A PC downloads the prepared text when a book is opened, and audio a few pages ahead of the
-reader. Popular books can be fully voiced on the server once, in advance. Storage: a 600-page book is
+storage. Popular books can be fully voiced on the server once, in advance. Storage: a 600-page book is
 roughly 40–50 hours of speech ≈ 0.5 GB of Opus audio; on Cloudflare R2 that is about a cent a month,
 with no download fees.
 
 Done when: a 600-page English phonology PDF is prepared in the background on a 4 GB PC without
 slowing it down, any page opens in under 1 second, and reading the same page twice costs 0 tokens and
 0 voice characters.
+
+### Finding a book among hundreds (even untitled ones)
+
+1. "Open the book about the history of phonetics" → local search over all library cards on the PC
+   (title, author, TOC, first pages). Free.
+2. If more than one fits, Mubsir always answers with a **numbered list, at most 4 at a time**: "I found
+   6. One: *Introducing Phonology*, by …. Two: an untitled scan that starts with 'Chapter 1: Sounds of
+   English'. Three: … Four: … Say a number, or 'more'." Numbers are spoken in the user's language.
+3. The user can say the number, or part of a title or author ("the Roach one").
+4. Not sure which one? "Read me the first page of number two" reads it, then asks again.
+5. Once chosen: the book opens full screen and Mubsir offers numbered starting points:
+   "One: table of contents. Two: chapter 1, *Phonetics*, page 1. Three: where you stopped last time,
+   page 34. Four: the first page." Then it goes there, says the chapter, page and title, and how
+   the section is divided ("this chapter has 4 sections: …"), and starts reading.
 
 ### Example session and what each step costs
 
@@ -576,12 +614,15 @@ Mubsir.exe ──HTTPS──▶ Mubsir Cloud (Cloudflare Workers, owner's accoun
                        /chat        → Anthropic Messages API (streaming)
                        /stt-token   → short-lived token for the STT websocket
                        /tts         → TTS provider chosen by server config (Fish Audio first) + audio cache
+                       /library     → shared book library: cards, prepared pages, audio (R2)
+                       /link        → 6-digit device link for personal sync (encrypted)
                        /update      → Velopack update feed
                        Storage: device tokens + usage counters only (Cloudflare D1 / KV)
                        Secrets: ANTHROPIC_API_KEY, ELEVENLABS_API_KEY, STT key (Wrangler secrets)
 ```
 
-The server never stores audio, transcripts or screen text. It counts tokens and characters per device.
+The server never stores a user's recordings, transcripts, questions or screen text. It stores only the
+shared book library (§6) and counts tokens and characters per device.
 
 ### Protecting the owner's money (required because it is free)
 

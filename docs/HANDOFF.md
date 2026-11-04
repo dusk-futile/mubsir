@@ -15,6 +15,11 @@ Update this file at the end of every session. Newest entry on top.
 - Reading check-in: continuous reading pauses after 2 minutes ("Shall I continue?"), stops after 15 s
   of silence. Pay only for what is read: voice at most ~30 s ahead and never past the requested range
   (pages 46–80, first quarter of a page, N lines, a section, a time). Plan §6 has per-page costs.
+- Library and page window: every book gets a free "library card" (metadata, first pages, TOC; Haiku names
+  untitled files from text, ≈ $0.20 per 400 books). The open book prepares only previous / current / next
+  page. Numbered choices (max 4), numbered starting points. Shared library stores audio by exact sentence
+  text + voice; the server generates everything itself; personal data stays on the PC with an optional
+  6-digit device link.
 - Font map trick: learn a legacy IPA font's code map from 1–3 vision-fixed pages, fix the rest locally.
 - Optional on-device wake word "Hey Mubsir" / "يا مبصر" (Right Ctrl stays the default).
 - Repo is still public until the owner changes it (Settings → General → Danger Zone).
