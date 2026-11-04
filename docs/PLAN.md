@@ -14,7 +14,7 @@
 | Price | **Completely free** for users. The owner pays all AI and voice costs through one server |
 | Distribution | Owner sends a **zip**. Unzip, run, it is already connected to the owner's server. No keys, no account, no sign-in |
 | Platform | **Windows only** (10 22H2 and 11) |
-| Voice | **ElevenLabs everywhere** (conversation and reading). Windows voices only as an emergency fallback |
+| Voice | **Fish Audio (hosted API) is the lead choice**, confirmed by a blind listening test in week 1 against ElevenLabs, Azure and Google. Two voice jobs: conversation and reading. Windows voices only as an emergency fallback (§9) |
 | Access | **Full access**, including passwords and payments, behind a deliberate confirmation gesture (§6) |
 | Name | Mubsir · مُبصِر |
 | Repository | Private; everything (plan, decisions, handoff) lives in the repo so work can continue from any device |
@@ -81,13 +81,13 @@ The existing Mubsir code (29k lines of C#) already has #1, #2 and #4 in part (§
    │                   local commands   Memory vault (encrypted)                          │
    │                   (stop, repeat,     Profile (blind/sighted, job, language)          │
    │                    next page)                                                        │
-   │ Mouth: streaming TTS (ElevenLabs / Windows voices)   Eyes: notch + pointer + board   │
+   │ Mouth: streaming TTS (Fish Audio / Windows voices)   Eyes: notch + pointer + board   │
    └───────────────────────────────────────────────────────────────────────────────────────┘
                                    │ HTTPS
                      Mubsir Cloud proxy (keys, accounts, usage limits)
                      ├── Anthropic (Claude Haiku 5.5 / Sonnet 5.5)
                      ├── STT provider (streaming, Egyptian Arabic)
-                     └── ElevenLabs TTS
+                     └── Fish Audio TTS (switchable from the server)
 ```
 
 ---
@@ -228,6 +228,56 @@ Steps appear one at a time, synced with the spoken explanation. Rendering: a tra
 click-through, top-most WPF window per monitor, maths via WPF-Math (LaTeX). Esc clears the board.
 In blind mode the same plan is turned into speech ("step 2: divide both sides by two"), and maths
 goes through the existing `SymbolVerbalizer`.
+
+### Reading anything: two languages and strange symbols
+
+**Rule: the user's language and the book's language are separate.** You talk in Egyptian Arabic, Mubsir
+answers in Egyptian Arabic, and the book is read in its own language with a native voice.
+
+Example, start to finish:
+
+```
+You (Arabic):  "افتحلي كتاب الفونولوجي واقرالي أول صفحة من الفصل التالت"
+ 1. Ears      Streaming STT → Arabic text (+ language tag "ar-EG")
+ 2. Brain     Haiku 5.5: intent = open book + go to chapter 3 + read 1 page
+ 3. Tools     find_files("phonology") → read_document → toc → goto(chapter 3)
+ 4. Mubsir    (Arabic voice) "فتحت كتاب Introducing Phonology، الفصل التالت. هبدأ أقرا."
+ 5. Reader    page text → segmenter → per-run voice:
+                English prose        → English reading voice
+                Arabic words         → Arabic voice (mid-sentence switch, already built)
+                IPA /ˈfəʊnɪm/        → symbol reader (below)
+ 6. You       tap Right Ctrl → stops on the exact word; "يعني إيه schwa؟" → answer in Arabic,
+              "كمّل" → resumes at the same word in English
+```
+
+The AI is **not** in the loop for plain reading: text goes straight from the page to the voice. That
+keeps reading fast, cheap and word-for-word faithful. Haiku is only asked when you ask a question,
+or when a page needs fixing (below).
+
+**Strange symbols.** Phonology, linguistics, maths, chemistry and dictionaries use characters that every
+TTS voice mangles or skips. Mubsir handles them itself, before the voice sees the text:
+
+1. **Detect** special spans: IPA (Unicode blocks IPA Extensions U+0250–02AF, Spacing Modifier Letters,
+   combining diacritics, text between `/…/` or `[…]`), stress and length marks `ˈ ˌ ː`, tone letters,
+   maths, Greek letters, arrows, chemical formulas. Extends the existing `SymbolVerbalizer` /
+   `SymbolTables`, which already handle maths, emoji and symbols.
+2. **Full IPA table** (~170 symbols) with the official name, an English example word and an Arabic
+   name. For example: ə = "schwa, the a in *about*"; ɐ = "turned a"; ʃ = "esh, the sh in *ship*";
+   θ = "theta, the th in *think*"; ð = "eth, the th in *this*"; ŋ = "eng, the ng in *sing*";
+   ʔ = "glottal stop, like the hamza ء".
+3. **Three reading styles**, switched by voice ("read symbols by name" / "say the sounds"):
+   - **Name** (default for study): "slash, primary stress, f, schwa, long u, n, slash".
+   - **Sound**: the voice pronounces the transcription (needs a voice that reads IPA; see §9).
+   - **Both**: name, then the sound.
+4. **Broken PDFs.** Many older linguistics PDFs draw IPA with legacy fonts, so the extracted text is
+   garbage ("fYnim"). Mubsir checks each page: if letters are unknown, private-use (U+E000–F8FF) or
+   don't form words, it sends **that page image** to Claude vision (Haiku first, Sonnet if unsure), which
+   returns clean Unicode text with the IPA. The fixed page is cached so it is paid for once.
+5. **Never skip silently.** If a symbol is still unknown, Mubsir says "unknown symbol" and offers to
+   spell its Unicode name, so the reader always knows something was there.
+
+Done when: a 30-page test set (phonology textbook, Arabic grammar book with tashkeel, maths worksheet,
+dictionary page, scanned PDF with legacy IPA font) is read with no skipped or wrong symbols.
 
 ### Full access, with a gate you can't trigger by accident
 
@@ -373,7 +423,7 @@ Mubsir.exe ──HTTPS──▶ Mubsir Cloud (Cloudflare Workers, owner's accoun
                        /register    → first start: device gets its own random token
                        /chat        → Anthropic Messages API (streaming)
                        /stt-token   → short-lived token for the STT websocket
-                       /tts         → ElevenLabs streaming (+ audio cache)
+                       /tts         → TTS provider chosen by server config (Fish Audio first) + audio cache
                        /update      → Velopack update feed
                        Storage: device tokens + usage counters only (Cloudflare D1 / KV)
                        Secrets: ANTHROPIC_API_KEY, ELEVENLABS_API_KEY, STT key (Wrangler secrets)
@@ -386,44 +436,56 @@ The server never stores audio, transcripts or screen text. It counts tokens and 
 | Protection | Why |
 | --- | --- |
 | One token per device, created on first start | A leaked token can be switched off without breaking everyone |
-| **Daily caps per device** (e.g. 300 AI turns, 90 minutes of ElevenLabs audio), set from the server | One heavy user or a script can't run up the bill |
+| **Daily caps per device** (e.g. 300 AI turns, 90 minutes of premium audio), set from the server | One heavy user or a script can't run up the bill |
 | **Global monthly budget** with an alert at 50 % / 80 % and a hard stop at 100 % | No surprise bills |
 | Over-cap behaviour: keep working with Windows voices, say "premium voice is back tomorrow" | The user is never left without speech |
 | Invite codes (optional switch) | If the zip spreads beyond the people it was sent to |
 | Kill switch per device and for everyone | Abuse or a bug |
-| Also set spend limits in the Anthropic and ElevenLabs consoles | Second line of defence |
+| Also set spend limits in the Anthropic and voice provider consoles | Second line of defence |
 
-### Voices: ElevenLabs everywhere
+### Voices: Fish Audio first, chosen by ear
 
-Decision: ElevenLabs for everything, because it sounds natural and Windows voices sounded bad to the
-owner. Note: the voices that sounded bad were most likely the old SAPI voices. Windows 11 also has
-"natural" neural voices that are much better; they are the fallback when the daily cap is reached or
-the internet is down, not the main voice.
+History: first decision was "ElevenLabs everywhere" (natural sound). After comparing prices the owner
+chose **Fish Audio** as the lead: similar or better quality in blind tests (mostly English), about
+**$15 per million bytes** of text vs $40–80 per million characters for ElevenLabs.
 
-| Job | ElevenLabs model | Why |
+| Job | Provider (lead → backup) | Notes |
 | --- | --- | --- |
-| Conversation (short answers) | **Flash v2.5**, streaming websocket | Lowest delay (~75 ms model time) and half the price |
-| Arabic, especially Egyptian | **Multilingual v2 / v3**, test in week 1 | Early reports say Flash sounds weak in Arabic; pick per language after listening tests |
-| Reading books and documents | Same voices, with an **audio cache** | A page already read is replayed from disk, never paid twice |
+| Conversation (short answers, confirmations) | Fish Audio streaming → ElevenLabs Flash v2.5 | Measure time-to-first-audio from Cairo; target < 300 ms |
+| Reading books and documents | Fish Audio → Azure Neural (has Egyptian voices Salma / Shakir, ~$15 per 1M) | Price matters most here; audio cache on |
+| Phonetic (IPA) "say the sound" snippets | Whichever voice passes the IPA test (§6 "Reading anything"); ElevenLabs v3 reads IPA in `/…/` (docs: 80–90 % consistent); Azure supports SSML `<phoneme alphabet="ipa">` | Short snippets only, so price doesn't matter |
 | Speech-to-text | Bake-off in week 1: current Gemini path, ElevenLabs Scribe realtime, Deepgram, Soniox on 50 real Egyptian/English recordings | Egyptian code-switching accuracy decides |
+
+Rules:
+- **Week-1 blind listening test** with ~10 blind testers: same Egyptian Arabic and English passages,
+  normal and 2× speed, providers hidden. Fish (S2 Pro, Drama 3), ElevenLabs (Flash, v3), Azure (Salma,
+  Shakir), Google Chirp 3 HD. Winner per job and per language.
+- The app never names a provider: it asks the server for the "conversation" or "reading" voice.
+  Switching provider is a server setting, not a new zip.
+- Fish bills per UTF-8 byte; Arabic letters are 2 bytes, so Arabic costs about **double** per character
+  (≈ $30 per million characters). Verify on Fish's billing page.
+- **Fish open weights are not for us yet.** S2 Pro weights are under the Fish Audio Research License
+  (research / non-commercial; anything else needs a licence from business@fish.audio), and need a GPU
+  with roughly 7–20 GB of VRAM. They can never run on users' 4 GB PCs. Self-hosting on the owner's GPU
+  server is a later cost option, only after a written licence from Fish Audio.
 
 ### What it will cost (estimate, verify on elevenlabs.io/pricing)
 
 Reported API list prices (October 2026): **Flash v2.5 ≈ $0.04 per 1,000 characters**,
 **Multilingual v2 / v3 ≈ $0.08 per 1,000 characters**. 1,000 characters ≈ 1 minute of speech.
 
-| User type | Speech per day | ElevenLabs / month | Claude (Haiku-first) / month | Total / month |
-| --- | --- | --- | --- | --- |
-| Light (questions, commands) | 10 min | ≈ $12 (Flash) – $24 (Multilingual) | < $1 | **≈ $13 – $25** |
-| Heavy reader (1 h of books daily) | 70 min | ≈ $85 – $170 | ≈ $1–2 | **≈ $85 – $170** |
+| User type | Speech per day | ElevenLabs / month | Fish Audio / month (EN–AR) | Claude (Haiku-first) | Total with Fish |
+| --- | --- | --- | --- | --- | --- |
+| Light (questions, commands) | 10 min | ≈ $12 – $24 | ≈ $5 – $9 | < $1 | **≈ $5 – $10** |
+| Heavy reader (1 h of books daily) | 70 min | ≈ $85 – $170 | ≈ $32 – $64 | ≈ $1–2 | **≈ $35 – $65** |
 
-ElevenLabs is cheap **per sentence**, but **reading books is the expensive part**. For 10 pilot users
-that is roughly $150 – $1,000 a month depending on how much they read. Ways to bring it down, in order:
+Every provider is cheap **per sentence**; **reading books is the expensive part**. With Fish, 10 pilot users
+cost roughly $50 – $400 a month depending on how much they read. Ways to bring it down, in order:
 
 1. Audio cache (same page never billed twice; shared across users for the same public book file).
-2. Flash v2.5 wherever the listening test says it is good enough, Multilingual only for Arabic if needed.
+2. The cheapest voice that wins the listening test for each job (Azure is ~$15 per 1M for reading).
 3. A daily premium-audio cap, with Windows natural voices after it.
-4. Apply to ElevenLabs' programmes for non-profit / accessibility projects and ask Anthropic about
+4. Apply to voice providers' programmes for non-profit / accessibility projects and ask Anthropic about
    startup or non-profit credits. A free tool for blind Arabic speakers is a strong case. (Not verified
    what is on offer today; check before the pilot.)
 
@@ -451,7 +513,7 @@ cost ledger, encrypted secret storage.
 | `Mubsir.Core` text pipeline, input state machine, context builder | Brain: add model router (Haiku → Sonnet), prompt caching, streaming-first speech | Cloud proxy, device tokens, usage caps |
 | UIA reader/actions, OCR, document reader | Ears: provider interface + streaming STT bake-off winner | Normal mode: notch, pointer, teaching board (WPF) |
 | NVDA bridge add-on | Keys: tap/hold Right Ctrl, Caps Lock dictation, resume | Memory vault (§7), onboarding conversation |
-| Speech service (Windows voices, now the fallback) | Speech: streaming ElevenLabs path + audio cache | Installer (zip + Velopack), auto-update |
+| Speech service (Windows voices, now the fallback) | Speech: streaming cloud TTS (provider set by server) + audio cache + IPA reader | Installer (zip + Velopack), auto-update |
 | `Redactor`, `SensitiveDetector` | Policy engine: 4 levels, 4× Right Ctrl gesture; `MemoryStore` → vault | Secrets Vault; tools: window, mouse, power, install_updates, startup_apps, disk_report, Spotify, web search |
 
 Repository layout after the change:
@@ -478,7 +540,7 @@ Each phase ends with something a blind tester can use. Weeks assume one full-tim
 
 | Phase | Weeks | Deliverable | Done when |
 | --- | --- | --- | --- |
-| **0. Spikes** | 1 | STT bake-off (Egyptian/English), ElevenLabs Arabic voice test, Haiku 5.5 tool-use + computer-use check, latency baseline on a 4 GB PC | Vendor choices written down with numbers |
+| **0. Spikes** | 1 | STT bake-off (Egyptian/English), blind listening test (Fish / ElevenLabs / Azure / Google) incl. IPA test, Haiku 5.5 tool-use + computer-use check, latency baseline on a 4 GB PC | Vendor choices written down with numbers |
 | **1. Cloud proxy** | 1–2 | Worker with `/register`, `/chat`, `/stt-token`, `/tts` (+ cache), `/update`, per-device caps, budget alerts, kill switch | App from a zip runs with **zero keys and no account** |
 | **2. Live conversation** | 2–4 | Tap/hold Right Ctrl, streaming STT → Haiku → streaming TTS, barge-in, resume, 6 s follow-up window, local router | First word < 1.2 s on simple commands, interrupt < 150 ms |
 | **3. Model router + tools** | 4–6 | Haiku→Sonnet escalation, new tools (window, mouse, power, updates, startup apps, disk, Spotify, web search), 4-level safety gate, Secrets Vault with 4× Right Ctrl | 50-task test list passes ≥ 90 % (open settings, find book, read TOC, go to page 1400, update then shut down…) |
