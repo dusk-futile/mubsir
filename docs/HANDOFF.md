@@ -47,7 +47,7 @@ checklist, and Ctrl to stop and undo. Published as version 4 on the owner's link
 
 ## 2026-11-04 (design session) — app icon done, Hudhud concepts ready to pick
 
-- **Image generation works through the owner's own ChatGPT**, signed in inside the Claude desktop
+- **Image generation works through the owner's own ChatGPT**, signed in inside the coding
   app's browser pane. No API key was needed and none is in the repo. (Codex CLI's image tool also
   works with the owner's ChatGPT login, but the owner rejected its quality.)
 - **App icon chosen: the seeing eye.** The owner picked it from two rounds of six concepts: an amber eye on
@@ -166,13 +166,13 @@ as an environment secret, or a connected tool). Plan:
   abuse guard + monthly budget alerts); password dictation with spelled read-back and corrections;
   full mouse/keyboard parity (windows, websites, settings, text). Brand options in `docs/BRAND.md`
   (recommended: Fanoos lantern) — owner to choose.
-- The build will run on the owner's Windows PC (Claude Desktop or `claude remote-control` there), which
+- The build will run on the owner's Windows PC (a coding agent running there), which
   also solves the "real Windows PC" testing need in EXECUTION.md.
 - Added `docs/EXECUTION.md`: build order, what runs where (real Windows PC needed for end-to-end),
   tests and the numbers to report in `docs/RESULTS.md`.
 - Plan: notch design (states, motion, performance budget, HTML prototype → WPF), limits policy (free vs
   paid, no "limit reached" messages), full price list and per-user monthly costs (≈ $8 / $25 / $35–60).
-- Added skills `taste-skill` and `find-skills` (MIT) to `.claude/skills/`.
+- Added skills `taste-skill` and `find-skills` (MIT) to `.agents/skills/`.
 - Owner decisions: **no multi-device sync** (one user = one PC). The owner's own PC runs nothing for
   users: users' PCs do the local work and storage, a Cloudflare relay holds keys and forwards to
   Claude / Fish (PLAN §9 "Where things run"). Full-access setup with a one-time admin approval for a
@@ -194,10 +194,10 @@ as an environment secret, or a connected tool). Plan:
 - Wrote `docs/PLAN.md` (Mubsir 2.0 plan). The owner approved it, then locked these decisions:
   free for users, zip distribution with no keys, Windows only, ElevenLabs everywhere (later changed to Fish Audio, see above), full access with
   a 4× Right Ctrl gesture for passwords and payments, name stays Mubsir.
-- Added skills `agent-reach` and `reverse-engineer-anything` to `.claude/skills/` (MIT, sources in
-  `.claude/skills/README.md`). `.gitignore` now tracks `.claude/skills/` only.
-- Added this file and `CLAUDE.md` so work can continue from another device.
-- Draft PR: https://github.com/dusk-futile/mubsir/pull/6 (branch `claude/jolly-fermi-i04fxf`).
+- Added skills `agent-reach` and `reverse-engineer-anything` to `.agents/skills/` (MIT, sources in
+  `.agents/skills/README.md`).
+- Added this file and the agent instructions (now `AGENTS.md`) so work can continue from another device.
+- Draft PR: https://github.com/dusk-futile/mubsir/pull/6.
 
 ### Fixed (2026-11-04, design session): CI was red
 Fixed by pinning `global.json` to exactly SDK 10.0.401 with `rollForward: disable`, so CI installs the SDK
@@ -220,23 +220,9 @@ Fix, on a machine with the official .NET SDK 10.0.403 (Windows is fine):
 2. To stop it recurring on every SDK patch, pin the SDK in `global.json`
    (`"version": "10.0.403", "rollForward": "disable"`) and let Dependabot bump it.
 Alternatively, allow `builds.dotnet.microsoft.com` in the cloud environment's network settings and
-ask Claude to do it.
+ask a coding session to do it.
 
-### Pending: remove Claude from the contributors list
-The owner approved rewriting history so every commit is authored by dusk-futile (no Claude author, no
-Claude trailer lines). The rewrite was prepared, but force-pushing `main` was blocked by the cloud
-session's safety rules. To finish it (stars are not affected; the 6 forks keep the old copy), on a PC
-with git, in a fresh clone of the repo:
-
-```bash
-git clone https://github.com/dusk-futile/mubsir.git && cd mubsir
-git filter-branch -f --env-filter 'if [ "$GIT_AUTHOR_EMAIL" = "noreply@anthropic.com" ]; then export GIT_AUTHOR_NAME="dusk-futile" GIT_AUTHOR_EMAIL="omarelkabbaney2010@gmail.com"; fi; if [ "$GIT_COMMITTER_EMAIL" = "noreply@anthropic.com" ]; then export GIT_COMMITTER_NAME="dusk-futile" GIT_COMMITTER_EMAIL="omarelkabbaney2010@gmail.com"; fi' --msg-filter 'grep -v -E "^(Co-Authored-By: Claude|Claude-Session: )"' -- --all
-git push --force origin main
-```
-
-Or allow force-push for that session (a Bash permission rule) and ask Claude to do it.
-
-### Owner to-do (can't be done from a Claude session)
+### Owner to-do (can't be done from a coding session)
 - [x] ~~Make the repo private~~ — **cancelled**: GitHub permanently erases stars and watchers when a
       public repo is made private. The repo stays public; never commit keys.
 - [ ] Create accounts and keys: Anthropic Console, ElevenLabs, Cloudflare (Workers + R2). Set a monthly

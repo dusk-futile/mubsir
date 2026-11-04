@@ -892,14 +892,14 @@ cloud/
 nvda-addon/
 tests/                🆕 Core unit tests + voice-latency harness
 docs/          PLAN.md, HANDOFF.md
-CLAUDE.md     (instructions every Claude Code session reads first)
+AGENTS.md     (instructions every coding session reads first)
 ```
 
 ---
 
 ## 12. Build roadmap
 
-Each phase ends with something a blind tester can use. Weeks assume one full-time developer working with Claude Code.
+Each phase ends with something a blind tester can use. Weeks assume one full-time developer working with an AI coding agent.
 
 | Phase | Weeks | Deliverable | Done when |
 | --- | --- | --- | --- |
@@ -917,14 +917,14 @@ Each phase ends with something a blind tester can use. Weeks assume one full-tim
 
 ## 13. How we will use the skills you asked for
 
-Both are now installed in this repository under `.claude/skills/`, so every Claude Code session on
+Both are now installed in this repository under `.agents/skills/`, so every coding session on
 this repo can use them:
 
-- **Agent Reach** (`.claude/skills/agent-reach`): read-only research across GitHub, YouTube
+- **Agent Reach** (`.agents/skills/agent-reach`): read-only research across GitHub, YouTube
   transcripts, Reddit, X and more. Use it in phase 0 to collect user reviews and demo videos of
   Saywork, Clicky and similar tools, and to watch for new competitors.
   The `agent-reach` CLI installs on first use (`pipx install https://github.com/Panniantong/agent-reach/archive/main.zip`).
-- **REA – Reverse Engineer Anything** (`.claude/skills/reverse-engineer-anything`): analyses shipped
+- **REA – Reverse Engineer Anything** (`.agents/skills/reverse-engineer-anything`): analyses shipped
   apps (native, .NET, Electron) to explain how a feature works. It needs its MCP server
   (`npx rea-agents setup`) and the app installed **on a Windows machine**, so it cannot run on Saywork
   from this cloud session. Use it on your own PC to study *how* Saywork achieves low latency or
@@ -947,7 +947,7 @@ Still open:
 
 ## Sources
 
-- Clicky: [farzaa/clicky](https://github.com/farzaa/clicky) (source and `CLAUDE.md` read directly), [clicky-windows](https://github.com/Bitshank-2338/clicky-windows)
+- Clicky: [farzaa/clicky](https://github.com/farzaa/clicky) (source and its agent instructions read directly), [clicky-windows](https://github.com/Bitshank-2338/clicky-windows)
 - Saywork: Microsoft Store listing `9pnl0gh167b5` (summary via search; page not reachable from this session)
 - Agent Reach: [Panniantong/Agent-Reach](https://github.com/Panniantong/Agent-Reach) (MIT)
 - REA: [morluto/rea](https://github.com/morluto/rea) (MIT)

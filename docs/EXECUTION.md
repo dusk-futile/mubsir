@@ -1,13 +1,13 @@
 # Execution playbook
 
 Written 2026-11-04 for the session that will **build** Mubsir 2.0. The owner plans on one device and
-will start the build from another, with Claude at a high effort setting. Read `CLAUDE.md`,
+will start the build from another, with the coding agent at a high effort setting. Read `AGENTS.md`,
 `docs/HANDOFF.md` and `docs/PLAN.md` first. This file says **in what order to build, how to test, and
 which numbers to report**.
 
 ## Ground rules for the build session
 
-- Follow `docs/PLAN.md`. Owner decisions in `CLAUDE.md` are final; don't re-ask them.
+- Follow `docs/PLAN.md`. Owner decisions in `AGENTS.md` are final; don't re-ask them.
 - Work in phases (PLAN §12). Each phase: branch → code → tests → numbers in `docs/RESULTS.md` →
   update `docs/HANDOFF.md` → PR. Don't start a phase before the previous one's "done when" passes,
   unless the owner says so.
@@ -20,7 +20,7 @@ which numbers to report**.
 
 ## What can run where (important)
 
-| Work | Cloud Claude session (Linux) | GitHub Actions `windows-2025` | Owner's / tester's real Windows PC |
+| Work | Cloud coding session (Linux) | GitHub Actions `windows-2025` | Owner's / tester's real Windows PC |
 | --- | --- | --- | --- |
 | `Mubsir.Core` code + unit tests | ✅ | ✅ | ✅ |
 | Cloudflare relay (`cloud/proxy`) code, tests, deploy | ✅ (needs Cloudflare token) | — | — |
@@ -29,7 +29,7 @@ which numbers to report**.
 | Build the Windows app, WPF notch | — | ✅ build + unit tests | ✅ |
 | Real end-to-end: microphone, NVDA, UI Automation on real apps, latency, RAM on a 4 GB PC | — | ❌ (no mic/NVDA) | ✅ **only here** |
 
-So the final checks of each Windows phase need a real Windows PC: either the owner runs Claude Code on
+So the final checks of each Windows phase need a real Windows PC: either the owner runs the coding agent on
 a Windows PC, or a tester runs the test script and sends back `results.json`. The cloud session should
 also allow these hosts in its network settings: `builds.dotnet.microsoft.com` (to fix CI),
 `api.anthropic.com`, the Fish Audio API host, the chosen STT host, `api.cloudflare.com`.

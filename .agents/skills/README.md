@@ -1,6 +1,6 @@
 # Vendored skills
 
-These Claude Code skills are copied into the repository so every session on Mubsir can use them.
+These agent skills are copied into the repository so every coding session on Mubsir can use them.
 
 | Skill | Source | Commit | Licence |
 | --- | --- | --- | --- |
