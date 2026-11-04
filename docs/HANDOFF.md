@@ -83,6 +83,20 @@ Fix, on a machine with the official .NET SDK 10.0.403 (Windows is fine):
 Alternatively, allow `builds.dotnet.microsoft.com` in the cloud environment's network settings and
 ask Claude to do it.
 
+### Pending: remove Claude from the contributors list
+The owner approved rewriting history so every commit is authored by dusk-futile (no Claude author, no
+Claude trailer lines). The rewrite was prepared, but force-pushing `main` was blocked by the cloud
+session's safety rules. To finish it (stars are not affected; the 6 forks keep the old copy), on a PC
+with git, in a fresh clone of the repo:
+
+```bash
+git clone https://github.com/dusk-futile/mubsir.git && cd mubsir
+git filter-branch -f --env-filter 'if [ "$GIT_AUTHOR_EMAIL" = "noreply@anthropic.com" ]; then export GIT_AUTHOR_NAME="dusk-futile" GIT_AUTHOR_EMAIL="omarelkabbaney2010@gmail.com"; fi; if [ "$GIT_COMMITTER_EMAIL" = "noreply@anthropic.com" ]; then export GIT_COMMITTER_NAME="dusk-futile" GIT_COMMITTER_EMAIL="omarelkabbaney2010@gmail.com"; fi' --msg-filter 'grep -v -E "^(Co-Authored-By: Claude|Claude-Session: )"' -- --all
+git push --force origin main
+```
+
+Or allow force-push for that session (a Bash permission rule) and ask Claude to do it.
+
 ### Owner to-do (can't be done from a Claude session)
 - [x] ~~Make the repo private~~ — **cancelled**: GitHub permanently erases stars and watchers when a
       public repo is made private. The repo stays public; never commit keys.
