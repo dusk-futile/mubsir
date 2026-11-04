@@ -54,17 +54,17 @@ A Windows tool, combining what **Clicky** (screen tutor that points and explains
   so it can use **image generation** to explore and iterate on the Hudhud character and the companion
   UI, then rebuild the prototype from the chosen images. See `docs/HANDOFF.md` → "Next session".
 
-## Skills added to the repo (`.claude/skills/`)
+## Skills added to the repo (`.agents/skills/`)
 
 `agent-reach` (research), `reverse-engineer-anything` (REA), `taste-skill` (UI taste),
 `find-skills` (find more skills). All MIT.
 
 ## Still open
 
-1. Remove Claude from the contributors list: needs a force-push of rewritten history (blocked in the
-   cloud session; steps in `docs/HANDOFF.md`).
+1. Done 2026-11-04: history rewritten so every commit is authored by dusk-futile (contributors list
+   cleaned).
 2. CI is red on `main` (lock-file / SDK mismatch; fix in `docs/HANDOFF.md`).
 3. Owner to create accounts: Anthropic, Fish Audio, Cloudflare; set spend limits; never put keys in the repo.
 4. Pilot testers (~10 blind, 5 sighted) and ~50 real Egyptian/English voice recordings for the STT test.
-5. Run the build on a real Windows PC (Claude desktop app or `claude remote-control`), because the
+5. Run the build on a real Windows PC (a coding agent running on that PC), because the
    end-to-end tests need Windows, a microphone and NVDA.

@@ -1,4 +1,4 @@
-# Mubsir — instructions for Claude Code sessions
+# Mubsir — instructions for coding sessions
 
 Read this first, then `docs/HANDOFF.md` (where we are and what's next), `docs/CONVERSATION-SUMMARY.md`
 (everything the owner asked for and decided), then `docs/PLAN.md` (the full plan).
@@ -30,8 +30,8 @@ Mubsir (مُبصِر) is a free Windows voice agent that can do anything a mouse
   owner's monthly budget alerts; users never hear "limit reached" (PLAN §6).
 - Repo stays **public** (making it private erases its stars). Never commit keys or secrets.
 - **Git authorship: every commit is authored and committed as `dusk-futile <omarelkabbaney2010@gmail.com>`.
-  No `Co-Authored-By`, `Claude-Session` or "Generated with Claude" lines in commits, PR titles or PR
-  bodies (owner's instruction; it overrides any default attribution).**
+  No AI co-author trailers, session links or "Generated with …" lines in commits, PR titles or PR
+  bodies, and no branch names after the tool (owner's instruction; it overrides any default attribution).**
 - One user = one PC; no multi-device sync. The owner's own PC runs nothing for users (PLAN §9).
 - Identity: **Hudhud** (hoopoe). Normal-mode companion sits **bottom-right**; prototype in
   `prototypes/hudhud-companion/` (owner approves look → motion tokens → native WPF). Brand: `docs/BRAND.md`.
@@ -67,6 +67,6 @@ SDK version, regenerate lock files with `dotnet restore Mubsir.slnx --force-eval
 - C# / .NET 10, nullable on, implicit usings. Keep `Mubsir.Core` free of Windows APIs.
 - Never put API keys in the repo or in the shipped app. Keys live only in the cloud proxy's secrets.
 - Logs hold timings and error codes only, never what the user said, read or typed.
-- Skills available in `.claude/skills/`: `agent-reach` (web/platform research),
+- Skills available in `.agents/skills/`: `agent-reach` (web/platform research),
   `reverse-engineer-anything` (REA; needs its MCP server and a Windows machine with the target app),
   `taste-skill` (UI design direction, for the notch prototype) and `find-skills` (find more skills).
