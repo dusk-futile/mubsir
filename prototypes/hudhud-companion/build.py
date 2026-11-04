@@ -45,7 +45,7 @@ def part(p: dict, k: float) -> str:
     x, y = p["at"]
     rot = p.get("rot", 0)
     return (
-        f'<g transform="translate({x} {y})"><g id="{p["id"]}" data-rest="{rot}" transform="rotate({rot})">'
+        f'<g transform="translate({x} {y})" filter="url(#hudPaper)"><g id="{p["id"]}" data-rest="{rot}" transform="rotate({rot})">'
         f'{image(p["img"], p["pivot"], sx, sy, k)}</g></g>'
     )
 
@@ -58,10 +58,10 @@ def feather(f: dict, k: float, c: float = 0.3) -> str:
     ang = f["closed"] + (f["open"] - f["closed"]) * c
     ln = f["len_closed"] + (1 - f["len_closed"]) * c
     return (
-        f'<g id="{f["id"]}" data-open="{f["open"]}" data-closed="{f["closed"]}" data-at="{ox} {oy}" '
+        f'<g filter="url(#hudPaper)"><g id="{f["id"]}" data-open="{f["open"]}" data-closed="{f["closed"]}" data-at="{ox} {oy}" '
         f'data-at-closed="{fx} {fy}" data-len-closed="{f["len_closed"]}" '
         f'transform="translate({x:.1f} {y:.1f}) rotate({ang:.1f}) scale(1 {ln:.3f})">'
-        f'{image(f["img"], f["pivot"], f["sx"], f["sy"], k)}</g>'
+        f'{image(f["img"], f["pivot"], f["sx"], f["sy"], k)}</g></g>'
     )
 
 
@@ -77,7 +77,7 @@ def build() -> str:
 
     crest = "".join(feather(f, k) for f in head["crest_back_to_front"])
     faces = (
-        f'<g transform="translate({nx} {ny})">'
+        f'<g transform="translate({nx} {ny})" filter="url(#hudPaper)">'
         + image(head["open"]["img"], head["open"]["pivot"], 1, 1, k, ' id="hFaceOpen"')
         + image(head["closed"]["img"], head["closed"]["pivot"], 1, 1, k, ' id="hFaceClosed" opacity="0"')
         + "</g>"
@@ -89,8 +89,16 @@ def build() -> str:
         f"{faces}</g></g></g></g>"
     )
     body = "".join(part(p, k) for p in rig["back_to_front"])
+    # Paper layers: every part casts a soft shadow on the parts under it, like the concept's stacked
+    # paper. Units are the rig's (about 10 per screen pixel at the companion's size).
+    sh = rig["paper_shadow"]
+    paper = (
+        '<defs><filter id="hudPaper" x="-25%" y="-25%" width="150%" height="160%" color-interpolation-filters="sRGB">'
+        f'<feDropShadow dx="0" dy="{sh["dy"]}" stdDeviation="{sh["blur"]}" flood-color="{sh["color"]}" '
+        f'flood-opacity="{sh["opacity"]}"/></filter></defs>'
+    )
     return (
-        f'<svg id="hudsvg" viewBox="{vx} {vy} {vw} {vh}" aria-hidden="true" focusable="false">'
+        f'<svg id="hudsvg" viewBox="{vx} {vy} {vw} {vh}" aria-hidden="true" focusable="false">{paper}'
         f'<g transform="translate({mirror_x} 0) scale(-1 1)">'
         f'<g id="hBody" data-feet="{rig["feet"][0]} {rig["feet"][1]}">{body}{head_svg}<g id="hDust"></g></g>'
         f"</g>"

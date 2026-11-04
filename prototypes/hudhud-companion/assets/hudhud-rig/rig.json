@@ -3,6 +3,7 @@
   "viewBox": [70, -20, 920, 1000],
   "feet": [530, 965],
   "export_scale": 0.45,
+  "paper_shadow": { "dy": 9, "blur": 6, "color": "#050826", "opacity": 0.55 },
   "back_to_front": [
     { "id": "hTail", "img": "tail", "s": 0.6, "pivot": [36, 400], "at": [362, 742], "rot": 232 },
     { "id": "hLegB", "img": "legB", "pivot": [92, 6], "at": [575, 735] },

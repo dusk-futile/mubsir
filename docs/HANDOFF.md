@@ -17,6 +17,9 @@ checklist, and Ctrl to stop and undo. Published as version 4 on the owner's link
   place and resting angle; `build.py` bakes them into `index.html` as one layered SVG.
   - The crest feathers grow from the crown: they slide forward and fan up when raised and lie back
     when folded. The flight feathers tuck under the wing and spread when it lifts.
+  - Owner follow-up (version 5): Hudhud is smaller (92 × 100 px on the 960 px desktop), and every
+    part casts a soft shadow on the parts under it, so it reads as stacked paper like the chosen
+    concept (`paper_shadow` in `rig.json`).
   - New motion: a full-body shake (wing, crest and tail follow; dust flies off). After 20 s with
     nothing to do, Hudhud sleeps: eyes closed, head tucked, crest flat, slow breath, floating z's. Ctrl
     or a click wakes it with a double blink and a shake. Clicking it when awake opens a small Mubsir
