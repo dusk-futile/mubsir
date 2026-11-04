@@ -18,8 +18,11 @@ Update this file at the end of every session. Newest entry on top.
 - Library and page window: every book gets a free "library card" (metadata, first pages, TOC; Haiku names
   untitled files from text, ≈ $0.20 per 400 books). The open book prepares only previous / current / next
   page. Numbered choices (max 4), numbered starting points. Shared library stores audio by exact sentence
-  text + voice; the server generates everything itself; personal data stays on the PC with an optional
-  6-digit device link.
+  text + voice; the server generates everything itself; personal data stays on the user's PC.
+- Owner decisions: **no multi-device sync** (one user = one PC). The owner's own PC runs nothing for
+  users: users' PCs do the local work and storage, a Cloudflare relay holds keys and forwards to
+  Claude / Fish (PLAN §9 "Where things run"). Full-access setup with a one-time admin approval for a
+  small Mubsir Helper service (PLAN §8).
 - Font map trick: learn a legacy IPA font's code map from 1–3 vision-fixed pages, fix the rest locally.
 - Optional on-device wake word "Hey Mubsir" / "يا مبصر" (Right Ctrl stays the default).
 - Repo is still public until the owner changes it (Settings → General → Danger Zone).

@@ -383,9 +383,8 @@ What is shared and what is personal:
   tampered PC can never put wrong audio or text into everyone's library.
 - **Corrections improve it for everyone.** "That sounded wrong" / "الكلمة دي غلط" marks the sentence;
   the server re-checks that page with Sonnet and replaces the shared copy if needed.
-- **Personal data stays on the PC** (encrypted vault). To continue on another PC, the user says "link
-  a new device": Mubsir reads out a 6-digit code, the user says it on the new PC, and position,
-  bookmarks and settings sync through the server, encrypted. No account, no email.
+- **Personal data stays on the user's PC only** (encrypted vault). One user = one PC; there is no
+  multi-device sync (owner's decision, 2026-11-04).
 
 The first person to read a page pays for it once; **everyone after that downloads it** for the cost of
 storage. Popular books can be fully voiced on the server once, in advance. Storage: a 600-page book is
@@ -599,6 +598,23 @@ pitched to an English teacher.
 
 No account, no sign-in: the device registration is invisible to the user.
 
+### Full-access setup (once, spoken, right after onboarding)
+
+Mubsir walks the user through each step by voice, checks it worked, and says what it is for:
+
+1. **Microphone allowed for desktop apps** (Windows Privacy settings). Mubsir opens the page and checks.
+2. **Start at sign-in** (Task Scheduler entry, already done by `setup.ps1`).
+3. **One administrator approval** to install a tiny **Mubsir Helper** service. Windows shows its
+   "Do you want to allow…" box once; NVDA reads it. After that, the helper does an allow-listed set of
+   admin jobs (install updates, restart / shut down, change system settings) **without new pop-ups**,
+   and only when the main app asks with a valid level 2–3 confirmation (§6). The AI can't call it
+   directly.
+4. **NVDA and the Mubsir Bridge add-on** for blind users.
+5. **Library scan**: "Which folders have your books?" (default: Documents, Downloads, Desktop).
+6. **Test**: "Tap Right Ctrl and say: what time is it?"
+
+Everything a user says during onboarding (mode, job, needs) is saved to their profile on their PC.
+
 ---
 
 ## 9. Cloud and cost (free for users, paid by the owner)
@@ -615,7 +631,6 @@ Mubsir.exe ──HTTPS──▶ Mubsir Cloud (Cloudflare Workers, owner's accoun
                        /stt-token   → short-lived token for the STT websocket
                        /tts         → TTS provider chosen by server config (Fish Audio first) + audio cache
                        /library     → shared book library: cards, prepared pages, audio (R2)
-                       /link        → 6-digit device link for personal sync (encrypted)
                        /update      → Velopack update feed
                        Storage: device tokens + usage counters only (Cloudflare D1 / KV)
                        Secrets: ANTHROPIC_API_KEY, ELEVENLABS_API_KEY, STT key (Wrangler secrets)
@@ -623,6 +638,25 @@ Mubsir.exe ──HTTPS──▶ Mubsir Cloud (Cloudflare Workers, owner's accoun
 
 The server never stores a user's recordings, transcripts, questions or screen text. It stores only the
 shared book library (§6) and counts tokens and characters per device.
+
+### Where things run: balancing the owner's PC, the users' PCs and the cloud
+
+The owner's own PC is not strong and can't be on 24/7 (power cuts, home internet, changing IP address,
+and it would expose a home machine to the internet). So **the owner's PC runs nothing for users**.
+The work is split three ways:
+
+| Where | What it does | Load |
+| --- | --- | --- |
+| **Each user's PC** | Everything that is free to do locally: keyboard, screen reading (UIA), Windows OCR, PDF text extraction, page checks, font maps, library cards, search index, audio cache and playback, speed changes, memory vault, Secrets Vault, settings | Light: < 80 MB idle, ~150 MB while preparing a page; storage capped (~1 GB audio cache) |
+| **Cloudflare (the "server")**, on the owner's account | A thin relay: holds the API keys, checks the device token and daily caps, forwards requests to Claude / Fish / STT and streams the answers back, stores the shared library in R2 | Tiny: no AI runs here, it only passes data. Free tier ≈ 100,000 requests a day; paid plan ≈ $5 a month for millions. R2 storage ≈ $0.015 per GB-month, 10 GB free, no download fees (check current limits) |
+| **Anthropic, Fish Audio, STT provider** | The heavy work: AI thinking, image reading, voice generation | Paid per use (§9 costs) |
+| **The owner's PC** | Only for the owner: deploy updates, set caps and voices, look at the usage and cost dashboard | Nothing while users use Mubsir; it can be switched off |
+
+Why this is "equal": each user's PC carries its own storage and its own local work, so adding users
+adds no load to the owner's PC and almost none to the relay. The only thing that grows with users is
+the per-use bill to Anthropic and Fish, which the caps control.
+
+Rough relay traffic: 10 users reading 2 hours a day ≈ 20,000 requests a day, inside the free tier.
 
 ### Protecting the owner's money (required because it is free)
 
