@@ -19,6 +19,15 @@ Update this file at the end of every session. Newest entry on top.
   untitled files from text, ≈ $0.20 per 400 books). The open book prepares only previous / current / next
   page. Numbered choices (max 4), numbered starting points. Shared library stores audio by exact sentence
   text + voice; the server generates everything itself; personal data stays on the user's PC.
+- **Hudhud chosen** as the identity; normal-mode companion lives **bottom-right**. Working prototype in
+  `prototypes/hudhud-companion/index.html`, also published for the owner at
+  https://claude.ai/artifact/UpBpC7m8hzQ3VCryB9LvyC (private link; republish from the file to update).
+- Code signing: try free routes first: Microsoft Store (MSIX, Microsoft signs) or SignPath Foundation
+  (free for open-source). PLAN §8.
+- Usage is irregular (some users read 20 minutes one day, then nothing for a week), so real cost per
+  user is usually below the planning tiers; idle users cost $0.
+- Owner allowed the build to restructure or replace old code, keeping the best parts; the repo and its
+  stars must never be deleted.
 - Owner decisions (latest): repo stays **public** (private would erase 71 stars); commits authored only
   as dusk-futile, no AI attribution lines; **no daily switch to Windows voices** (premium always, only an
   abuse guard + monthly budget alerts); password dictation with spelled read-back and corrections;
@@ -82,7 +91,12 @@ ask Claude to do it.
 - [ ] Decide the pilot's monthly budget (sets per-device daily caps; see PLAN §9 cost table).
 - [ ] Optional before the pilot: code-signing certificate (Azure Trusted Signing).
 
-### Next session: start Phase 0 (PLAN §12)
+### Next session
+- "Show me the UI" → open `prototypes/hudhud-companion/index.html` (or the link above) and walk through
+  the states; the ▶ Play button runs the whole flow.
+- "Start working" → follow `docs/EXECUTION.md` from step 0.
+
+### Phase 0 details (PLAN §12)
 1. Fix CI (above) if a .NET SDK is available.
 2. Spike: ElevenLabs Arabic/Egyptian listening test (Flash v2.5 vs Multilingual v2 vs v3).
 3. Spike: STT bake-off on Egyptian/English recordings.

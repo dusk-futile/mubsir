@@ -1,6 +1,8 @@
 # Mubsir identity — options
 
-Status: proposals for the owner to choose from (2026-11-04). The name stays **Mubsir · مُبصِر**
+Status: **the owner chose Direction 2, Hudhud (the hoopoe)**, on 2026-11-04. It lives in the bottom-right
+corner in normal mode. Working prototype: `prototypes/hudhud-companion/index.html`. The other directions
+are kept below for reference. The name stays **Mubsir · مُبصِر**
 ("the one who sees"). The identity needs a character people can love, a look for the notch, and,
 most important for blind users, **a sound**.
 
@@ -17,7 +19,7 @@ when listening, flickers softly when thinking, pulses with the voice when speaki
 - **Palette:** deep night blue `#0E1730`, lantern amber `#F5B544`, soft cream `#FFF4DE`.
 - **Character name:** Fanoos (the lantern), while the product stays Mubsir.
 
-### 2. Hudhud — the hoopoe messenger
+### 2. Hudhud — the hoopoe messenger ✅ chosen
 
 A friendly hoopoe (هدهد) with its crest. In the Qur'an the hoopoe is the bird that saw what others
 had not and brought back the news, a natural fit for an assistant that sees the screen and tells you.

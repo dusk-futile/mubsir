@@ -19,6 +19,8 @@
 | Name | Mubsir · مُبصِر |
 | Repository | **Stays public** (making it private would permanently erase its stars and watchers). Everything (plan, decisions, handoff) lives in the repo. Never commit keys or secrets |
 | Authorship | Every commit is authored by **dusk-futile** only, with no AI co-author lines |
+| Identity | **Hudhud (the hoopoe)** is Mubsir's character (`docs/BRAND.md`). In normal mode it lives in the **bottom-right corner** above the taskbar. Prototype: `prototypes/hudhud-companion/` |
+| Code base | The build may restructure or replace old code freely, keeping only the best parts; the repo itself (and its stars) is never deleted |
 
 ---
 
@@ -248,11 +250,15 @@ click-through, top-most WPF window per monitor, maths via WPF-Math (LaTeX). Esc 
 In blind mode the same plan is turned into speech ("step 2: divide both sides by two"), and maths
 goes through the existing `SymbolVerbalizer`.
 
-### The notch (normal mode): look, motion and how it is built
+### The companion (normal mode): look, motion and how it is built
 
-Blind mode has no visuals at all. Normal mode has one small, beautiful thing at the top centre of the
-screen: a dark **pill** that grows into a card when it has something to show, like a phone's "dynamic
-island", plus Clicky's flying pointer and the teaching board.
+Blind mode has no visuals at all. Normal mode has one small, beautiful thing: **Hudhud**, an animated
+hoopoe in a round badge in the **bottom-right corner** above the taskbar (owner's choice, 2026-11-04;
+it replaces the earlier "notch at the top" idea). When it has something to show, a dark glass card
+grows out of it to the left. Its crest opens when listening, its beak moves with the voice, and
+Clicky-style pointing flies from Hudhud to the target. **Working prototype:**
+`prototypes/hudhud-companion/index.html` (also published as a private link for the owner).
+Users can drag Hudhud to another corner; the position is remembered.
 
 | State | What the user sees | Motion |
 | --- | --- | --- |
@@ -649,9 +655,14 @@ saved passwords.
    starts immediately.
 
 Code signing: an unsigned `.exe` downloaded from the internet triggers the Windows SmartScreen
-"Windows protected your PC" box, which a screen reader user can get stuck on. Plan for a signing
-certificate (Azure Trusted Signing, about $10/month) before the pilot. Until then, the audio guide in
-the zip explains "More info → Run anyway".
+"Windows protected your PC" box, which a screen reader user can get stuck on. Ways to avoid paying:
+
+| Option | Cost | Notes |
+| --- | --- | --- |
+| **Microsoft Store (MSIX)** — recommended | Free (individual registration is free since 2025) | Microsoft signs the package, so no SmartScreen warning; Store handles updates; the owner sends a Store link instead of a zip. To check in phase 6: low-level keyboard hook, UI Automation and the admin helper inside a full-trust MSIX (the helper may need a different design, e.g. an elevated scheduled task created at first run) |
+| **SignPath Foundation** | Free for open-source projects | Repo must stay public with an OSI licence (MIT is fine) and MFA on GitHub; the certificate is issued to SignPath Foundation as publisher. Signs the zip/installer in GitHub Actions |
+| Azure Trusted Signing | ≈ $10 / month | Fallback if both of the above don't work |
+| No signing | Free | Users must click "More info → Run anyway"; the zip's audio guide explains it. Only for early testing |
 
 ### Onboarding conversation (spoken, ~2 minutes)
 
@@ -930,7 +941,7 @@ Still open:
 
 1. **Monthly budget** the owner is willing to spend during the pilot. This sets the per-device daily caps (§9).
 2. **Pilot users:** can the owner find ~10 blind testers (schools, associations) for phase 8?
-3. **Code signing certificate** before the pilot (about $10/month) — recommended.
+3. **Code signing**: try the free routes first (Microsoft Store, then SignPath Foundation; §8).
 4. **Distribution link:** the repo stays public (to keep its stars), so the zip can be published as a
    GitHub Release, or hosted on the owner's Cloudflare R2, or shared by Drive/WhatsApp.
 

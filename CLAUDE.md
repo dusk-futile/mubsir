@@ -32,7 +32,9 @@ Mubsir (مُبصِر) is a free Windows voice agent that can do anything a mouse
   No `Co-Authored-By`, `Claude-Session` or "Generated with Claude" lines in commits, PR titles or PR
   bodies (owner's instruction; it overrides any default attribution).**
 - One user = one PC; no multi-device sync. The owner's own PC runs nothing for users (PLAN §9).
-- Normal mode notch: prototype in HTML with `taste-skill`, owner approves, then native WPF (PLAN §6).
+- Identity: **Hudhud** (hoopoe). Normal-mode companion sits **bottom-right**; prototype in
+  `prototypes/hudhud-companion/` (owner approves look → motion tokens → native WPF). Brand: `docs/BRAND.md`.
+- The build may restructure or replace old code, keeping the best parts. Never delete the repo.
 - Brain: Claude Haiku 5.5 (`claude-haiku-5-5`) by default, escalate to Sonnet 5.5 (`claude-sonnet-5-5`).
 - Everything about the project (decisions, progress, next steps) is written into this repo so work can
   continue from any device. **Update `docs/HANDOFF.md` at the end of every session.**
