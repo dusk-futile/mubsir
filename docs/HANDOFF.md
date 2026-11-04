@@ -7,6 +7,9 @@ Update this file at the end of every session. Newest entry on top.
 ## 2026-11-04 — Plan approved, nothing built yet
 
 ### Done
+- Voice decision changed: **Fish Audio** is the lead (hosted API, cheaper, strong in blind tests),
+  confirmed by a week-1 listening test. Fish open weights rejected for now (research licence, needs a GPU).
+- Plan §6 now has "Reading anything": Arabic speaker + English book, IPA/phonetic symbols, broken PDF fonts.
 - Researched Clicky (open source, read its code) and Saywork (store listing only). Findings in `docs/PLAN.md` §1.
 - Wrote `docs/PLAN.md` (Mubsir 2.0 plan). The owner approved it, then locked these decisions:
   free for users, zip distribution with no keys, Windows only, ElevenLabs everywhere, full access with

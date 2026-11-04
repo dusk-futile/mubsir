@@ -15,7 +15,11 @@ Mubsir (مُبصِر) is a free Windows voice agent that can do anything a mouse
 - Completely free for users. The owner pays all AI and voice costs through their own server.
 - Distributed as a zip. No API keys in the zip, no account, no sign-in; the device registers itself.
 - Windows only (10 22H2 and 11), must stay light on 4 GB RAM PCs.
-- ElevenLabs is the voice for everything; Windows voices are only the fallback.
+- Voice: Fish Audio hosted API is the lead choice (to be confirmed by a week-1 blind listening test vs
+  ElevenLabs, Azure, Google). The app asks the server for a "conversation" or "reading" voice; the
+  provider is a server setting. Windows voices are only the fallback. Fish open weights: research
+  licence + GPU only, not used.
+- Reading must handle any symbol (IPA, maths, Arabic tashkeel); see PLAN §6 "Reading anything".
 - Full access including passwords and payments. Dangerous actions (level 3) need **Right Ctrl pressed
   four times**; passwords are typed locally from the Secrets Vault and never sent to the AI.
 - Brain: Claude Haiku 5.5 (`claude-haiku-5-5`) by default, escalate to Sonnet 5.5 (`claude-sonnet-5-5`).
