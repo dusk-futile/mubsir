@@ -4,6 +4,26 @@ Update this file at the end of every session. Newest entry on top.
 
 ---
 
+## 2026-11-04 (night) — repo cleaned, all open work merged
+
+- **Contributors cleaned.** The six early commits that named the AI assistant as their author were
+  rewritten as dusk-futile's, their co-author and session lines removed, and `main` was force-pushed.
+  The files are byte-for-byte the same. The v0.1.0 tag still points at the same first commit, and
+  stars are not affected. A full backup of the repo from before the rewrite is on the owner's Mac:
+  `~/Desktop/mubsir-before-cleanup-2026-11-04.bundle`.
+  - The old session branch was deleted, and the tool credit lines were removed from PRs #6 and #8.
+  - GitHub still shows the old commits inside closed PRs #6–#8 (it keeps those refs; only GitHub
+    Support can purge them). The 6 forks keep their old copies.
+- **Agent files have neutral names:** instructions in `AGENTS.md`, skills in `.agents/skills/`.
+  Tools that only look for their own file name need to be pointed at `AGENTS.md`.
+- **Merged into `main`** (squash, in this order): #10 (CI fix, SDK pinned), #9 (app icon, brand kit,
+  notch + Hudhud prototype), #11 (Phase 1 relay, server side).
+- **Built and tested** on macOS with SDK 10.0.401:
+  - `Mubsir.Core` and `Mubsir.App` (Release): 0 warnings, 0 errors.
+  - NVDA add-on built.
+  - Relay: type check clean, 37/37 tests.
+  - GitHub CI green on all three PRs: Core build and add-on, Windows build, and relay tests.
+
 ## 2026-11-04 (evening) — Hudhud rebuilt from ChatGPT-drawn parts, notch pass
 
 Owner feedback on version 3: the hand-drawn bird looked blocky and a bit uncanny, the white wing
