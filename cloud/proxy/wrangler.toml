@@ -1,0 +1,50 @@
+# Mubsir relay (Cloudflare Worker). Setup and deploy steps: README.md.
+name = "mubsir-relay"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+[observability]
+enabled = true
+
+[vars]
+ANTHROPIC_VERSION = "2026-10-21"
+# Models the app may use. Opus is off by default; add "claude-opus-5-5" to allow "think hard" mode.
+ALLOWED_MODELS = "claude-haiku-5-5,claude-sonnet-5-5"
+# anthropic-beta values the app may send (comma-separated). Empty = none.
+ALLOWED_BETAS = ""
+# Typed tools the app may send (comma-separated), e.g. "computer_toolset_20260801". Empty = only the
+# app's own tools. Tools Anthropic runs (web search, code execution) cost extra per use; list with care.
+ALLOWED_TOOL_TYPES = ""
+MAX_OUTPUT_TOKENS = "16000"
+MAX_BODY_BYTES = "10000000"
+# Abuse guard per device per UTC day; real users never reach it (PLAN §9).
+DEVICE_DAILY_REQUESTS = "500"
+# About 8 hours of new speech (Arabic letters are 2 bytes). Cached speech does not count.
+DEVICE_DAILY_TTS_BYTES = "900000"
+# Alerts at 50 % / 80 %; at 100 % paid requests stop until next month. 0 = no budget.
+MONTHLY_BUDGET_USD = "200"
+REGISTRATIONS_PER_IP_PER_DAY = "5"
+# Comma-separated invite codes. Empty = anyone with the app can register.
+INVITE_CODES = ""
+FISH_MODEL = "s2.1-pro"
+FISH_USD_PER_MILLION_BYTES = "15"
+# Fish Audio voice ids for each job, chosen by the week-1 listening test.
+VOICE_CONVERSATION = ""
+VOICE_READING = ""
+# Speech-to-text provider, chosen in Phase 0. Empty = /v1/stt-token answers 501.
+STT_PROVIDER = ""
+
+[[d1_databases]]
+binding = "DB"
+database_name = "mubsir-relay"
+# Replace with the id printed by `npx wrangler d1 create mubsir-relay`.
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "AUDIO"
+bucket_name = "mubsir-audio"
+
+[[r2_buckets]]
+binding = "UPDATES"
+bucket_name = "mubsir-updates"
