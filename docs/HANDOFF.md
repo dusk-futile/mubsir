@@ -24,7 +24,7 @@ opens the panel, and clicking the notch replays the story. Esc quits.
     because soft shadows have visible pixels that would otherwise swallow clicks. An error inside the
     overlay can't take the app down: it carries on, and closes itself after three failures.
   - Respects Windows' "Show animations" setting. Draws only as much as it needs: every refresh while
-    something really moves, 30 fps for resting breaths, 10 fps for a sleeping bird. Hides over full-screen
+    something really moves, 20 fps for resting breaths, 10 fps for a sleeping bird. Hides over full-screen
     apps while it has nothing to show, and comes back when it does.
   - Hudhud's paper shadows and light edge are baked into its pictures at startup (`PaperBaker` in Core),
     not drawn as live effects: without a GPU, live effects cost 85 % of a core while idle.

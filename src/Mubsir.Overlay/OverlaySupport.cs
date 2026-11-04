@@ -201,7 +201,7 @@ internal enum FrameNeed
     /// <summary>Ten times a second is enough (a sleeping bird's breath, the notch's resting light).</summary>
     Slow,
 
-    /// <summary>Thirty times a second is enough (a resting bird's breath, well under a pixel).</summary>
+    /// <summary>Twenty times a second is enough (a resting bird's breath, a small fraction of a pixel per frame).</summary>
     Medium,
 
     /// <summary>Every screen refresh.</summary>
@@ -215,7 +215,7 @@ internal interface IAnimated
 
 /// <summary>
 /// Drives the animations only as much as they need: every screen refresh while something really moves,
-/// thirty or ten times a second for slow things, and not at all when everything rests, so an idle overlay
+/// twenty or ten times a second for slow things, and not at all when everything rests, so an idle overlay
 /// costs next to nothing on a 4 GB PC.
 /// </summary>
 internal sealed class FrameLoop
@@ -224,7 +224,7 @@ internal sealed class FrameLoop
     private readonly List<IAnimated> _clients = [];
     private readonly Stopwatch _clock = Stopwatch.StartNew();
     private static readonly TimeSpan SlowInterval = TimeSpan.FromMilliseconds(100);
-    private static readonly TimeSpan MediumInterval = TimeSpan.FromMilliseconds(33);
+    private static readonly TimeSpan MediumInterval = TimeSpan.FromMilliseconds(50);
     private readonly DispatcherTimer _timer = new(DispatcherPriority.Render) { Interval = SlowInterval };
     private bool _hooked;
     private bool _paused;

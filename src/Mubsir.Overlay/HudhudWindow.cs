@@ -406,8 +406,9 @@ internal sealed class HudhudWindow : Window, IAnimated
             return moving ? FrameNeed.Fast : _asleep ? FrameNeed.None : FrameNeed.Slow;
         }
 
-        // Real movement gets every screen refresh. Resting breaths are under a pixel, so thirty frames a
-        // second look the same at half the cost, and a sleeping bird's slow breath needs only ten.
+        // Real movement gets every screen refresh. A resting breath moves a small fraction of a pixel per
+        // frame, so twenty frames a second look the same at a third of the cost, and a sleeping bird's slow
+        // breath needs only ten.
         if (moving || shakeAge >= 0 || preenAge >= 0 || _state != CompanionState.Idle)
         {
             return FrameNeed.Fast;

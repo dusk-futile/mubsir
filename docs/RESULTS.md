@@ -9,7 +9,7 @@ Measured 2026-11-05 on branch `feat/native-notch`. Unit tests and sizes on macOS
 
 | Test | Sample | Value | Target | Result |
 | --- | --- | --- | --- | --- |
-| Core unit tests (springs, tokens, rig, pose math) | 21 tests | 21 pass | all pass | Pass |
+| Core unit tests (springs, tokens, rig, pose math, shadow baking) | 29 tests | 29 pass | all pass | Pass |
 | Release build of the solution | Core, Overlay, App, tests | 0 warnings, 0 errors | 0 | Pass |
 | Size of the Windows zip, before and after WPF | 1 publish each, zipped at level 9 | 62.7 MB → 86.9 MB | no target yet | — |
 
