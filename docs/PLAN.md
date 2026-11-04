@@ -243,6 +243,47 @@ click-through, top-most WPF window per monitor, maths via WPF-Math (LaTeX). Esc 
 In blind mode the same plan is turned into speech ("step 2: divide both sides by two"), and maths
 goes through the existing `SymbolVerbalizer`.
 
+### The notch (normal mode): look, motion and how it is built
+
+Blind mode has no visuals at all. Normal mode has one small, beautiful thing at the top centre of the
+screen: a dark **pill** that grows into a card when it has something to show, like a phone's "dynamic
+island", plus Clicky's flying pointer and the teaching board.
+
+| State | What the user sees | Motion |
+| --- | --- | --- |
+| Idle | Nothing, or a tiny 6 px dot (setting) | Fades out 1 s after the last activity |
+| Listening | Pill (≈ 200 × 36 px) with a live waveform from the microphone and the words appearing as they are recognised | Pill springs open from the dot; bars follow the mic level at 60 fps |
+| Thinking | A soft shimmer moving across the pill, one-line plan ("Opening Settings…") | Shimmer loop 1.2 s; text cross-fades |
+| Speaking | Waveform following Mubsir's own voice + live caption, word highlighted as it is spoken | Bars follow TTS output level |
+| Doing | Card with the steps ticking off: "✓ Opened Settings · Clicking Update…" | Each step slides in; tick draws itself |
+| Confirm | Card with the exact action and two buttons: Approve / Cancel (and the key hints) | Card springs to full height; buttons fade in last |
+| Reading | Book title, page, a thin progress ring; the current line is highlighted on the page itself | Ring fills smoothly; highlight glides line to line |
+| Teaching | Pill shrinks; the pointer flies to targets and the board draws step by step | Pointer flies on a curved (bezier) path, pulses, shows a label |
+| Offline / error | Pill turns amber with one short sentence | Gentle shake (off when "reduce motion" is on) |
+
+Motion rules:
+- Everything moves with **springs** (no straight-line timing): open ≈ 300 ms, close ≈ 220 ms, no bounce
+  that overshoots more than a few pixels. One thing moves at a time.
+- Respects Windows "Show animations" / reduce-motion: then only fades.
+- **Never steals focus or clicks**: the window is click-through except its buttons, top-most, on the
+  monitor with the mouse, DPI-aware, dark by default with a light theme.
+- Performance budget (for 4 GB PCs): GPU-composited, draws only while something moves, 0 % CPU when
+  idle, < 30 MB extra memory, the window is closed after 10 s of idle.
+
+How it is built:
+1. **Prototype first in HTML/CSS/JS**, using the `taste-skill` (design direction, no "AI-made" look) and
+   real-browser screenshots. All states above, on one page, published as a private link the owner can
+   open on a phone and click through.
+2. The owner picks a direction. Its colours, sizes, durations and spring values are written once into
+   `src/Mubsir.Overlay/motion-tokens.json`.
+3. **Native build in WPF** (.NET 10) reading those tokens: a layered transparent window
+   (`WS_EX_NOACTIVATE | WS_EX_TRANSPARENT`, buttons hit-testable), animations on the GPU. No web
+   engine inside the app, because a browser engine would add 100 MB+ of memory on a 4 GB PC.
+4. Tests: a scripted run through every state, recorded to GIF, with frame-rate, CPU and memory numbers.
+
+References to study (ideas only, our own code): Clicky's `OverlayWindow` (MIT), Ripple (MIT),
+Dynamic-Island-for-Windows by devcode90 (MIT). DynamicWin is CC-BY-SA, so look but don't copy code.
+
 ### Reading anything: two languages and strange symbols
 
 **Rule: the user's language and the book's language are separate.** You talk in Egyptian Arabic, Mubsir
@@ -349,13 +390,28 @@ user has already catalogued is identified instantly. See "Finding a book" below.
 9. **One pronunciation list per book**: names and terms are fixed once ("Chomsky", "allophone") and
    reused for every page, so the book sounds consistent.
 
-**Reading check-in (2-minute rule).** A blind user may fall asleep, walk away or forget Mubsir is
-reading. So continuous reading **pauses by itself after 2 minutes** (setting: 1–10 minutes), at the end
-of a sentence, with a soft earcon and "Shall I continue?". Say "continue" / "كمّل" or tap Right Ctrl to go
-on; silence for 15 seconds means it stops, saves the exact position and voices nothing more. If the user
-asked for a specific amount ("read pages 46 to 80", "read for 10 minutes"), that request is the
-permission: it reads to the end of it, still with a check-in every 10 minutes. This is also a cost
-guard: a forgotten reader can never voice more than a few minutes of audio.
+**Limits: free things vs paid things (decided 2026-11-04).** Users never hear "you reached your limit".
+
+*Free things* (run only on the user's PC, or audio already saved): screen reading with the Windows voice,
+replaying cached or library audio, local commands, OCR, file and app control. **No cost limit.** The only
+pause is the **listening check-in**: continuous reading pauses after the user's chosen time (default
+2 minutes, choose 1–30 or "never") with a soft sound: "Shall I continue? One: continue. Two: stop.
+Three: read without stopping." If the user says "read the whole book without stopping" and the audio
+is free, it reads to the end with no check-ins.
+
+*Paid things* (new voice audio, AI, speech-to-text). Recommended combination, all invisible:
+
+1. **Check-in every 2 minutes** while new (paid) audio is being made; 15 s of silence stops it and saves
+   the place. "Read pages 46 to 80" is allowed; it still checks in every 10 minutes. A forgotten reader
+   can never cost more than a few minutes of audio.
+2. **Invisible daily premium budget per device** (e.g. 60 minutes of new audio). After it, reading
+   **continues without stopping** in the on-device Windows natural voice. The owner chooses whether
+   the switch is silent or marked by one short soft tone (no words). Premium returns the next day.
+3. **Cached audio is always premium and free**, so popular books stay in the good voice forever.
+4. **AI and speech-to-text** are so cheap (§9 price list) that their daily soft cap (e.g. 500 requests)
+   is only an abuse guard; normal users never get near it.
+5. **Global monthly budget** for the owner: at 80 % an alert to the owner; at 100 % everyone's new
+   audio uses the Windows voice until the month ends; AI keeps working within a separate hard ceiling.
 
 **Questions about the book with few tokens:** "what does chapter 3 say about allophones?" searches the
 local index and sends Haiku only the 3–5 best-matching passages (a few thousand tokens), not the
@@ -663,9 +719,9 @@ Rough relay traffic: 10 users reading 2 hours a day ≈ 20,000 requests a day, i
 | Protection | Why |
 | --- | --- |
 | One token per device, created on first start | A leaked token can be switched off without breaking everyone |
-| **Daily caps per device** (e.g. 300 AI turns, 90 minutes of premium audio), set from the server | One heavy user or a script can't run up the bill |
+| **Invisible daily caps per device** (e.g. 60 minutes of new premium audio, 500 AI requests), set from the server | One heavy user or a script can't run up the bill |
 | **Global monthly budget** with an alert at 50 % / 80 % and a hard stop at 100 % | No surprise bills |
-| Over-cap behaviour: keep working with Windows voices, say "premium voice is back tomorrow" | The user is never left without speech |
+| Over-cap behaviour: reading continues in the Windows natural voice, silently or with one soft tone; no "limit reached" message | The user is never stopped or lectured |
 | Invite codes (optional switch) | If the zip spreads beyond the people it was sent to |
 | Kill switch per device and for everyone | Abuse or a bug |
 | Also set spend limits in the Anthropic and voice provider consoles | Second line of defence |
@@ -695,6 +751,37 @@ Rules:
   (research / non-commercial; anything else needs a licence from business@fish.audio), and need a GPU
   with roughly 7–20 GB of VRAM. They can never run on users' 4 GB PCs. Self-hosting on the owner's GPU
   server is a later cost option, only after a written licence from Fish Audio.
+
+### Price list: every item (estimates, November 2026; confirm on each vendor's page)
+
+| Item | Unit price | What one action costs |
+| --- | --- | --- |
+| Claude Haiku 5.5 (main brain) | $0.10 / 1 M input tokens, $0.50 / 1 M output | A command ≈ $0.001; a question about a book ≈ $0.002; reading one page image ≈ $0.0006; naming an untitled book ≈ $0.0005 |
+| Claude Sonnet 5.5 (hard tasks only) | $2 / 1 M input, $10 / 1 M output | A hard multi-step task ≈ $0.01–0.03; a vision re-check of a page ≈ $0.01 |
+| Claude Batch API (non-urgent jobs) | 50 % off | Library cards for 400 books ≈ $0.10 instead of $0.20 |
+| Fish Audio voice | ≈ $15 / 1 M bytes | English ≈ $0.015 per minute of speech, ≈ $0.03 per page; Arabic ≈ double |
+| ElevenLabs Flash (backup voice) | ≈ $0.04 / 1,000 characters | ≈ $0.04 per minute; ≈ $0.09 per page |
+| Speech-to-text (user's voice) | Soniox real-time ≈ $0.12 / hour; ElevenLabs Scribe v2 RT ≈ $0.39 / hour; Deepgram ≈ $0.35–0.75 / hour (sources disagree) | A 5-second command ≈ $0.0002–0.001 |
+| Windows voices, Windows OCR, local work | $0 | $0 |
+| Cloudflare Workers (relay) | Free ≈ 100 k requests / day; paid ≈ $5 / month | ≈ $0–5 / month in total |
+| Cloudflare R2 (shared library) | ≈ $0.015 / GB-month, 10 GB free, no download fees | A 600-page book's audio (≈ 0.5 GB) ≈ $0.008 / month |
+| Code-signing certificate | ≈ $10 / month | Fixed |
+| Domain for the server (optional) | ≈ $10–15 / year | Fixed |
+
+**Per user per month** (first reader of every page; the shared library lowers the reading part):
+
+| User | Daily use | Brain | STT | Replies (voice) | Reading (voice) | Total / month |
+| --- | --- | --- | --- | --- | --- | --- |
+| Light | 20 commands, 5 pages | $0.60 | $0.30 | $2.25 | $4.50 | **≈ $8** |
+| Typical | 50 commands, 20 pages | $1.50 | $0.90 | $4.50 | $18 | **≈ $25** |
+| Heavy reader | 50 commands, 60 pages | $1.50 | $0.90 | $4.50 | $54 | **≈ $60** |
+
+With the 60-minute daily premium-audio cap (§6 Limits), a heavy reader costs at most **≈ $35 / month**;
+reading beyond it continues in the free Windows voice, or in premium wherever the audio is already cached.
+
+**Owner's total**: pilot of 10 users (5 light, 4 typical, 1 heavy) ≈ **$200 / month** + ≈ $15 fixed.
+100 users with the same mix ≈ $2,000 / month before library savings; when many users read the same
+books, the reading column falls towards $0 for everyone after the first reader.
 
 ### What it will cost (estimates; verify on each provider's pricing page)
 
@@ -786,7 +873,7 @@ Each phase ends with something a blind tester can use. Weeks assume one full-tim
 | **4. Reading** | 5–7 | TOC, go to page, read N lines / N seconds, bookmarks per book, scanned Arabic PDF OCR, **book preparation** (prepared file, audio cache, local search index) | A 1,500-page PDF opens at page 1,400 in < 3 s; re-reading a page costs 0 tokens and 0 voice characters |
 | **5. Memory vault** | 6–7 | Save chat, auto-save on shutdown, resume by date/topic, forget | "Yesterday at 6 PM" resumes correctly after a reboot |
 | **6. Onboarding + installer** | 7–9 | `Mubsir.zip` with speaking installer, Velopack updates, onboarding conversation, profile | A blind tester installs from the zip and finishes onboarding **alone** |
-| **7. Normal mode** | 8–11 | Notch, pointer, teaching board, maths rendering, Caps Lock dictation | Sighted tester learns a new app with pointer guidance |
+| **7. Normal mode** | 8–11 | HTML prototype of every notch state (taste-skill) → owner picks → `motion-tokens.json` → WPF notch, pointer, teaching board, maths rendering, Caps Lock dictation | Owner approves the prototype; WPF notch 60 fps while moving, 0 % CPU idle, < 30 MB; sighted tester learns a new app with pointer guidance |
 | **8. Pilot** | 11–13 | 10 blind + 5 sighted users in Egypt, weekly fixes, cost per user measured | Testers keep using it for 2 weeks |
 
 ---

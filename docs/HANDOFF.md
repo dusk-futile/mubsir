@@ -19,6 +19,11 @@ Update this file at the end of every session. Newest entry on top.
   untitled files from text, ≈ $0.20 per 400 books). The open book prepares only previous / current / next
   page. Numbered choices (max 4), numbered starting points. Shared library stores audio by exact sentence
   text + voice; the server generates everything itself; personal data stays on the user's PC.
+- Added `docs/EXECUTION.md`: build order, what runs where (real Windows PC needed for end-to-end),
+  tests and the numbers to report in `docs/RESULTS.md`.
+- Plan: notch design (states, motion, performance budget, HTML prototype → WPF), limits policy (free vs
+  paid, no "limit reached" messages), full price list and per-user monthly costs (≈ $8 / $25 / $35–60).
+- Added skills `taste-skill` and `find-skills` (MIT) to `.claude/skills/`.
 - Owner decisions: **no multi-device sync** (one user = one PC). The owner's own PC runs nothing for
   users: users' PCs do the local work and storage, a Cloudflare relay holds keys and forwards to
   Claude / Fish (PLAN §9 "Where things run"). Full-access setup with a one-time admin approval for a
