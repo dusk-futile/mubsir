@@ -252,13 +252,15 @@ goes through the existing `SymbolVerbalizer`.
 
 ### The companion (normal mode): look, motion and how it is built
 
-Blind mode has no visuals at all. Normal mode has one small, beautiful thing: **Hudhud**, an animated
-hoopoe in a round badge in the **bottom-right corner** above the taskbar (owner's choice, 2026-11-04;
-it replaces the earlier "notch at the top" idea). When it has something to show, a dark glass card
-grows out of it to the left. Its crest opens when listening, its beak moves with the voice, and
-Clicky-style pointing flies from Hudhud to the target. **Working prototype:**
-`prototypes/hudhud-companion/index.html` (also published as a private link for the owner).
-Users can drag Hudhud to another corner; the position is remembered.
+Blind mode has no visuals at all. Normal mode has two small things (owner's choice, approved
+2026-11-04): **the notch** hanging from the top of the screen, which shows what Mubsir is doing, and
+**Hudhud**, a paper-cut hoopoe standing in the **bottom-right corner** above the taskbar, which shows how
+it feels about it. Its crest opens when listening, it naps when there is nothing to do, and clicking it
+opens a small Mubsir panel. Clicky-style pointing flies out of the notch to the target.
+**Approved prototype:** `prototypes/hudhud-companion/index.html` (also published as a private link for
+the owner). **Native build:** `src/Mubsir.Overlay`; try it with `Mubsir.exe --overlay-demo`. Where the
+table below differs from the prototype, the prototype wins. Users can drag Hudhud to another corner; the
+position is remembered (not built yet).
 
 | State | What the user sees | Motion |
 | --- | --- | --- |

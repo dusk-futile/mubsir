@@ -3,10 +3,14 @@
 # Used by CI on windows-2025 (software rendering, no GPU, so its CPU numbers are a worst case).
 #
 #   pwsh scripts/overlay-smoke.ps1 -Exe publish/Mubsir.exe -Out overlay-shots
+#
+# -ForceAnimations turns on Windows' "Show animations" for this user first, because CI machines have it
+# off and the overlay then rightly stays still. It changes a system setting, so only CI passes it.
 
 param(
     [string]$Exe = 'publish/Mubsir.exe',
-    [string]$Out = 'overlay-shots'
+    [string]$Out = 'overlay-shots',
+    [switch]$ForceAnimations
 )
 
 $ErrorActionPreference = 'Stop'
@@ -36,6 +40,14 @@ public static class SmokeInput {
         mouse_event(0x0002, 0, 0, 0, UIntPtr.Zero);
         System.Threading.Thread.Sleep(50);
         mouse_event(0x0004, 0, 0, 0, UIntPtr.Zero);
+    }
+
+    [DllImport("user32.dll", EntryPoint = "SystemParametersInfoW")] static extern bool SystemParametersInfo(uint action, uint param, IntPtr value, uint flags);
+
+    public static void TurnOnAnimations() {
+        const uint SetClientAreaAnimation = 0x1043;
+        const uint SendChange = 0x0002;
+        SystemParametersInfo(SetClientAreaAnimation, 0, new IntPtr(1), SendChange);
     }
 
     const uint SrcCopy = 0x00CC0020;
@@ -89,11 +101,23 @@ function Measure-Cpu($process, [int]$seconds) {
 
 function Memory-Mb($process) {
     $process.Refresh()
-    return [math]::Round($process.WorkingSet64 / 1MB, 1)
+    return "$([math]::Round($process.WorkingSet64 / 1MB, 1)) MB working set, $([math]::Round($process.PrivateMemorySize64 / 1MB, 1)) MB private"
 }
 
 $screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
 Note "Screen: $($screen.Width) x $($screen.Height)"
+try {
+    Add-Type -AssemblyName PresentationFramework
+    Note "Windows 'Show animations' at the start: $([System.Windows.SystemParameters]::ClientAreaAnimation)"
+    if ($ForceAnimations) {
+        [SmokeInput]::TurnOnAnimations()
+        Note 'Turned on for this run.'
+    }
+    Note "WPF render tier: $([System.Windows.Media.RenderCapability]::Tier -shr 16) (0 = software)"
+}
+catch {
+    Note "Could not read the animation setting: $($_.Exception.Message)"
+}
 
 # First run: the whole story, then Hudhud falls asleep and Ctrl wakes it.
 $demo = Start-Process -FilePath $Exe -ArgumentList '--overlay-demo' -PassThru
@@ -103,7 +127,7 @@ for ($t = 1; $t -le 36; $t++) {
     Shot ('story-{0:d2}' -f $t)
 }
 
-Note "Memory after the story: $(Memory-Mb $demo) MB"
+Note "Memory after the story: $(Memory-Mb $demo)"
 Note "CPU, awake and idle: $(Measure-Cpu $demo 5) % of one core"
 
 # It sleeps 20 s after the last activity.
@@ -111,11 +135,13 @@ Start-Sleep -Seconds 16
 Assert-Running $demo 'while falling asleep'
 Shot 'asleep'
 Note "CPU, asleep: $(Measure-Cpu $demo 5) % of one core"
-Note "Memory, asleep: $(Memory-Mb $demo) MB"
+Note "Memory, asleep: $(Memory-Mb $demo)"
 
 [SmokeInput]::Press($VkControl)
-Start-Sleep -Milliseconds 700
-Shot 'woken-shake'
+Start-Sleep -Milliseconds 500
+Shot 'woken-shake-1'
+Start-Sleep -Milliseconds 150
+Shot 'woken-shake-2'
 Start-Sleep -Seconds 2
 Shot 'woken'
 Assert-Running $demo 'after waking'

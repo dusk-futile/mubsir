@@ -79,42 +79,23 @@ internal static class OverlayDemo
 
         private void PlayOnce()
         {
-            Listening();
-            if (!_exit)
-            {
-                Show(CompanionState.Thinking);
-                Wait(1.5);
-            }
-
-            if (!_exit && !Doing())
-            {
-                return;
-            }
-
-            if (!_exit)
-            {
-                _overlay.Show(CompanionState.Pointing, new CompanionContent { PointText = "It's the Install all button" });
-                Wait(2.4);
-            }
-
-            if (!_exit)
-            {
-                Speaking();
-            }
-
-            if (!_exit)
-            {
-                _overlay.Show(CompanionState.Reading, new CompanionContent
-                {
-                    BookTitle = "Introducing Phonology",
-                    BookPlace = "Chapter 3 · page 34 of 312",
-                    BookHint = "Say “next page”, “repeat” or ask about this page",
-                    BookProgress = 34.0 / 312,
-                });
-                Wait(3);
-            }
-
-            if (!_exit)
+            // As in the prototype, Ctrl stops whatever is happening. Only the checklist has something to undo.
+            bool finished = Listening()
+                && Stage(CompanionState.Thinking, null, 1.5)
+                && Doing()
+                && Stage(CompanionState.Pointing, new CompanionContent { PointText = "It's the Install all button" }, 2.4)
+                && Speaking()
+                && Stage(
+                    CompanionState.Reading,
+                    new CompanionContent
+                    {
+                        BookTitle = "Introducing Phonology",
+                        BookPlace = "Chapter 3 · page 34 of 312",
+                        BookHint = "Say “next page”, “repeat” or ask about this page",
+                        BookProgress = 34.0 / 312,
+                    },
+                    3);
+            if (finished && !_exit)
             {
                 Payment();
             }
@@ -123,6 +104,13 @@ internal static class OverlayDemo
             {
                 Show(CompanionState.Idle);
             }
+        }
+
+        /// <summary>Shows a state for a while. Returns false if it was stopped or the demo is ending.</summary>
+        private bool Stage(CompanionState state, CompanionContent? content, double seconds)
+        {
+            _overlay.Show(state, content);
+            return !WaitOrStop(seconds) && !_exit;
         }
 
         /// <summary>Waits with nothing to do: Hudhud falls asleep on its own, and Ctrl wakes it.</summary>
@@ -139,16 +127,18 @@ internal static class OverlayDemo
             }
         }
 
-        private void Listening()
+        private bool Listening()
         {
             string[] words = Heard.Split(' ');
-            for (int i = 1; i <= words.Length && !_exit; i++)
+            for (int i = 1; i <= words.Length; i++)
             {
-                _overlay.Show(CompanionState.Listening, new CompanionContent { Transcript = string.Join(' ', words[..i]) });
-                Wait(0.21);
+                if (!Stage(CompanionState.Listening, new CompanionContent { Transcript = string.Join(' ', words[..i]) }, 0.21))
+                {
+                    return false;
+                }
             }
 
-            Wait(1.2);
+            return !WaitOrStop(1.2) && !_exit;
         }
 
         /// <summary>Each step spins while it runs and is ticked only once it is finished. Returns false if stopped.</summary>
@@ -237,17 +227,18 @@ internal static class OverlayDemo
             _overlay.Show(CompanionState.Doing, new CompanionContent { Steps = steps, Mode = mode });
         }
 
-        private void Speaking()
+        private bool Speaking()
         {
             int words = Said.Split(' ').Length;
-            for (int i = 0; i <= words && !_exit; i++)
+            for (int i = 0; i <= words; i++)
             {
-                _overlay.Show(CompanionState.Speaking, new CompanionContent { Caption = Said, CaptionWordsSpoken = i });
-                Wait(0.19);
+                if (!Stage(CompanionState.Speaking, new CompanionContent { Caption = Said, CaptionWordsSpoken = i }, 0.19))
+                {
+                    return false;
+                }
             }
 
-            _overlay.Show(CompanionState.Speaking, new CompanionContent { Caption = Said, CaptionArabic = SaidArabic });
-            Wait(2.6);
+            return Stage(CompanionState.Speaking, new CompanionContent { Caption = Said, CaptionArabic = SaidArabic }, 2.6);
         }
 
         /// <summary>Four presses approve it. They happen on their own after a moment, or press Ctrl yourself.</summary>

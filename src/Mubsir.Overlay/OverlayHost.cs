@@ -155,7 +155,10 @@ public sealed class OverlayHost : IDisposable
     private sealed class Companion
     {
         private readonly FrameLoop _loop = new();
+        private readonly DispatcherTimer _fullScreen = new() { Interval = TimeSpan.FromSeconds(2) };
+        private CompanionState _state = CompanionState.Idle;
         private bool _started;
+        private bool _hidden;
 
         public Companion(OverlayAssets assets)
         {
@@ -170,6 +173,7 @@ public sealed class OverlayHost : IDisposable
             Hudhud.Clicked += Panel.Toggle;
             Panel.OpenChanged += Hudhud.Hold;
             Panel.CursorOnOpener = () => Hudhud.CursorOver;
+            _fullScreen.Tick += (_, _) => WatchFullScreen();
             Notch.Hovered += Hudhud.Peek;
             Hudhud.VoiceSource = () => Notch.VoiceValue;
             Hudhud.AsleepChanged += Notch.SetAsleep;
@@ -200,18 +204,56 @@ public sealed class OverlayHost : IDisposable
                 }
             };
             start.Start();
+            _fullScreen.Start();
         }
 
         public void Go(CompanionState state, CompanionContent? content)
         {
             _started = true;
+            _state = state;
+            if (state != CompanionState.Idle)
+            {
+                SetHidden(false);
+            }
+
             Panel.SetOpen(false);
             Notch.Go(state, content);
             Hudhud.Go(state);
         }
 
+        /// <summary>Stays out of the way of a movie, a game or a slideshow while there is nothing to show,
+        /// and comes back the moment there is.</summary>
+        private void WatchFullScreen()
+        {
+            SetHidden(_state == CompanionState.Idle && !Panel.IsOpen && Win32.FullScreenAppRunning());
+        }
+
+        private void SetHidden(bool hidden)
+        {
+            if (hidden == _hidden)
+            {
+                return;
+            }
+
+            _hidden = hidden;
+            foreach (Window window in new Window[] { Notch, Hudhud, Panel })
+            {
+                if (hidden)
+                {
+                    window.Hide();
+                }
+                else
+                {
+                    window.Show();
+                }
+            }
+
+            _loop.Paused = hidden;
+        }
+
         public void Close()
         {
+            _fullScreen.Stop();
             _loop.Stop();
             Notch.Close();
             Hudhud.Close();

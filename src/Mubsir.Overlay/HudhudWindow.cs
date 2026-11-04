@@ -180,7 +180,19 @@ internal sealed class HudhudWindow : Window, IAnimated
             stage.Children.Add(_zs[i]);
         }
 
-        _root.Children.Add(stage);
+        // The light paper edge keeps the navy parts readable on dark wallpapers, and the soft shadow
+        // lifts the bird off light ones. Same values as the prototype.
+        var edge = new Canvas
+        {
+            Effect = new DropShadowEffect { Color = p.Cream, BlurRadius = 2, ShadowDepth = 0, Opacity = 0.7, RenderingBias = RenderingBias.Performance },
+        };
+        edge.Children.Add(stage);
+        var lift = new Canvas
+        {
+            Effect = new DropShadowEffect { Color = Color.FromRgb(0, 0, 18), BlurRadius = 8, ShadowDepth = 2, Direction = 270, Opacity = 0.35, RenderingBias = RenderingBias.Performance },
+        };
+        lift.Children.Add(edge);
+        _root.Children.Add(lift);
         _root.Opacity = _enter.Value;
         Content = _root;
 
@@ -219,7 +231,7 @@ internal sealed class HudhudWindow : Window, IAnimated
     public Func<double>? VoiceSource { get; set; }
 
     /// <summary>The cursor is on the bird right now.</summary>
-    public bool CursorOver => _clickThrough.IsOver;
+    public bool CursorOver => _clickThrough.CheckNow();
 
     /// <summary>While the panel is open Hudhud stays awake and keeps still.</summary>
     public void Hold(bool held)

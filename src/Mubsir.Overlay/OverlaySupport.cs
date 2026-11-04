@@ -213,6 +213,7 @@ internal sealed class FrameLoop
     private readonly Stopwatch _clock = Stopwatch.StartNew();
     private readonly DispatcherTimer _slow = new(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(100) };
     private bool _hooked;
+    private bool _paused;
     private double _last;
     private TimeSpan _lastRendering;
 
@@ -223,12 +224,30 @@ internal sealed class FrameLoop
 
     public double Now => _clock.Elapsed.TotalSeconds;
 
+    /// <summary>While paused (the windows are hidden) nothing is drawn, whatever asks for it.</summary>
+    public bool Paused
+    {
+        get => _paused;
+        set
+        {
+            _paused = value;
+            if (value)
+            {
+                Stop();
+            }
+            else
+            {
+                Wake();
+            }
+        }
+    }
+
     public void Add(IAnimated client) => _clients.Add(client);
 
     /// <summary>Call whenever something starts moving.</summary>
     public void Wake()
     {
-        if (_hooked)
+        if (_hooked || _paused)
         {
             return;
         }
@@ -330,6 +349,13 @@ internal sealed class ClickThrough
 
     public bool IsOver => _over;
 
+    /// <summary>Looks at the cursor right now instead of waiting for the next check.</summary>
+    public bool CheckNow()
+    {
+        Check();
+        return _over;
+    }
+
     private void Check()
     {
         if (PresentationSource.FromVisual(_window) is null || !Win32.TryGetCursor(out Point screen))
@@ -385,7 +411,18 @@ internal static class Win32
         }
     }
 
-    public static bool IsLeftButtonDown() => (GetAsyncKeyState(VkLeftButton) & 0x8000) != 0;
+    /// <summary>A full-screen app has the screen: a game, a movie, a slideshow.</summary>
+    public static bool FullScreenAppRunning()
+    {
+        const int Busy = 2;
+        const int RunningFullScreen = 3;
+        const int PresentationMode = 4;
+        return SHQueryUserNotificationState(out int state) == 0 && state is Busy or RunningFullScreen or PresentationMode;
+    }
+
+    /// <summary>True if the left button is down now or was pressed since the last call, so a quick
+    /// click between two frames still counts.</summary>
+    public static bool LeftButtonPressed() => GetAsyncKeyState(VkLeftButton) != 0;
 
     public static bool TryGetCursor(out Point screen)
     {
@@ -420,6 +457,9 @@ internal static class Win32
 
     [DllImport("user32.dll")]
     private static extern short GetAsyncKeyState(int key);
+
+    [DllImport("shell32.dll")]
+    private static extern int SHQueryUserNotificationState(out int state);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct CursorPoint

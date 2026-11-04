@@ -3,6 +3,18 @@
 Measured numbers for each phase (`docs/EXECUTION.md` → "Tests and the numbers to report").
 Every row: date, commit, sample size, value, target, pass or fail.
 
+## Phase 7, started: native notch and Hudhud (`src/Mubsir.Overlay`)
+
+Measured 2026-11-05 on branch `feat/native-notch`. Unit tests and sizes on macOS with SDK 10.0.401.
+
+| Test | Sample | Value | Target | Result |
+| --- | --- | --- | --- | --- |
+| Core unit tests (springs, tokens, rig, pose math) | 21 tests | 21 pass | all pass | Pass |
+| Release build of the solution | Core, Overlay, App, tests | 0 warnings, 0 errors | 0 | Pass |
+| Size of the Windows zip, before and after WPF | 1 publish each, zipped at level 9 | 62.7 MB → 86.9 MB | no target yet | — |
+
+<!-- smoke-results -->
+
 ## Phase 1: relay, server side (`cloud/proxy`)
 
 Measured 2026-11-04 on branch `feat/cloud-relay`, macOS, Node 22.23, vitest 4.1.12 running the tests

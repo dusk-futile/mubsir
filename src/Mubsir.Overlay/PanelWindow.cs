@@ -75,7 +75,7 @@ internal sealed class PanelWindow : Window, IAnimated
             Width = CardWidth,
             Padding = new Thickness(14),
             CornerRadius = new CornerRadius(18),
-            Background = Palette.Solid(Color.FromRgb(10, 12, 40), 0.96),
+            Background = Palette.Solid(Color.FromRgb(10, 12, 40), 0.98),
             BorderBrush = Palette.Solid(p.Cream, 0.12),
             BorderThickness = new Thickness(1),
             Child = content,
@@ -118,6 +118,9 @@ internal sealed class PanelWindow : Window, IAnimated
         if (open)
         {
             _card.Visibility = Visibility.Visible;
+
+            // The click that opened the panel must not count as a click elsewhere.
+            Win32.LeftButtonPressed();
         }
 
         _scale.SetTarget(open ? 1 : 0.92);
@@ -139,14 +142,15 @@ internal sealed class PanelWindow : Window, IAnimated
             }
         }
 
-        // The windows never get focus, so a click elsewhere is noticed by watching the button.
-        if (_open && Win32.IsLeftButtonDown() && !_clickThrough.IsOver && !(CursorOnOpener?.Invoke() ?? false))
+        // The windows never get focus, so a click elsewhere is noticed by watching the button,
+        // on every frame while the panel is open.
+        if (_open && Win32.LeftButtonPressed() && !_clickThrough.CheckNow() && !(CursorOnOpener?.Invoke() ?? false))
         {
             SetOpen(false);
             moving = true;
         }
 
-        return moving ? FrameNeed.Fast : FrameNeed.None;
+        return moving || _open ? FrameNeed.Fast : FrameNeed.None;
     }
 
     private Border Button(Palette p, string icon, string text, CompanionAction action)
