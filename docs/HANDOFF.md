@@ -4,6 +4,28 @@ Update this file at the end of every session. Newest entry on top.
 
 ---
 
+## 2026-11-04 (end of planning chat) — read this first
+
+- Full summary of the planning conversation: `docs/CONVERSATION-SUMMARY.md`.
+- **Owner's verdict on the Hudhud prototype: it looks bad.** Keep its behaviour (states, flow,
+  bottom-right corner, 4× Ctrl payment), redo the look.
+
+### Next session: redesign Hudhud with image generation
+The owner has a ChatGPT subscription and will give the new chat access to it (e.g. an OpenAI API key
+as an environment secret, or a connected tool). Plan:
+1. Generate 6–10 concepts of the **Hudhud character** (original hoopoe, not like any known app mascot):
+   cute but premium, readable at 32–80 px, crest that can open/close, works on dark glass.
+   Also 3–4 concepts of the **bottom-right companion card** (listening, doing, payment confirm).
+2. Show them to the owner; iterate on the favourite (pose sheet: idle, listening/crest open,
+   speaking, thinking, happy/done, alert).
+3. Turn the chosen character into clean vector art (SVG layers: body, wing, head, crest feathers,
+   beak, eye) so it can be animated; never ship raw generated bitmaps as the animated mascot.
+4. Rebuild `prototypes/hudhud-companion/index.html` with it, use `taste-skill`, republish the owner's
+   link (https://claude.ai/artifact/UpBpC7m8hzQ3VCryB9LvyC) and get approval.
+5. Keys never go in the repo; generated images that are kept go in `prototypes/hudhud-companion/assets/`.
+
+---
+
 ## 2026-11-04 (later) — Book preparation added to the plan
 
 - PLAN §6 "Book preparation": extract and fix each book once locally, cache voice audio just ahead of
