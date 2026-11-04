@@ -15,11 +15,13 @@ namespace Mubsir.Overlay;
 /// <summary>The tokens, the rig and Hudhud's part images, all embedded in this assembly.</summary>
 internal sealed class OverlayAssets
 {
-    private OverlayAssets(MotionTokens tokens, HudhudRig rig, IReadOnlyDictionary<string, BitmapSource> images)
+    private readonly Dictionary<string, BitmapSource> _images;
+
+    private OverlayAssets(MotionTokens tokens, HudhudRig rig, Dictionary<string, BitmapSource> images)
     {
         Tokens = tokens;
         Rig = rig;
-        Images = images;
+        _images = images;
         Palette = new Palette(tokens);
     }
 
@@ -27,9 +29,12 @@ internal sealed class OverlayAssets
 
     public HudhudRig Rig { get; }
 
-    public IReadOnlyDictionary<string, BitmapSource> Images { get; }
+    public IReadOnlyDictionary<string, BitmapSource> Images => _images;
 
     public Palette Palette { get; }
+
+    /// <summary>Frees the full-size pictures once Hudhud has made its own screen-sized copies.</summary>
+    public void ReleaseImages() => _images.Clear();
 
     public static OverlayAssets Load()
     {
@@ -189,8 +194,11 @@ internal enum FrameNeed
 {
     None,
 
-    /// <summary>A slow timer is enough (a sleeping bird's breath, the notch's resting light).</summary>
+    /// <summary>Ten times a second is enough (a sleeping bird's breath, the notch's resting light).</summary>
     Slow,
+
+    /// <summary>Thirty times a second is enough (a resting bird's breath, well under a pixel).</summary>
+    Medium,
 
     /// <summary>Every screen refresh.</summary>
     Fast,
@@ -202,27 +210,33 @@ internal interface IAnimated
 }
 
 /// <summary>
-/// Drives the animations only as much as they need: every screen refresh while something moves, ten
-/// times a second for slow things, and not at all when everything rests, so an idle overlay costs
-/// next to nothing on a 4 GB PC.
+/// Drives the animations only as much as they need: every screen refresh while something really moves,
+/// thirty or ten times a second for slow things, and not at all when everything rests, so an idle overlay
+/// costs next to nothing on a 4 GB PC.
 /// </summary>
 internal sealed class FrameLoop
 {
     private const double MaxStep = 0.05;
     private readonly List<IAnimated> _clients = [];
     private readonly Stopwatch _clock = Stopwatch.StartNew();
-    private readonly DispatcherTimer _slow = new(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(100) };
+    private static readonly TimeSpan SlowInterval = TimeSpan.FromMilliseconds(100);
+    private static readonly TimeSpan MediumInterval = TimeSpan.FromMilliseconds(33);
+    private readonly DispatcherTimer _timer = new(DispatcherPriority.Render) { Interval = SlowInterval };
     private bool _hooked;
     private bool _paused;
+    private long _frames;
     private double _last;
     private TimeSpan _lastRendering;
 
     public FrameLoop()
     {
-        _slow.Tick += (_, _) => Run();
+        _timer.Tick += (_, _) => Run();
     }
 
     public double Now => _clock.Elapsed.TotalSeconds;
+
+    /// <summary>How many frames have been drawn so far, for measuring the frame rate.</summary>
+    public long Frames => Interlocked.Read(ref _frames);
 
     /// <summary>While paused (the windows are hidden) nothing is drawn, whatever asks for it.</summary>
     public bool Paused
@@ -252,7 +266,7 @@ internal sealed class FrameLoop
             return;
         }
 
-        _slow.Stop();
+        _timer.Stop();
         _last = Now;
         _hooked = true;
         CompositionTarget.Rendering += OnRendering;
@@ -260,11 +274,35 @@ internal sealed class FrameLoop
 
     public void Stop()
     {
-        _slow.Stop();
+        _timer.Stop();
+        Unhook();
+    }
+
+    private void Unhook()
+    {
         if (_hooked)
         {
             _hooked = false;
             CompositionTarget.Rendering -= OnRendering;
+        }
+    }
+
+    private void RunOnTimer(TimeSpan interval)
+    {
+        Unhook();
+        if (_paused)
+        {
+            return;
+        }
+
+        if (_timer.Interval != interval)
+        {
+            _timer.Interval = interval;
+        }
+
+        if (!_timer.IsEnabled)
+        {
+            _timer.Start();
         }
     }
 
@@ -286,6 +324,7 @@ internal sealed class FrameLoop
 
     private void Run()
     {
+        Interlocked.Increment(ref _frames);
         double now = Now;
         double dt = Math.Min(MaxStep, now - _last);
         _last = now;
@@ -302,12 +341,13 @@ internal sealed class FrameLoop
         switch (need)
         {
             case FrameNeed.Fast:
-                _slow.Stop();
                 Wake();
                 break;
+            case FrameNeed.Medium:
+                RunOnTimer(MediumInterval);
+                break;
             case FrameNeed.Slow:
-                Stop();
-                _slow.Start();
+                RunOnTimer(SlowInterval);
                 break;
             default:
                 Stop();

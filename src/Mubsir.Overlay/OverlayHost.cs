@@ -45,6 +45,9 @@ public sealed class OverlayHost : IDisposable
     /// and never takes the app down: the voice agent must keep working without the visuals.</summary>
     public event Action<Exception>? Failed;
 
+    /// <summary>How many frames have been drawn so far, for measuring the frame rate.</summary>
+    public long FramesDrawn => _companion?.Frames ?? 0;
+
     /// <summary>Shows the windows and returns when they are up.</summary>
     public static OverlayHost Start()
     {
@@ -73,6 +76,12 @@ public sealed class OverlayHost : IDisposable
 
     /// <summary>A small squeeze of the notch, to feel a key press land.</summary>
     public void NudgeNotch() => Post(c => c.Notch.Nudge(0, 70));
+
+    /// <summary>Flies the pointer from the notch to a point on the screen, in physical pixels, and names it.</summary>
+    public void PointAt(double screenX, double screenY, string label) => Post(c => c.Pointer.Fly(screenX, screenY, label));
+
+    /// <summary>Calls the pointer back to the notch.</summary>
+    public void RecallPointer() => Post(c => c.Pointer.Recall());
 
     /// <summary>Closes the panel if it is open (the app's Esc).</summary>
     public void ClosePanel() => Post(c => c.Panel.SetOpen(false));
@@ -167,9 +176,12 @@ public sealed class OverlayHost : IDisposable
             Notch = new NotchWindow(assets, _loop, reduceMotion);
             Hudhud = new HudhudWindow(assets, _loop, reduceMotion);
             Panel = new PanelWindow(assets, _loop, reduceMotion);
+            Pointer = new PointerWindow(assets, _loop, reduceMotion);
+            assets.ReleaseImages();
             _loop.Add(Notch);
             _loop.Add(Hudhud);
             _loop.Add(Panel);
+            _loop.Add(Pointer);
             Hudhud.Clicked += Panel.Toggle;
             Panel.OpenChanged += Hudhud.Hold;
             Panel.CursorOnOpener = () => Hudhud.CursorOver;
@@ -184,6 +196,10 @@ public sealed class OverlayHost : IDisposable
         public HudhudWindow Hudhud { get; }
 
         public PanelWindow Panel { get; }
+
+        public PointerWindow Pointer { get; }
+
+        public long Frames => _loop.Frames;
 
         public void Open()
         {
@@ -217,6 +233,11 @@ public sealed class OverlayHost : IDisposable
             }
 
             Panel.SetOpen(false);
+            if (state != CompanionState.Pointing)
+            {
+                Pointer.Recall();
+            }
+
             Notch.Go(state, content);
             Hudhud.Go(state);
         }
@@ -258,6 +279,7 @@ public sealed class OverlayHost : IDisposable
             Notch.Close();
             Hudhud.Close();
             Panel.Close();
+            Pointer.Close();
         }
     }
 }

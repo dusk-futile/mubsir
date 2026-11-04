@@ -53,7 +53,8 @@ Mubsir (مُبصِر) is a free Windows voice agent that can do anything a mouse
 - `cloud/proxy/` — the relay (Cloudflare Worker, TypeScript).
 - `tests/Mubsir.Core.Tests` — Core unit tests (xunit). Runs on any OS.
 - `nvda-addon/` — NVDA Bridge add-on (Python, GPL-2.0).
-- `scripts/` — `setup.ps1` installer script, `build-addon.py`.
+- `scripts/` — `setup.ps1` installer script, `build-addon.py`, `build-icons.py`, and `overlay-smoke.ps1`
+  (runs the overlay on a Windows desktop in CI; its screenshots are the `overlay-shots` artifact).
 - Planned (see PLAN §11): `src/Mubsir.Setup` (Velopack).
 
 ## Build

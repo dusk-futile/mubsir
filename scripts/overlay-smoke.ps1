@@ -85,6 +85,23 @@ function Shot([string]$name) {
     $bitmap.Dispose()
 }
 
+# Is the panel's dark card on screen in this shot? Looks at its left padding, which holds only the card's colour.
+function Test-PanelShowing([string]$name) {
+    $work = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
+    $bitmap = New-Object System.Drawing.Bitmap (Join-Path $Out "$name.png")
+    $x = $work.Right - 274 + 7
+    $bottom = $work.Bottom - 112
+    $showing = $true
+    foreach ($up in 20, 60, 100, 140, 180) {
+        $c = $bitmap.GetPixel($x, $bottom - $up)
+        if ([math]::Abs($c.R - 10) -gt 12 -or [math]::Abs($c.G - 12) -gt 12 -or [math]::Abs($c.B - 40) -gt 12) {
+            $showing = $false
+        }
+    }
+    $bitmap.Dispose()
+    return $showing
+}
+
 function Assert-Running($process, [string]$when) {
     if ($process.HasExited) {
         throw "the overlay demo exited $when with code $($process.ExitCode)"
@@ -120,7 +137,7 @@ catch {
 }
 
 # First run: the whole story, then Hudhud falls asleep and Ctrl wakes it.
-$demo = Start-Process -FilePath $Exe -ArgumentList '--overlay-demo' -PassThru
+$demo = Start-Process -FilePath $Exe -ArgumentList '--overlay-demo' -PassThru -RedirectStandardOutput (Join-Path $Out 'demo-log.txt')
 for ($t = 1; $t -le 36; $t++) {
     Start-Sleep -Seconds 1
     Assert-Running $demo "at $t s"
@@ -158,6 +175,13 @@ Shot 'panel-open'
 Start-Sleep -Milliseconds 800
 Shot 'panel-closed'
 Assert-Running $demo 'after the panel'
+$dpi = [System.Drawing.Graphics]::FromHwnd([IntPtr]::Zero).DpiX
+if ($dpi -eq 96) {
+    if (Test-PanelShowing 'before-click') { throw 'the panel was showing before Hudhud was clicked' }
+    if (-not (Test-PanelShowing 'panel-open')) { throw 'clicking Hudhud did not open the panel' }
+    if (Test-PanelShowing 'panel-closed') { throw 'clicking elsewhere did not close the panel' }
+    Note 'Panel: opens on a click on Hudhud, closes on a click elsewhere.'
+}
 
 [SmokeInput]::Press($VkEscape)
 if (-not $demo.WaitForExit(5000)) {

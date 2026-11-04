@@ -48,6 +48,8 @@ internal static class OverlayDemo
         private volatile bool _cancelPressed;
         private volatile bool _replay;
         private bool _ctrlPressed;
+        private long _rateFrom = Environment.TickCount64;
+        private long _rateFrames;
 
         public Script(OverlayHost overlay)
         {
@@ -83,7 +85,7 @@ internal static class OverlayDemo
             bool finished = Listening()
                 && Stage(CompanionState.Thinking, null, 1.5)
                 && Doing()
-                && Stage(CompanionState.Pointing, new CompanionContent { PointText = "It's the Install all button" }, 2.4)
+                && Pointing()
                 && Speaking()
                 && Stage(
                     CompanionState.Reading,
@@ -227,6 +229,16 @@ internal static class OverlayDemo
             _overlay.Show(CompanionState.Doing, new CompanionContent { Steps = steps, Mode = mode });
         }
 
+        /// <summary>The pointer flies out of the notch to a spot on the screen and names it.</summary>
+        private bool Pointing()
+        {
+            _overlay.PointAt(
+                User32.GetSystemMetrics(Win32.SM_CXSCREEN) * 0.34,
+                User32.GetSystemMetrics(Win32.SM_CYSCREEN) * 0.46,
+                "Install all");
+            return Stage(CompanionState.Pointing, new CompanionContent { PointText = "It's the Install all button" }, 2.6);
+        }
+
         private bool Speaking()
         {
             int words = Said.Split(' ').Length;
@@ -322,6 +334,16 @@ internal static class OverlayDemo
 
         private void Poll()
         {
+            // The frame rate, for checking the plan's performance budget on a real PC.
+            long now = Environment.TickCount64;
+            if (now - _rateFrom >= 5000)
+            {
+                long frames = _overlay.FramesDrawn;
+                ConsoleIo.WriteLine(Math.Round((frames - _rateFrames) * 1000.0 / (now - _rateFrom)) + " frames a second");
+                _rateFrom = now;
+                _rateFrames = frames;
+            }
+
             bool ctrl = (User32.GetAsyncKeyState(VkControl) & 0x8000) != 0;
             if (ctrl && !_ctrlDown)
             {

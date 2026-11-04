@@ -12,9 +12,10 @@ to, sends and clicks nothing. Ctrl stops the checklist and undoes it, or wakes H
 opens the panel, and clicking the notch replays the story. Esc quits.
 
 - **`src/Mubsir.Overlay`** (WPF built in code, on its own UI thread):
-  - The notch morphs between states on the prototype's springs (`motion-tokens.json`). Panes exist for
-    idle, peek, listening, thinking, doing, speaking, reading, payment, paid and undone; pointing shows
-    its text only. Voice wave and glowing rim are in.
+  - The notch morphs between states on the prototype's springs (`motion-tokens.json`): idle, peek,
+    listening, thinking, doing, pointing, speaking, reading, payment, paid and undone. Voice wave and
+    glowing rim are in.
+  - The pointer flies out of the notch to a point on the screen, lands with two pulses and names it.
   - Hudhud is the same cut-out puppet as the prototype. `assets/hudhud/rig.json` and the PNGs are shared
     by both and embedded in the assembly.
   - Clicking Hudhud opens a small Mubsir panel (Talk, Read this screen, Settings). A click anywhere else
@@ -23,7 +24,8 @@ opens the panel, and clicking the notch replays the story. Esc quits.
     because soft shadows have visible pixels that would otherwise swallow clicks. An error inside the
     overlay can't take the app down: it carries on, and closes itself after three failures.
   - Respects Windows' "Show animations" setting. Draws only as much as it needs: every refresh while
-    something moves, ten times a second for a sleeping bird.
+    something moves, ten times a second for a sleeping bird. Hides over full-screen apps while it has
+    nothing to show, and comes back when it does.
 - **`Mubsir.Core/Motion`**: spring engine, tokens, rig and pose math, with 21 tests in
   `tests/Mubsir.Core.Tests` (the repo's first .NET unit tests).
 - **CI smoke test** (`scripts/overlay-smoke.ps1`, on windows-2025): runs the real demo on a Windows
@@ -36,7 +38,7 @@ opens the panel, and clicking the notch replays the story. Esc quits.
 2. Wire it to the real app: a normal or blind mode setting (blind mode must create no overlay windows),
    then `UtteranceFlow` (listening, transcript), `TaskRunner` (thinking, doing steps, stop and undo),
    `Narrator` (speaking, voice level) and `Confirmer` (the four Ctrl presses).
-3. Still to build: the flying pointer window, the monitor with the mouse, hiding over full-screen apps,
+3. Still to build: the monitor with the mouse, dragging Hudhud to another corner, the teaching board,
    and Readex Pro as the font (static TTFs; it uses Segoe UI for now).
 
 ## 2026-11-04 (night) — repo cleaned, all open work merged

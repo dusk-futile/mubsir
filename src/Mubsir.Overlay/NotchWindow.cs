@@ -109,7 +109,12 @@ internal sealed class NotchWindow : Window, IAnimated
         // The panes are clipped to the notch, so they are revealed as it opens.
         var notch = new Canvas { Width = Width, Height = Height };
         notch.Children.Add(_rim);
-        notch.Children.Add(_shape);
+
+        // The shape and its big soft shadow only change while the notch morphs. Caching them keeps the
+        // small resting light from re-rendering the whole shadow every time it pulses.
+        var shapeLayer = new Canvas { CacheMode = new BitmapCache { SnapsToDevicePixels = true } };
+        shapeLayer.Children.Add(_shape);
+        notch.Children.Add(shapeLayer);
         notch.Children.Add(_panesLayer);
         Content = notch;
         Cursor = Cursors.Hand;

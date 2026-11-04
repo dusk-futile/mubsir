@@ -3,7 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Effects;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Mubsir.Core.Motion;
 using WpfEllipse = System.Windows.Shapes.Ellipse;
@@ -142,11 +142,11 @@ internal sealed class HudhudWindow : Window, IAnimated
         flip.Translate(_rig.MirrorX, 0);
         mirror.RenderTransform = new MatrixTransform(flip);
 
+        // Prepared once for this screen; a frame only moves these pictures. The backing layer holds the light
+        // paper edge and soft halo and goes under the whole bird; both layers share one set of joints.
+        var art = new HudhudArt(assets, scale * VisualTreeHelper.GetDpi(_root).DpiScaleX);
+        var backing = new Canvas { RenderTransform = _body, IsHitTestVisible = false };
         var body = new Canvas { RenderTransform = _body };
-        Effect? paper = PaperEffect();
-        _faceOpen = Picture(_rig.OpenFace.Image, _rig.OpenFace.PivotX, _rig.OpenFace.PivotY, 1, 1);
-        _faceClosed = Picture(_rig.ClosedFace.Image, _rig.ClosedFace.PivotX, _rig.ClosedFace.PivotY, 1, 1);
-        _faceClosed.Visibility = Visibility.Hidden;
         foreach (RigPart part in _rig.BackToFront)
         {
             MatrixTransform turn = part.Id switch
@@ -154,12 +154,30 @@ internal sealed class HudhudWindow : Window, IAnimated
                 "hWing" => _wingPart,
                 "hTail" => _tailPart,
                 _ when part.Id.StartsWith("hP", StringComparison.Ordinal) => AddTo(_primaries),
-                _ => new MatrixTransform(Rotation(part.Rest)),
+                _ => new MatrixTransform(),
             };
-            body.Children.Add(BuildPart(part, turn, paper));
+            turn.Matrix = Rotation(part.Rest);
+            HudhudArt.Piece piece = art.Bake(part.Image, part.PivotX, part.PivotY, part.ScaleX, part.ScaleY, part.Rest);
+            var at = new TranslateTransform(part.AtX, part.AtY);
+            backing.Children.Add(Placed(Picture(piece, piece.Backing), turn, at));
+            body.Children.Add(Placed(Picture(piece, piece.Main), turn, at));
         }
 
-        body.Children.Add(BuildHead(paper));
+        var feathers = new List<HudhudArt.Piece>();
+        foreach (RigFeather f in _rig.Crest)
+        {
+            _feathers.Add(new MatrixTransform());
+            double rest = f.ClosedAngle + ((f.OpenAngle - f.ClosedAngle) * idle.Crest);
+            feathers.Add(art.Bake(f.Image, f.PivotX, f.PivotY, f.ScaleX, f.ScaleY, rest));
+        }
+
+        HudhudArt.Piece open = art.Bake(_rig.OpenFace.Image, _rig.OpenFace.PivotX, _rig.OpenFace.PivotY, 1, 1, 0);
+        HudhudArt.Piece shut = art.Bake(_rig.ClosedFace.Image, _rig.ClosedFace.PivotX, _rig.ClosedFace.PivotY, 1, 1, 0);
+        _faceOpen = Picture(open, open.Main);
+        _faceClosed = Picture(shut, shut.Main);
+        _faceClosed.Visibility = Visibility.Hidden;
+        backing.Children.Add(BuildHead(feathers.ConvertAll(f => Picture(f, f.Backing)), Picture(open, open.Backing)));
+        body.Children.Add(BuildHead(feathers.ConvertAll(f => Picture(f, f.Main)), _faceOpen, _faceClosed));
         var dustLayer = new Canvas { IsHitTestVisible = false };
         for (int i = 0; i < DustCount; i++)
         {
@@ -168,6 +186,7 @@ internal sealed class HudhudWindow : Window, IAnimated
         }
 
         body.Children.Add(dustLayer);
+        mirror.Children.Add(backing);
         mirror.Children.Add(body);
         stage.Children.Add(mirror);
 
@@ -180,19 +199,7 @@ internal sealed class HudhudWindow : Window, IAnimated
             stage.Children.Add(_zs[i]);
         }
 
-        // The light paper edge keeps the navy parts readable on dark wallpapers, and the soft shadow
-        // lifts the bird off light ones. Same values as the prototype.
-        var edge = new Canvas
-        {
-            Effect = new DropShadowEffect { Color = p.Cream, BlurRadius = 2, ShadowDepth = 0, Opacity = 0.7, RenderingBias = RenderingBias.Performance },
-        };
-        edge.Children.Add(stage);
-        var lift = new Canvas
-        {
-            Effect = new DropShadowEffect { Color = Color.FromRgb(0, 0, 18), BlurRadius = 8, ShadowDepth = 2, Direction = 270, Opacity = 0.35, RenderingBias = RenderingBias.Performance },
-        };
-        lift.Children.Add(edge);
-        _root.Children.Add(lift);
+        _root.Children.Add(stage);
         _root.Opacity = _enter.Value;
         Content = _root;
 
@@ -399,8 +406,14 @@ internal sealed class HudhudWindow : Window, IAnimated
             return moving ? FrameNeed.Fast : _asleep ? FrameNeed.None : FrameNeed.Slow;
         }
 
-        // Once it sleeps and everything has settled, a slow breath at ten frames a second is plenty.
-        return _asleep && !moving ? FrameNeed.Slow : FrameNeed.Fast;
+        // Real movement gets every screen refresh. Resting breaths are under a pixel, so thirty frames a
+        // second look the same at half the cost, and a sleeping bird's slow breath needs only ten.
+        if (moving || shakeAge >= 0 || preenAge >= 0 || _state != CompanionState.Idle)
+        {
+            return FrameNeed.Fast;
+        }
+
+        return _asleep ? FrameNeed.Slow : FrameNeed.Medium;
     }
 
     private Spring NewSpring(double value, SpringToken token, double precision = 0.001)
@@ -428,26 +441,6 @@ internal sealed class HudhudWindow : Window, IAnimated
         });
     }
 
-    private Effect? PaperEffect()
-    {
-        if (_rig.Shadow is not { } shadow)
-        {
-            return null;
-        }
-
-        var effect = new DropShadowEffect
-        {
-            Color = (Color)ColorConverter.ConvertFromString(shadow.Color),
-            ShadowDepth = shadow.OffsetY,
-            BlurRadius = shadow.Blur * 2,
-            Direction = 270,
-            Opacity = shadow.Opacity,
-            RenderingBias = RenderingBias.Performance,
-        };
-        effect.Freeze();
-        return effect;
-    }
-
     private static MatrixTransform AddTo(List<MatrixTransform> list)
     {
         var transform = new MatrixTransform();
@@ -462,55 +455,44 @@ internal sealed class HudhudWindow : Window, IAnimated
         return m;
     }
 
-    private Image Picture(string name, double pivotX, double pivotY, double scaleX, double scaleY)
+    private static Image Picture(HudhudArt.Piece piece, BitmapSource source)
     {
-        double k = _rig.ExportScale;
-        var source = _assets.Images[name];
-        var image = new Image
-        {
-            Source = source,
-            Stretch = Stretch.Fill,
-            Width = source.PixelWidth / k * scaleX,
-            Height = source.PixelHeight / k * scaleY,
-        };
-        RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.HighQuality);
-        Canvas.SetLeft(image, -pivotX * scaleX);
-        Canvas.SetTop(image, -pivotY * scaleY);
+        var image = new Image { Source = source, Stretch = Stretch.Fill, Width = piece.Width, Height = piece.Height };
+        RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.Linear);
+        Canvas.SetLeft(image, piece.Left);
+        Canvas.SetTop(image, piece.Top);
         return image;
     }
 
-    /// <summary>The shadow sits on the un-rotated outer group, so it always falls straight down.</summary>
-    private Canvas BuildPart(RigPart part, MatrixTransform turn, Effect? paper)
+    private static Canvas Placed(Image image, Transform turn, Transform at)
     {
         var inner = new Canvas { RenderTransform = turn };
-        inner.Children.Add(Picture(part.Image, part.PivotX, part.PivotY, part.ScaleX, part.ScaleY));
-        turn.Matrix = Rotation(part.Rest);
-        var outer = new Canvas { RenderTransform = new TranslateTransform(part.AtX, part.AtY), Effect = paper };
+        inner.Children.Add(image);
+        var outer = new Canvas { RenderTransform = at };
         outer.Children.Add(inner);
         return outer;
     }
 
-    private Canvas BuildHead(Effect? paper)
+    /// <summary>The crest behind the face, turning with the head. Both layers share the same joints.</summary>
+    private Canvas BuildHead(List<Image> feathers, params Image[] faces)
     {
         var crest = new Canvas { RenderTransform = _crestGroup };
-        foreach (RigFeather feather in _rig.Crest)
+        for (int i = 0; i < feathers.Count; i++)
         {
-            var turn = new MatrixTransform();
-            _feathers.Add(turn);
-            var inner = new Canvas { RenderTransform = turn };
-            inner.Children.Add(Picture(feather.Image, feather.PivotX, feather.PivotY, feather.ScaleX, feather.ScaleY));
-            var outer = new Canvas { Effect = paper };
-            outer.Children.Add(inner);
-            crest.Children.Add(outer);
+            var holder = new Canvas { RenderTransform = _feathers[i] };
+            holder.Children.Add(feathers[i]);
+            crest.Children.Add(holder);
         }
 
-        var faces = new Canvas { RenderTransform = new TranslateTransform(_rig.NeckX, _rig.NeckY), Effect = paper };
-        faces.Children.Add(_faceOpen);
-        faces.Children.Add(_faceClosed);
+        var faceLayer = new Canvas { RenderTransform = new TranslateTransform(_rig.NeckX, _rig.NeckY) };
+        foreach (Image face in faces)
+        {
+            faceLayer.Children.Add(face);
+        }
 
         var flip = new Canvas { RenderTransform = _faceFlip };
         flip.Children.Add(crest);
-        flip.Children.Add(faces);
+        flip.Children.Add(faceLayer);
         var head = new Canvas { RenderTransform = _head };
         head.Children.Add(flip);
         return head;
