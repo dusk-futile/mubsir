@@ -1,6 +1,7 @@
 # Mubsir — instructions for Claude Code sessions
 
-Read this first, then `docs/HANDOFF.md` (where we are and what's next), then `docs/PLAN.md` (the full plan).
+Read this first, then `docs/HANDOFF.md` (where we are and what's next), `docs/CONVERSATION-SUMMARY.md`
+(everything the owner asked for and decided), then `docs/PLAN.md` (the full plan).
 Brand options: `docs/BRAND.md`. When building, follow `docs/EXECUTION.md` (order of work, tests, numbers to report in `docs/RESULTS.md`).
 
 ## What this is

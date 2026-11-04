@@ -2,7 +2,8 @@
 
 Status: **the owner chose Direction 2, Hudhud (the hoopoe)**, on 2026-11-04. It lives in the bottom-right
 corner in normal mode. Working prototype: `prototypes/hudhud-companion/index.html`. The other directions
-are kept below for reference. The name stays **Mubsir · مُبصِر**
+are kept below for reference. **The first prototype's drawing was rejected ("looks bad"); the
+character will be redesigned with image generation in the next session (see `docs/HANDOFF.md`).** The name stays **Mubsir · مُبصِر**
 ("the one who sees"). The identity needs a character people can love, a look for the notch, and,
 most important for blind users, **a sound**.
 
