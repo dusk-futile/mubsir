@@ -32,8 +32,9 @@ opens the panel, and clicking the notch replays the story. Esc quits.
   `tests/Mubsir.Core.Tests` (the repo's first .NET unit tests).
 - **CI smoke test** (`scripts/overlay-smoke.ps1`, on windows-2025): runs the real demo on a Windows
   desktop, saves screenshots as the `overlay-shots` artifact, tests Ctrl undo, the panel and a clean Esc
-  exit, and records memory, CPU and frame rate. Numbers are in `docs/RESULTS.md`. This is how to check
-  the native visuals from a Mac.
+  exit, the notch's hover and click, and records memory, CPU and frame rate. Numbers are in
+  `docs/RESULTS.md`. This is how to check the native visuals from a Mac. It can't confirm hiding over
+  full-screen apps: that machine reports Windows' "quiet time" state instead, so check it on a real PC.
 - The zip grows from 62.7 MB to 86.9 MB because the app now ships WPF.
 
 ### Next session (normal mode, PLAN phase 7)
