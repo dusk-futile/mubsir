@@ -4,6 +4,44 @@ Update this file at the end of every session. Newest entry on top.
 
 ---
 
+## 2026-11-04 (evening) — Hudhud rebuilt from ChatGPT-drawn parts, notch pass
+
+Owner feedback on version 3: the hand-drawn bird looked blocky and a bit uncanny, the white wing
+stripes did not reach the edges, the voice wave looked old. Asked for ChatGPT to draw the layers, more
+wing detail, a shake that throws off dust, sleep when idle, a minimal Thinking state, a real Doing
+checklist, and Ctrl to stop and undo. Published as version 4 on the owner's link.
+
+- **Hudhud is now a cutout puppet.** ChatGPT (the owner's account, in the desktop app's browser pane)
+  drew two part sheets on a lime-green background. The parts were cut out with soft chroma-key edges
+  into `prototypes/hudhud-companion/assets/hudhud-rig/` (16 PNGs). `rig.json` gives each part's joint,
+  place and resting angle; `build.py` bakes them into `index.html` as one layered SVG.
+  - The crest feathers grow from the crown: they slide forward and fan up when raised and lie back
+    when folded. The flight feathers tuck under the wing and spread when it lifts.
+  - New motion: a full-body shake (wing, crest and tail follow; dust flies off). After 20 s with
+    nothing to do, Hudhud sleeps: eyes closed, head tucked, crest flat, slow breath, floating z's. Ctrl
+    or a click wakes it with a double blink and a shake. Clicking it when awake opens a small Mubsir
+    panel (Talk, Read this screen, Settings).
+- **Notch:**
+  - The voice wave is three soft glowing ribbons on a canvas, sized to the screen's pixels. A glowing
+    rim circles the notch while listening and speaking.
+  - Thinking is one breathing light and the word "Thinking".
+  - Doing is a real checklist: each step spins while it runs and is ticked only when it is finished.
+    Ctrl (or the Stop pill) stops it, undoes the finished steps in reverse on screen, and then says
+    "Stopped. Everything is back as it was." Ctrl also calls the pointer back and stops listening,
+    speaking and reading.
+- Checked:
+  - No console errors and 60 fps in the desktop app's browser pane.
+  - Scripted runs: Doing then Ctrl undoes in the right order and closes the window; sleep then Ctrl
+    wakes it; click opens the panel and Esc closes it.
+  - Every notch pane fits its size.
+  - Not checked on Windows or on a 120 Hz screen.
+
+### Next session
+1. Owner reviews version 4 on the link; fix what they flag.
+2. Then the items below (#10 → #9 and #11, relay deploy, Phase 1 app side).
+
+---
+
 ## 2026-11-04 (design session) — app icon done, Hudhud concepts ready to pick
 
 - **Image generation works through the owner's own ChatGPT**, signed in inside the Claude desktop

@@ -7,8 +7,10 @@ Status (2026-11-04, design session): two parts, both chosen by the owner.
   letter of مُبصِر. Done: files in `assets/brand/`, used by `Mubsir.exe`, the tray and the README.
 - **Companion: Hudhud (the hoopoe)**, bottom-right in normal mode, next to the notch at the top.
   The owner chose concept 4, the **layered paper-cut** hoopoe
-  (`prototypes/hudhud-companion/assets/concepts/hudhud-4-paper-cut.jpg`), now redrawn as animated
-  layered SVG in `prototypes/hudhud-companion/index.html`.
+  (`prototypes/hudhud-companion/assets/concepts/hudhud-4-paper-cut.jpg`), now an animated cutout
+  puppet: ChatGPT drew each part (body, head with open and closed eyes, wing, three flight feathers,
+  six crest feathers, tail, legs), and `prototypes/hudhud-companion/assets/hudhud-rig/rig.json` says
+  where each part's joint is. The hand-drawn SVG version looked blocky to the owner and was replaced.
 
 The name stays **Mubsir · مُبصِر** ("the one who sees"). Most important for blind users, the identity
 is also **a sound** (below).
@@ -110,5 +112,8 @@ Warm, calm, short sentences, never chatty during tasks. Speaks the user's dialec
 Done: logo and app icon at all sizes, the one-page brand sheet (`assets/brand/brand-sheet.png`) and the
 GitHub social preview (`assets/brand/social-preview.png`).
 
-Still to do, with `taste-skill`: the owner picks a Hudhud concept, then its pose sheet, its layered SVG,
-the companion and notch states in this style, and the sound set.
+Done since: the Hudhud concept (4, paper-cut), its cutout parts and rig, and the companion and notch
+states in this style (`prototypes/hudhud-companion/`).
+
+Still to do: the owner approves the prototype's look and motion, then the sound set and the native
+WPF overlay that reuses the rig and the motion tokens.
