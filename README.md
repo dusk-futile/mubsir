@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/brand/mubsir-icon.svg" width="112" alt="">
+
 # Mubsir · مُبصِر
 
 **An AI screen assistant for blind and low-vision Windows users.**<br>

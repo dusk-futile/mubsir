@@ -2,150 +2,207 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Readex+Pro:wght@300;400;500;600;700&display=swap">
 <style>
-/* Layout: an explainer band on top, a scaled 960x600 desktop "stage" with the companion living
-   bottom-right above the taskbar, then a short state reference. Stage colours are fixed (it is a
-   desktop at dusk); the page around it follows the viewer's theme. */
+/* Layout: a short header and controls, a scaled 960x600 Windows desktop where the notch hangs from the
+   top edge and Hudhud stands bottom-right above the taskbar, then the states and the motion tokens. */
 :root {
-  --bg: #F3EFE8; --fg: #1C1A17; --muted: #6B6358; --line: #DDD4C6; --chip: #FFFFFF; --accent: #C9582A;
+  /* page (follows the viewer's theme) */
+  --bg: #F3F2F7; --fg: #14162B; --muted: #5C5E78; --line: #DAD9E6; --chip: #FFFFFF;
+  --accent: #1B2380; --accent-ink: #FFF4DE;
   --font: "Readex Pro", "Segoe UI", "Noto Sans Arabic", system-ui, sans-serif;
-  /* stage + brand tokens (theme-independent) */
-  --ink: #1C1A17; --sand: #E9C79A; --sand-dk: #C89A62; --crest: #E2703A; --cream: #FFF4DE;
-  --night: #121826; --glass: rgba(24, 22, 20, .86); --glass-line: rgba(233, 199, 154, .22);
-  --ok: #7BC47F; --warn: #F2B544;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  /* stage + brand (fixed: it is a desktop at night) */
+  --night: #080D3F; --amber: #F3C343; --cream: #FFF4DE; --crest: #E2703A; --ok: #6FD39A; --island: #000000;
+  --cream-dim: rgba(255, 244, 222, .62);
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #15130F; --fg: #F1E9DC; --muted: #A99D8B; --line: #2E2922; --chip: #201C17; --accent: #E98A5C; color-scheme: dark } }
-:root[data-theme="dark"] { --bg: #15130F; --fg: #F1E9DC; --muted: #A99D8B; --line: #2E2922; --chip: #201C17; --accent: #E98A5C; color-scheme: dark }
+  --bg: #0A0C22; --fg: #ECEAF6; --muted: #A2A3BF; --line: #24274A; --chip: #14173A;
+  --accent: #F3C343; --accent-ink: #14162B; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0A0C22; --fg: #ECEAF6; --muted: #A2A3BF; --line: #24274A; --chip: #14173A;
+  --accent: #F3C343; --accent-ink: #14162B; color-scheme: dark }
 
+[hidden] { display: none !important }
 * { box-sizing: border-box }
-body { background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 15px; line-height: 1.55;
-  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 48px }
-.wrap { max-width: 1040px; margin: 0 auto; display: grid; gap: 22px }
-h1 { font-weight: 600; font-size: clamp(26px, 4vw, 38px); line-height: 1.15; margin: 0; text-wrap: balance; letter-spacing: -.01em }
-h1 span { color: var(--accent) }
-.lede { margin: 6px 0 0; color: var(--muted); max-width: 66ch }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 56px }
+.wrap { max-width: 1040px; margin: 0 auto; display: grid; gap: 20px }
+h1 { font-weight: 600; font-size: clamp(28px, 4.4vw, 42px); line-height: 1.1; margin: 0; letter-spacing: -.02em; text-wrap: balance }
+h1 span { color: var(--muted); font-weight: 300 }
+.lede { margin: 8px 0 0; color: var(--muted); max-width: 64ch; text-wrap: pretty }
+h2 { font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px }
+
 .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
 .controls button { font: inherit; font-size: 13.5px; padding: 7px 13px; border-radius: 999px; border: 1px solid var(--line);
-  background: var(--chip); color: var(--fg); cursor: pointer; transition: border-color .2s, background .2s }
+  background: var(--chip); color: var(--fg); cursor: pointer; transition: border-color .2s, background-color .2s, transform .1s ease-out }
 .controls button:hover { border-color: var(--accent) }
+.controls button:active { transform: scale(.97) }
 .controls button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg) }
-.controls .play { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 500 }
+.controls .play { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 500; padding-inline: 16px }
 .controls .sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px }
+.fps { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap }
 button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
-.hint { font-size: 13px; color: var(--muted) }
-kbd { font-family: inherit; font-size: 12px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 0 5px; background: var(--chip) }
+.hint { margin: 0; font-size: 13px; color: var(--muted) }
+kbd { font-family: inherit; font-size: 12px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 0 5px; background: var(--chip); color: var(--fg) }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap }
 
 /* ---------- stage ---------- */
-.stage-shell { width: 100%; aspect-ratio: 960 / 600; max-width: 100%; position: relative; border-radius: 14px; overflow: hidden;
-  box-shadow: 0 1px 0 var(--line), 0 18px 50px rgba(0,0,0,.18) }
-.stage { position: absolute; left: 0; top: 0; width: 960px; height: 600px; transform-origin: 0 0; overflow: hidden;
-  background: radial-gradient(120% 90% at 85% 100%, #3B2A22 0%, #1E1B26 45%, var(--night) 100%); color: var(--cream) }
-.win { position: absolute; left: 70px; top: 46px; width: 600px; height: 430px; border-radius: 10px; background: #F7F5F1; color: #22201D;
-  box-shadow: 0 20px 60px rgba(0,0,0,.45); overflow: hidden; display: flex; flex-direction: column }
-.win .bar { height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 12px; font-size: 12.5px; color: #5E574E; border-bottom: 1px solid #E6E1D8; flex: none }
-.win .bar i { width: 10px; height: 10px; border-radius: 50%; background: #D9D3C9; display: inline-block }
-.win .body { padding: 22px 26px; flex: 1; position: relative }
-.taskbar { position: absolute; left: 0; right: 0; bottom: 0; height: 40px; background: rgba(12,12,16,.72); backdrop-filter: blur(8px);
-  display: flex; align-items: center; justify-content: flex-end; padding: 0 14px; gap: 14px; font-size: 12px; color: #CFC6B8 }
-.taskbar .start { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 10px }
-.taskbar .start i { width: 22px; height: 22px; border-radius: 5px; background: rgba(255,255,255,.14); display: block }
+.stage-shell { width: 100%; max-width: 100%; aspect-ratio: 960 / 600; position: relative; border-radius: 16px; overflow: hidden;
+  background: var(--night); box-shadow: 0 1px 0 var(--line), 0 24px 60px rgba(8, 10, 40, .28) }
+.stage { position: absolute; left: 0; top: 0; width: 960px; height: 600px; transform-origin: 0 0; overflow: hidden; color: var(--cream);
+  font-family: var(--font); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility;
+  background:
+    radial-gradient(60% 50% at 82% 108%, rgba(243, 195, 67, .34), transparent 70%),
+    radial-gradient(70% 60% at 50% -10%, rgba(74, 86, 220, .55), transparent 70%),
+    radial-gradient(60% 70% at 0% 100%, rgba(226, 112, 58, .18), transparent 70%),
+    linear-gradient(170deg, #161B6B 0%, #0B0F45 52%, #170F3B 100%) }
 
-/* app views */
-.v-settings h2, .v-book h2, .v-pay h2 { margin: 0 0 4px; font-size: 20px; font-weight: 600 }
-.v-settings p, .v-pay p { margin: 0 0 18px; color: #6A6359; font-size: 13.5px }
-.upd { display: flex; align-items: center; gap: 14px; padding: 14px; border: 1px solid #E6E1D8; border-radius: 10px; background: #fff }
-.upd .ic { width: 38px; height: 38px; border-radius: 50%; background: #E8F0FB; display: grid; place-items: center; color: #2F6FD0; font-weight: 700 }
+/* the app window */
+.win { position: absolute; left: 92px; top: 76px; width: 560px; height: 404px; border-radius: 10px; background: #F7F6FA; color: #1F2033;
+  box-shadow: 0 30px 70px rgba(0, 0, 20, .5), 0 0 0 1px rgba(255, 255, 255, .06); overflow: hidden; display: flex; flex-direction: column }
+.win .bar { height: 36px; display: flex; align-items: center; gap: 10px; padding: 0 14px; font-size: 12.5px; color: #5B5C72; flex: none;
+  background: linear-gradient(#EEEDF4, #F3F2F8); border-bottom: 1px solid #E3E2EC }
+.win .bar .dots { display: flex; gap: 6px; margin-left: auto } .win .bar .dots i { width: 10px; height: 10px; border-radius: 50%; background: #D7D6E2; display: block }
+.win .body { padding: 24px 28px; flex: 1; position: relative }
+.v-settings h3, .v-pay h3 { margin: 0 0 4px; font-size: 21px; font-weight: 600 }
+.v-settings p, .v-pay p { margin: 0 0 18px; color: #6B6C82; font-size: 13.5px }
+.upd { display: flex; align-items: center; gap: 14px; padding: 14px; border: 1px solid #E3E2EC; border-radius: 10px; background: #fff }
+.upd .ic { width: 38px; height: 38px; border-radius: 50%; background: #E9ECFB; display: grid; place-items: center; color: #3A49C9; font-weight: 700 }
 .upd .t { flex: 1; font-size: 13.5px } .upd .t b { display: block; font-weight: 600; font-size: 14px }
-.btn-blue { font: inherit; font-size: 13px; padding: 8px 14px; border-radius: 7px; border: 0; background: #2F6FD0; color: #fff }
-.list { margin-top: 14px; display: grid; gap: 8px; font-size: 13px; color: #4C463F }
-.list div { padding: 9px 12px; border-radius: 8px; background: #EFEBE4 }
-.v-book { font-size: 14.5px; line-height: 1.75; color: #2A2723 }
-.v-book .meta { font-size: 12px; color: #8A8175; margin-bottom: 10px }
-.v-book .ln { display: block; padding: 0 4px; border-radius: 4px; transition: background .35s }
-.v-book .ln.on { background: rgba(226,112,58,.20) }
+.btn-blue { font: inherit; font-size: 13px; padding: 8px 14px; border-radius: 7px; border: 0; background: #3A49C9; color: #fff }
+.list { margin-top: 14px; display: grid; gap: 8px; font-size: 13px; color: #45465C }
+.list div { padding: 9px 12px; border-radius: 8px; background: #EEEDF4 }
+.v-book { font-size: 14.5px; line-height: 1.8; color: #24253A }
+.v-book .meta { font-size: 12px; color: #8486A0; margin-bottom: 8px }
+.v-book .ln { display: block; padding: 0 5px; border-radius: 5px; transition: background-color .45s }
+.v-book .ln.on { background: rgba(243, 195, 67, .38) }
 .ipa { font-family: "Charis SIL", "Doulos SIL", "Gentium Plus", "Segoe UI", serif }
-.v-pay .card { border: 1px solid #E6E1D8; border-radius: 10px; padding: 16px; background: #fff; display: grid; gap: 10px; font-size: 13.5px }
-.v-pay .row { display: flex; justify-content: space-between } .v-pay .row b { font-weight: 600 }
-.v-pay .url { font-size: 12px; color: #2E7D46 }
-.v-pay .paid { color: #2E7D46; font-weight: 600 }
+.v-pay .url { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: #2D7A4E; margin-bottom: 14px }
+.v-pay .card { border: 1px solid #E3E2EC; border-radius: 10px; padding: 16px; background: #fff; display: grid; gap: 10px; font-size: 13.5px }
+.v-pay .row { display: flex; justify-content: space-between } .v-pay .row b { font-weight: 600; font-variant-numeric: tabular-nums }
+.v-pay .paid { color: #2D7A4E }
 
-/* ---------- companion ---------- */
-.comp { position: absolute; right: 18px; bottom: 54px; display: flex; align-items: flex-end; gap: 10px; flex-direction: row-reverse }
-.bird { width: 74px; height: 74px; border-radius: 50%; border: 0; padding: 0; background: var(--ink); cursor: pointer; flex: none;
-  box-shadow: 0 10px 30px rgba(0,0,0,.45), 0 0 0 1px var(--glass-line); position: relative; transition: transform .4s cubic-bezier(.3,1.5,.5,1) }
-.bird:hover { transform: scale(1.04) }
-.bird svg { width: 100%; height: 100%; display: block; overflow: visible }
-.halo { position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--crest); opacity: 0; transform: scale(.9) }
-.comp[data-state="listening"] .halo { animation: halo 1.6s ease-out infinite }
-@keyframes halo { 0% { opacity: .7; transform: scale(.92) } 100% { opacity: 0; transform: scale(1.35) } }
+/* taskbar */
+.taskbar { position: absolute; left: 0; right: 0; bottom: 0; height: 44px; background: rgba(14, 16, 48, .78);
+  backdrop-filter: blur(16px) saturate(140%); border-top: 1px solid rgba(255, 255, 255, .07);
+  display: flex; align-items: center; justify-content: flex-end; padding: 0 14px; gap: 14px; font-size: 12px; color: #CFCDE4; z-index: 12 }
+.taskbar .apps { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 10px }
+.taskbar .apps i { width: 24px; height: 24px; border-radius: 6px; background: rgba(255, 255, 255, .14); display: block }
+.taskbar .apps i:first-child { background: linear-gradient(135deg, #6E8BFF, #3F53E0) }
+.tray-icon { width: 18px; height: 18px; display: block }
+.clock { text-align: right; line-height: 1.25; font-variant-numeric: tabular-nums }
 
-.card { background: var(--glass); backdrop-filter: blur(14px); border: 1px solid var(--glass-line); border-radius: 20px; color: var(--cream);
-  overflow: hidden; width: 0; height: 0; opacity: 0; margin-bottom: 8px;
-  transition: width .42s cubic-bezier(.25,1.25,.4,1), height .42s cubic-bezier(.25,1.25,.4,1), opacity .25s ease }
-.card.show { opacity: 1 }
-.card .in { padding: 14px 16px; width: max-content; max-width: 330px }
-.lab { display: flex; align-items: center; gap: 8px; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--sand) }
-.lab .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--crest) }
-.say { margin-top: 6px; font-size: 15px; line-height: 1.45; max-width: 298px }
-.say .w { opacity: .35; transition: opacity .2s } .say .w.on { opacity: 1 }
-.ar { direction: rtl; text-align: right; font-size: 15px; margin-top: 4px; color: #F3D9B5 }
-.wave { display: flex; align-items: center; gap: 3px; height: 30px; margin-top: 8px }
-.wave i { width: 4px; border-radius: 3px; background: var(--sand); height: 4px; transition: height .08s linear }
-.shimmer { margin-top: 6px; font-size: 15px; background: linear-gradient(90deg, var(--sand-dk) 0%, var(--cream) 45%, var(--sand-dk) 80%);
-  background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: shim 1.3s linear infinite }
+/* ---------- the notch ---------- */
+.notch { --f: 12px; position: absolute; top: 0; left: 50%; width: 120px; height: 28px; transform: translateX(-50%);
+  background: var(--island); border-radius: 0 0 14px 14px; z-index: 20; cursor: pointer; outline: none;
+  box-shadow: 0 16px 36px rgba(0, 0, 12, .5), inset 0 -1px 0 rgba(255, 255, 255, .07) }
+.notch:focus-visible { box-shadow: 0 0 0 2px var(--amber), 0 16px 36px rgba(0, 0, 12, .5) }
+.notch::before, .notch::after { content: ""; position: absolute; top: 0; width: var(--f); height: var(--f); pointer-events: none }
+.notch::before { left: calc(var(--f) * -1); background: radial-gradient(circle at 0 100%, transparent calc(var(--f) - .5px), var(--island) var(--f)) }
+.notch::after { right: calc(var(--f) * -1); background: radial-gradient(circle at 100% 100%, transparent calc(var(--f) - .5px), var(--island) var(--f)) }
+.clip { position: absolute; inset: 0; border-radius: inherit; overflow: hidden }
+.pane { position: absolute; top: 0; left: 50%; width: var(--w); height: var(--h); margin-left: calc(var(--w) / -2);
+  transform-origin: 50% 0; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 12px 22px;
+  color: var(--cream); font-size: 14px; line-height: 1.35; text-align: left }
+.row { display: flex; align-items: center; gap: 10px; min-width: 0 }
+.mk { width: 30px; height: 24px; flex: none; overflow: visible }
+.mk.sm { width: 20px; height: 16px }
+.lbl { font-size: 11.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--amber) }
+.lbl.crest { color: var(--crest) }
+.muted { color: var(--cream-dim); font-size: 12.5px }
+.push { margin-left: auto }
+.presence { position: absolute; right: 18px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%;
+  background: var(--amber); box-shadow: 0 0 10px rgba(243, 195, 67, .85); animation: presence 3.6s ease-in-out infinite }
+@keyframes presence { 50% { opacity: .4; transform: scale(.78) } }
+.peek-text { font-size: 12.5px; color: var(--cream) }
+.wave { display: flex; align-items: center; gap: 3px; height: 26px }
+.wave i { width: 3px; height: 26px; border-radius: 2px; background: var(--amber); transform: scaleY(.2); transform-origin: 50% 50%; display: block }
+.heard, .cap { font-size: 15px }
+.w { opacity: .26; transition: opacity .28s ease-out } .w.on { opacity: 1 }
+.ar { direction: rtl; text-align: right; font-size: 15px; color: #F7DDB3; opacity: 0; transform: translateY(4px); transition: opacity .4s ease-out, transform .5s cubic-bezier(.2, .9, .2, 1) }
+.ar.in { opacity: 1; transform: none }
+.spin { width: 16px; height: 16px; flex: none; border-radius: 50%; border: 2px solid rgba(243, 195, 67, .25); border-top-color: var(--amber); animation: spin .8s linear infinite }
+@keyframes spin { to { transform: rotate(360deg) } }
+.shimmer { font-size: 14px; background: linear-gradient(90deg, rgba(255, 244, 222, .45) 0%, #FFF4DE 45%, rgba(255, 244, 222, .45) 80%);
+  background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: shim 1.4s linear infinite }
 @keyframes shim { from { background-position: 120% 0 } to { background-position: -100% 0 } }
-.steps { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; font-size: 14px; min-width: 250px }
-.steps li { display: flex; gap: 9px; align-items: center; opacity: 0; transform: translateY(6px); transition: opacity .3s, transform .3s }
+.steps { list-style: none; margin: 2px 0 0; padding: 0; display: grid; gap: 5px; font-size: 13.5px }
+.steps li { display: flex; gap: 10px; align-items: center; opacity: 0; transform: translateY(8px);
+  transition: opacity .3s ease-out, transform .55s cubic-bezier(.2, .9, .2, 1) }
 .steps li.in { opacity: 1; transform: none }
 .steps svg { width: 16px; height: 16px; flex: none }
-.steps .tick { stroke: var(--ok); stroke-width: 2.4; fill: none; stroke-dasharray: 20; stroke-dashoffset: 20; transition: stroke-dashoffset .4s ease .1s }
-.steps li.done .tick { stroke-dashoffset: 0 }
-.steps .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(233,199,154,.3); border-top-color: var(--sand); animation: sp .8s linear infinite; flex: none }
-@keyframes sp { to { transform: rotate(360deg) } }
-.facts { margin-top: 8px; font-size: 14.5px; line-height: 1.5; max-width: 300px } .facts b { color: #fff; font-weight: 600 }
-.facts .dom { color: var(--ok); font-size: 13px }
-.taps { display: flex; gap: 7px; margin-top: 10px; align-items: center }
-.taps i { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--sand); transition: background .15s, transform .15s }
-.taps i.on { background: var(--crest); border-color: var(--crest); transform: scale(1.12) }
-.taps span { font-size: 12.5px; color: var(--sand); margin-left: 6px }
-.cbtns { display: flex; gap: 8px; margin-top: 12px }
-.cbtns button { font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 9px; cursor: pointer; border: 1px solid var(--glass-line); background: transparent; color: var(--cream) }
-.cbtns .yes { background: var(--crest); border-color: var(--crest); color: #fff }
-.rd { display: flex; gap: 12px; align-items: center; margin-top: 8px }
-.ring { width: 44px; height: 44px; flex: none } .ring circle { fill: none; stroke-width: 4 }
-.ring .bg { stroke: rgba(233,199,154,.22) } .ring .fg { stroke: var(--crest); stroke-linecap: round; transform: rotate(-90deg); transform-origin: 22px 22px; transition: stroke-dashoffset .5s ease }
-.rd .t { font-size: 13.5px; line-height: 1.4 } .rd .t b { display: block; font-size: 14.5px; font-weight: 600; color: #fff }
-.ok { color: var(--ok) }
+.steps .ring0 { fill: none; stroke: rgba(243, 195, 67, .3); stroke-width: 1.4; transition: stroke .3s }
+.steps .tick { fill: none; stroke: var(--ok); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 12; stroke-dashoffset: 12;
+  transition: stroke-dashoffset .38s cubic-bezier(.3, .7, .2, 1) .08s }
+.steps li.done .tick { stroke-dashoffset: 0 } .steps li.done .ring0 { stroke: rgba(111, 211, 154, .55) }
+.steps li.now { color: var(--amber) }
+.ptr-mini { width: 18px; height: 18px; flex: none }
+.ring { width: 46px; height: 46px; flex: none } .ring circle { fill: none; stroke-width: 4 }
+.ring .bg { stroke: rgba(243, 195, 67, .2) }
+.ring .fg { stroke: var(--amber); stroke-linecap: round; transform: rotate(-90deg); transform-origin: 23px 23px; transition: stroke-dashoffset .9s cubic-bezier(.2, .8, .2, 1) }
+.rd b { display: block; font-weight: 600; font-size: 14.5px }
+.rd .sub { font-size: 12.5px; color: var(--cream-dim) } .rd .say-hint { font-size: 12.5px; color: var(--amber) }
+.pay-top { display: flex; align-items: center; justify-content: space-between }
+.dom { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--ok) }
+.amt { font-size: 34px; font-weight: 600; letter-spacing: -.015em; line-height: 1.05; font-variant-numeric: tabular-nums }
+.facts { font-size: 13.5px; color: var(--cream-dim) }
+.taps-row { display: flex; align-items: center; gap: 14px }
+.taps { display: flex; gap: 9px }
+.taps i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--amber); display: block }
+.taps i.on { background: var(--crest); border-color: var(--crest); animation: pop .5s cubic-bezier(.3, 1.9, .4, 1) }
+@keyframes pop { 0% { transform: scale(.45) } 100% { transform: scale(1) } }
+.taps-hint { font-size: 12.5px; color: var(--cream-dim) }
+.taps-hint kbd { background: rgba(255, 255, 255, .08); color: var(--cream); border-color: rgba(255, 255, 255, .18); transition: background-color .15s, transform .15s }
+.taps-hint kbd.hit { background: var(--crest); border-color: var(--crest); transform: translateY(1px) }
+.cbtns { display: flex; gap: 8px }
+.cbtns button { font: inherit; font-size: 13px; padding: 6px 13px; border-radius: 999px; cursor: pointer; border: 1px solid rgba(255, 255, 255, .2);
+  background: transparent; color: var(--cream); transition: transform .1s ease-out, background-color .2s }
+.cbtns button:active { transform: scale(.96) }
+.cbtns .yes { background: var(--amber); border-color: var(--amber); color: #14162B; font-weight: 500 }
+.cbtns button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px }
+.okc { width: 24px; height: 24px; flex: none }
+.okc circle { fill: rgba(111, 211, 154, .16); stroke: var(--ok); stroke-width: 1.6 }
+.okc path { fill: none; stroke: var(--ok); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 14; stroke-dashoffset: 14; animation: draw .45s cubic-bezier(.3, .7, .2, 1) .15s forwards }
+@keyframes draw { to { stroke-dashoffset: 0 } }
+
+/* ---------- Hudhud ---------- */
+.hud { position: absolute; right: 20px; bottom: 46px; width: 116px; height: 116px; padding: 0; border: 0; background: none; cursor: pointer;
+  z-index: 15; transition: transform .12s ease-out; -webkit-tap-highlight-color: transparent }
+.hud:active { transform: scale(.96) }
+.hud svg { position: relative; width: 100%; height: 100%; display: block; overflow: visible }
+.hud:focus-visible { outline: 2px solid var(--amber); outline-offset: 6px; border-radius: 18px }
+.hud-glow { position: absolute; inset: -18px; border-radius: 50%; pointer-events: none; opacity: 0;
+  background: radial-gradient(closest-side, rgba(243, 195, 67, .42), rgba(243, 195, 67, 0)) }
 
 /* pointer */
-.ptr { position: absolute; left: 0; top: 0; width: 26px; height: 26px; pointer-events: none; opacity: 0; transition: opacity .2s; z-index: 5 }
-.ptr svg { width: 26px; height: 26px; filter: drop-shadow(0 3px 6px rgba(0,0,0,.45)) }
+.ptr { position: absolute; left: 0; top: 0; width: 26px; height: 26px; pointer-events: none; opacity: 0; z-index: 25 }
+.ptr svg { width: 26px; height: 26px; display: block; filter: drop-shadow(0 4px 8px rgba(0, 0, 20, .5)) }
 .ptr .pulse { position: absolute; left: -9px; top: -9px; width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--crest); opacity: 0 }
-.ptr.land .pulse { animation: halo 1.1s ease-out 2 }
-.ptr .tag { position: absolute; left: 24px; top: 20px; white-space: nowrap; font-size: 12px; background: var(--crest); color: #fff; padding: 3px 8px; border-radius: 7px; opacity: 0; transition: opacity .25s }
-.ptr.land .tag { opacity: 1 }
+.ptr.land .pulse { animation: ping 1.1s cubic-bezier(.2, .7, .2, 1) 2 }
+@keyframes ping { 0% { opacity: .8; transform: scale(.6) } 100% { opacity: 0; transform: scale(1.5) } }
+.ptr .tag { position: absolute; left: 26px; top: 22px; white-space: nowrap; font-size: 12px; background: var(--crest); color: #fff; padding: 3px 9px;
+  border-radius: 8px; opacity: 0; transform: translateY(4px) scale(.96); transition: opacity .25s ease-out, transform .45s cubic-bezier(.2, .9, .2, 1) }
+.ptr.land .tag { opacity: 1; transform: none }
 
-/* hoopoe parts */
-.f { transition: transform .5s cubic-bezier(.3,1.6,.45,1) ; transform: rotate(var(--c)) }
-.crest-open .f { transform: rotate(var(--o)) }
-.crest-half .f { transform: rotate(calc((var(--o) + var(--c)) / 2)) }
-.headg { transition: transform .5s cubic-bezier(.3,1.4,.5,1) }
-.tilt .headg { transform: rotate(-7deg) } .down .headg { transform: rotate(9deg) }
-.bob .headg { animation: bob .9s ease-in-out infinite }
-@keyframes bob { 0%,100% { transform: rotate(0) } 50% { transform: rotate(5deg) } }
-.lower { transition: transform .08s linear }
-.eye { animation: blink 4.2s infinite } @keyframes blink { 0%, 95%, 100% { transform: scaleY(1) } 97% { transform: scaleY(.1) } }
-.breath { animation: br 3.6s ease-in-out infinite } @keyframes br { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-1.2px) } }
+/* ---------- reference ---------- */
+.below { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 28px 40px; align-items: start }
+.states { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; margin: 0; font-size: 14px }
+.states div { min-width: 0; padding-top: 10px; border-top: 1px solid var(--line) }
+.states dt { font-weight: 600 } .states dd { margin: 2px 0 0; color: var(--muted) }
+.tokens-wrap { overflow-x: auto }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px }
+th, td { text-align: left; padding: 8px 10px 8px 0; border-bottom: 1px solid var(--line); vertical-align: top }
+th { font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
+td.num { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap }
+.note { font-size: 13.5px; color: var(--muted); margin: 12px 0 0; max-width: 60ch }
+.foot { font-size: 13px; color: var(--muted); max-width: 72ch; margin: 0 }
 
-/* reference */
-.ref { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px 22px; font-size: 14px }
-.ref div { min-width: 0; padding-top: 10px; border-top: 1px solid var(--line) }
-.ref b { display: block; font-weight: 600; margin-bottom: 2px }
-.ref p { margin: 0; color: var(--muted) }
-.foot { font-size: 13px; color: var(--muted); max-width: 70ch }
-
+@media (max-width: 760px) {
+  .below { grid-template-columns: minmax(0, 1fr) }
+  .states { grid-template-columns: minmax(0, 1fr) }
+  .fps { margin-left: 0 }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001s !important; animation-iteration-count: 1 !important; transition-duration: .001s !important }
 }
@@ -153,127 +210,444 @@ kbd { font-family: inherit; font-size: 12px; border: 1px solid var(--line); bord
 
 <div class="wrap">
   <header>
-    <h1>Hudhud, <span>Mubsir's companion</span></h1>
-    <p class="lede">A working sketch of normal mode. Hudhud lives in the bottom-right corner, above the taskbar, and opens a small card only when it has something to show. Blind mode shows none of this: it is voice and sounds only.</p>
+    <h1>Hudhud and the notch <span>· normal mode</span></h1>
+    <p class="lede">The notch at the top shows what Mubsir is doing. Hudhud in the corner shows how it feels about it. Everything moves on springs, so any state can interrupt any other without a jump. Press Play, or pick a state.</p>
   </header>
 
   <div class="controls" role="toolbar" aria-label="Companion states">
-    <button class="play" id="play" type="button">▶ Play the demo</button>
+    <button class="play" id="play" type="button" aria-pressed="false">▶ Play the demo</button>
     <span class="sep" aria-hidden="true"></span>
-    <button type="button" data-s="idle">Idle</button>
-    <button type="button" data-s="listening">Listening</button>
-    <button type="button" data-s="thinking">Thinking</button>
-    <button type="button" data-s="doing">Doing</button>
-    <button type="button" data-s="pointing">Pointing</button>
-    <button type="button" data-s="speaking">Speaking</button>
-    <button type="button" data-s="reading">Reading</button>
-    <button type="button" data-s="confirm">Payment</button>
+    <span class="chips" style="display:contents">
+      <button type="button" data-s="idle">Idle</button>
+      <button type="button" data-s="listening">Listening</button>
+      <button type="button" data-s="thinking">Thinking</button>
+      <button type="button" data-s="doing">Doing</button>
+      <button type="button" data-s="pointing">Pointing</button>
+      <button type="button" data-s="speaking">Speaking</button>
+      <button type="button" data-s="reading">Reading</button>
+      <button type="button" data-s="confirm">Payment</button>
+    </span>
+    <span class="fps" id="fps" title="Frames per second, measured in your browser">— fps</span>
   </div>
-  <p class="hint" id="hint">Tip: in the Payment state press <kbd>Ctrl</kbd> four times quickly, or tap the button, to approve. Click Hudhud to start listening.</p>
+  <p class="hint">Click Hudhud or the notch to talk. In Payment press <kbd>Ctrl</kbd> four times (or the button) to approve; <kbd>Esc</kbd> cancels.</p>
 
   <div class="stage-shell" id="shell">
     <div class="stage" id="stage" aria-label="Simulated Windows desktop">
+      <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+        <defs>
+          <g id="mubsir-mark">
+            <path fill="#F3C343" d="M18.7 37.9 C19.2 30 29.5 17.2 44 16.6 C57.5 16.4 66.5 26 71.9 33.2 C64.5 30.6 55.5 23.1 44 21.6 C31.5 21.6 22.6 29.9 18.7 37.9 Z"/>
+            <path fill="#F3C343" d="M71.9 33.3 C68 35.2 65 36.9 61.5 38.7 C58.5 40.4 55.5 42.1 52.5 43.2 C48.5 44.8 45.5 45.7 42 45.7 C37.5 45.7 33.6 43.6 30 41.7 C25.6 39.3 21.2 37.6 18.3 37.6 C14.8 40 10.4 43.4 8.4 47.4 C7 49.9 6.5 52 6.5 54 C6.5 56.5 6.6 57.8 7 59.2 C7.8 63.6 10.4 66.6 13.9 66.6 C17.5 66.6 19.9 64.2 19.9 61.4 C19.9 60 19.4 58.9 18.6 58.3 C18 59.9 16.5 60.7 14.9 60.6 C13 60.5 10.9 59.3 10.8 57.3 C10.7 55.4 10.5 53.6 10.7 52 C11.1 49.4 13.4 47.4 16.8 46.2 C18.4 45.6 19.8 44.7 21.2 44.7 C24.2 44.7 27.6 46.8 31 48.4 C34.5 50 37.5 50.5 41 50.5 C45.5 50.5 49.5 50 53 48.4 C56.2 46.8 59.2 44.7 61.6 42.7 C65.2 39.8 68.6 36.8 71.9 33.3 Z"/>
+            <circle fill="#F3C343" cx="44" cy="34" r="3.4"/>
+            <circle fill="none" stroke="#F3C343" stroke-width="1.9" cx="44" cy="34" r="6.3"/>
+            <circle fill="none" stroke="#F3C343" stroke-width="1.9" cx="44" cy="34" r="10.05"/>
+          </g>
+        </defs>
+      </svg>
+
       <div class="win" id="win">
-        <div class="bar"><i></i><i></i><i></i><span id="wintitle">Settings</span></div>
+        <div class="bar"><span id="wintitle">Settings</span><span class="dots"><i></i><i></i><i></i></span></div>
         <div class="body" id="app"></div>
       </div>
+
+      <div class="notch" id="notch" tabindex="0" role="button" aria-label="Mubsir notch. Click to talk.">
+        <div class="clip">
+          <div class="pane" data-pane="idle"><i class="presence"></i></div>
+
+          <div class="pane" data-pane="peek">
+            <div class="row" style="justify-content:center"><svg class="mk sm" viewBox="4 12 72 58" aria-hidden="true"><use href="#mubsir-mark"/></svg><span class="peek-text">Hold Right Ctrl to talk</span></div>
+          </div>
+
+          <div class="pane" data-pane="listening">
+            <div class="row"><svg class="mk" viewBox="4 12 72 58" aria-hidden="true"><use href="#mubsir-mark"/><circle class="ripple" cx="44" cy="34" r="10" fill="none" stroke="#F3C343" stroke-width="1.6" opacity="0"/></svg>
+              <span class="lbl">Listening</span><span class="wave push" data-n="22"></span></div>
+            <div class="heard" id="heard"></div>
+          </div>
+
+          <div class="pane" data-pane="thinking">
+            <div class="row"><span class="spin"></span><span class="shimmer">Opening Windows Update…</span></div>
+          </div>
+
+          <div class="pane" data-pane="doing">
+            <div class="row"><svg class="mk sm" viewBox="4 12 72 58" aria-hidden="true"><use href="#mubsir-mark"/></svg><span class="lbl">Working on it</span><span class="muted push">Right Ctrl to stop</span></div>
+            <ol class="steps" id="steps">
+              <li><svg viewBox="0 0 16 16"><circle class="ring0" cx="8" cy="8" r="7"/><path class="tick" d="M4.6 8.3 L7 10.6 L11.5 5.7"/></svg>Opened Settings</li>
+              <li><svg viewBox="0 0 16 16"><circle class="ring0" cx="8" cy="8" r="7"/><path class="tick" d="M4.6 8.3 L7 10.6 L11.5 5.7"/></svg>Went to Windows Update</li>
+              <li><svg viewBox="0 0 16 16"><circle class="ring0" cx="8" cy="8" r="7"/><path class="tick" d="M4.6 8.3 L7 10.6 L11.5 5.7"/></svg>Found 3 updates</li>
+              <li class="now"><span class="spin"></span>Clicking “Check for updates”</li>
+            </ol>
+          </div>
+
+          <div class="pane" data-pane="pointing">
+            <div class="row"><svg class="ptr-mini" viewBox="0 0 26 26" aria-hidden="true"><path d="M4 2 L22 12 L13.5 14 L9.5 22 Z" fill="#E2703A" stroke="#FFF4DE" stroke-width="1.6" stroke-linejoin="round"/></svg>
+              <span>It's the <b>Check for updates</b> button</span></div>
+          </div>
+
+          <div class="pane" data-pane="speaking">
+            <div class="row"><svg class="mk" viewBox="4 12 72 58" aria-hidden="true"><use href="#mubsir-mark"/><circle class="ripple" cx="44" cy="34" r="10" fill="none" stroke="#F3C343" stroke-width="1.6" opacity="0"/></svg>
+              <span class="lbl">Mubsir</span><span class="wave push" data-n="26" data-kind="talk"></span></div>
+            <div class="cap" id="cap"></div>
+            <div class="ar" id="capar" lang="ar">فتحت الإعدادات. فيه ٣ تحديثات جاهزة، أنزّلهم؟</div>
+          </div>
+
+          <div class="pane" data-pane="reading">
+            <div class="row rd"><svg class="ring" viewBox="0 0 46 46" aria-hidden="true"><circle class="bg" cx="23" cy="23" r="18"/><circle class="fg" id="rfg" cx="23" cy="23" r="18" stroke-dasharray="113.1" stroke-dashoffset="113.1"/></svg>
+              <div><b>Introducing Phonology</b><div class="sub">Chapter 3 · page 34 of 312</div><div class="say-hint">Say “next page”, “repeat” or ask about this page</div></div></div>
+          </div>
+
+          <div class="pane" data-pane="confirm">
+            <div class="pay-top"><span class="lbl crest">Please confirm</span>
+              <span class="dom"><svg width="11" height="12" viewBox="0 0 11 12" aria-hidden="true"><rect x="1" y="5" width="9" height="6.5" rx="1.5" fill="currentColor"/><path d="M3 5 V3.6 a2.5 2.5 0 0 1 5 0 V5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>pay.example.com</span></div>
+            <div class="amt">EGP 250.00</div>
+            <div class="facts">Electricity bill, October · Visa ending 4417</div>
+            <div class="taps-row"><span class="taps" id="taps"><i></i><i></i><i></i><i></i></span>
+              <span class="taps-hint">Press <kbd id="ctrlcap">Ctrl</kbd> 4 times · Esc cancels</span></div>
+            <div class="cbtns"><button type="button" class="yes" id="tapbtn">Press Ctrl</button><button type="button" id="cancel">Cancel</button></div>
+          </div>
+
+          <div class="pane" data-pane="paid">
+            <div class="row" style="justify-content:center"><svg class="okc" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11"/><path d="M7.4 12.4 L10.6 15.4 L16.8 8.8"/></svg>
+              <span>Paid <b>EGP 250</b> · Electricity</span></div>
+          </div>
+        </div>
+      </div>
+
       <div class="ptr" id="ptr" aria-hidden="true">
         <span class="pulse"></span>
         <svg viewBox="0 0 26 26"><path d="M4 2 L22 12 L13.5 14 L9.5 22 Z" fill="#E2703A" stroke="#FFF4DE" stroke-width="1.6" stroke-linejoin="round"/></svg>
-        <span class="tag" id="ptag">Check for updates</span>
+        <span class="tag">Check for updates</span>
       </div>
-      <div class="comp" id="comp" data-state="idle">
-        <button class="bird" id="bird" type="button" aria-label="Hudhud: click to talk">
-          <span class="halo"></span>
-          <svg viewBox="0 0 120 120" id="hoopoe" aria-hidden="true">
-            <defs>
-              <clipPath id="wingclip"><path d="M50 74 C 62 60, 92 62, 100 80 C 92 92, 64 96, 50 86 Z"/></clipPath>
-            </defs>
-            <g class="breath">
-              <!-- tail -->
-              <path d="M88 86 L112 100 L106 106 L84 94 Z" fill="#1C1A17" stroke="#3A332B" stroke-width="1"/>
-              <path d="M96 92 L108 99" stroke="#FFF4DE" stroke-width="2.4"/>
-              <!-- body -->
-              <ellipse cx="66" cy="82" rx="30" ry="21" fill="#E9C79A"/>
-              <ellipse cx="60" cy="90" rx="20" ry="11" fill="#F3D9B5"/>
-              <!-- wing with bars -->
-              <g clip-path="url(#wingclip)">
-                <rect x="40" y="55" width="70" height="50" fill="#1C1A17"/>
-                <rect x="60" y="55" width="5" height="50" fill="#FFF4DE"/>
-                <rect x="72" y="55" width="5" height="50" fill="#FFF4DE"/>
-                <rect x="84" y="55" width="5" height="50" fill="#FFF4DE"/>
-                <rect x="96" y="55" width="5" height="50" fill="#FFF4DE"/>
+
+      <button class="hud" id="hud" type="button" aria-label="Hudhud. Click to talk.">
+        <span class="hud-glow" id="hglow"></span>
+        <svg viewBox="0 0 200 200" aria-hidden="true">
+          <defs>
+            <filter id="paper" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+              <feDropShadow dx="0" dy="1.1" stdDeviation=".8" flood-color="#03051C" flood-opacity=".55"/>
+            </filter>
+            <clipPath id="covClip"><path d="M112 122 C124 108 150 108 168 120 C178 128 178 142 168 150 C148 160 124 154 112 122 Z"/></clipPath>
+            <clipPath id="tailClip"><path d="M0 -5 L36 12 C39 16 37 21 32 22 L-4 6 Z"/></clipPath>
+          </defs>
+          <g id="hBody">
+            <!-- tail, pivots at the rump -->
+            <g transform="translate(154 150)"><g id="hTail" filter="url(#paper)">
+              <path d="M0 -5 L36 12 C39 16 37 21 32 22 L-4 6 Z" fill="#1C2266"/>
+              <g clip-path="url(#tailClip)" stroke="#FCEBD0" stroke-width="4.2"><path d="M12 -2 L4 14"/><path d="M23 3 L15 19"/></g>
+            </g></g>
+            <!-- legs with toes: three forward, one back -->
+            <g fill="none" stroke="#BDB8E6" stroke-linecap="round" stroke-linejoin="round">
+              <g stroke-width="3.4"><path d="M114 158 L112.5 183"/><path d="M131 160 L132 183"/></g>
+              <g stroke-width="2.3">
+                <path d="M112.5 183.5 L101.5 187.8"/><path d="M112.5 183.5 L104.6 189.6"/><path d="M112.5 183.5 L109.2 190.2"/><path d="M112.5 183.5 L118.6 187.4"/>
+                <path d="M132 183.5 L121 187.8"/><path d="M132 183.5 L124.1 189.6"/><path d="M132 183.5 L128.7 190.2"/><path d="M132 183.5 L138.1 187.4"/>
               </g>
-              <!-- head (rotates around neck) -->
-              <g transform="translate(52 66)"><g class="headg">
-                <g transform="translate(-52 -66)">
-                  <!-- crest pivot -->
-                  <g transform="translate(47 38)">
-                    <g class="f" style="--o:-78deg;--c:58deg"><ellipse cx="0" cy="-12" rx="4" ry="12" fill="#E2703A"/><ellipse cx="0" cy="-22" rx="3.5" ry="4" fill="#1C1A17"/><ellipse cx="0" cy="-17.5" rx="3.6" ry="1.4" fill="#FFF4DE"/></g>
-                    <g class="f" style="--o:-48deg;--c:64deg"><ellipse cx="0" cy="-13" rx="4.2" ry="13" fill="#E2703A"/><ellipse cx="0" cy="-24" rx="3.6" ry="4" fill="#1C1A17"/><ellipse cx="0" cy="-19.3" rx="3.8" ry="1.4" fill="#FFF4DE"/></g>
-                    <g class="f" style="--o:-18deg;--c:70deg"><ellipse cx="0" cy="-14" rx="4.3" ry="14" fill="#E2703A"/><ellipse cx="0" cy="-26" rx="3.7" ry="4" fill="#1C1A17"/><ellipse cx="0" cy="-21" rx="3.9" ry="1.4" fill="#FFF4DE"/></g>
-                    <g class="f" style="--o:12deg;--c:76deg"><ellipse cx="0" cy="-13" rx="4.2" ry="13" fill="#E2703A"/><ellipse cx="0" cy="-24" rx="3.6" ry="4" fill="#1C1A17"/><ellipse cx="0" cy="-19.3" rx="3.8" ry="1.4" fill="#FFF4DE"/></g>
-                    <g class="f" style="--o:42deg;--c:82deg"><ellipse cx="0" cy="-12" rx="4" ry="12" fill="#E2703A"/><ellipse cx="0" cy="-22" rx="3.5" ry="4" fill="#1C1A17"/><ellipse cx="0" cy="-17.5" rx="3.6" ry="1.4" fill="#FFF4DE"/></g>
-                  </g>
-                  <circle cx="44" cy="54" r="18" fill="#E9C79A"/>
-                  <circle cx="50" cy="60" r="9" fill="#E2A170" opacity=".45"/>
-                  <!-- beak: upper fixed, lower opens -->
-                  <path d="M29 56 C 20 58, 10 62, 3 68 C 12 64, 22 62, 30 61 Z" fill="#2A2420"/>
-                  <g transform="translate(30 60)"><path class="lower" id="lower" d="M0 0 C -9 2, -18 6, -25 9 C -16 7, -8 5, 0 3 Z" fill="#3A322B"/></g>
-                  <!-- eye -->
-                  <g transform="translate(39 50)"><g class="eye"><circle r="3.4" fill="#1C1A17"/><circle cx="1.1" cy="-1.1" r="1" fill="#FFF4DE"/></g></g>
-                </g>
-              </g></g>
             </g>
-          </svg>
-        </button>
-        <div class="card" id="card" aria-live="polite"><div class="in" id="cardin"></div></div>
+            <g fill="#BDB8E6"><circle cx="112.6" cy="183.4" r="2.1"/><circle cx="132" cy="183.4" r="2.1"/></g>
+            <!-- body and bib -->
+            <path filter="url(#paper)" d="M84 116 C84 146 102 168 128 168 C152 168 168 154 172 138 C160 118 138 104 114 102 C96 101 85 106 84 116 Z" fill="#EDB04A"/>
+            <path filter="url(#paper)" d="M92 98 C80 110 80 132 92 150 C96 146 100 150 104 146 C108 150 112 146 114 141 C106 128 104 112 108 100 Z" fill="#FCEBD0"/>
+            <!-- wing: flight feathers under a striped covert, pivots at the shoulder -->
+            <g transform="translate(116 120)"><g id="hWing"><g transform="translate(-116 -120)">
+              <g transform="translate(140 134)">
+                <g id="p2" filter="url(#paper)"><path d="M0 -4.6 C15 -7.5 35 -6 48 0 C35 4.5 15 5.6 0 4.6 Z" fill="#141A55"/><rect x="18" y="-4.9" width="3.4" height="9.4" rx="1.6" fill="#FCEBD0"/><rect x="31" y="-3.9" width="3.2" height="7.4" rx="1.5" fill="#FCEBD0"/></g>
+                <g id="p1" filter="url(#paper)"><path d="M0 -4.6 C15 -7.5 35 -6 48 0 C35 4.5 15 5.6 0 4.6 Z" fill="#192062"/><rect x="18" y="-4.9" width="3.4" height="9.4" rx="1.6" fill="#FCEBD0"/><rect x="31" y="-3.9" width="3.2" height="7.4" rx="1.5" fill="#FCEBD0"/></g>
+                <g id="p0" filter="url(#paper)"><path d="M0 -4.6 C15 -7.5 35 -6 48 0 C35 4.5 15 5.6 0 4.6 Z" fill="#1E256C"/><rect x="18" y="-4.9" width="3.4" height="9.4" rx="1.6" fill="#FCEBD0"/><rect x="31" y="-3.9" width="3.2" height="7.4" rx="1.5" fill="#FCEBD0"/></g>
+              </g>
+              <g filter="url(#paper)">
+                <path d="M112 122 C124 108 150 108 168 120 C178 128 178 142 168 150 C148 160 124 154 112 122 Z" fill="#1C2266"/>
+                <g clip-path="url(#covClip)" fill="none" stroke="#FCEBD0" stroke-width="5.6" stroke-linecap="round">
+                  <path d="M117 127 C132 119 150 121 170 132"/>
+                  <path d="M123 140 C138 132 156 134 176 145"/>
+                </g>
+                <path d="M115 121 C119 115 125 112 131 111" fill="none" stroke="#3A43A0" stroke-width="1.8" stroke-linecap="round"/>
+              </g>
+            </g></g></g>
+            <!-- head: tilts at the neck, turns around (flips) at its own centre -->
+            <g transform="translate(104 104)"><g id="hHead"><g transform="translate(-104 -104)"><g id="hFlip">
+              <g transform="translate(96 58)"><g id="hCrest">
+                <g id="f5" filter="url(#paper)"><ellipse cx="0" cy="-21.5" rx="6.6" ry="21.5" fill="#D9612E"/><ellipse cx="0" cy="-30.5" rx="6.2" ry="1.7" fill="#FCEBD0"/><ellipse cx="0" cy="-37.5" rx="5.6" ry="6.6" fill="#1C2266"/></g>
+                <g id="f4" filter="url(#paper)"><ellipse cx="0" cy="-25.5" rx="6.6" ry="25.5" fill="#EE7A45"/><ellipse cx="0" cy="-38.5" rx="6.2" ry="1.7" fill="#FCEBD0"/><ellipse cx="0" cy="-45.5" rx="5.6" ry="6.6" fill="#1C2266"/></g>
+                <g id="f3" filter="url(#paper)"><ellipse cx="0" cy="-28.5" rx="6.6" ry="28.5" fill="#D9612E"/><ellipse cx="0" cy="-44.5" rx="6.2" ry="1.7" fill="#FCEBD0"/><ellipse cx="0" cy="-51.5" rx="5.6" ry="6.6" fill="#1C2266"/></g>
+                <g id="f2" filter="url(#paper)"><ellipse cx="0" cy="-27.5" rx="6.6" ry="27.5" fill="#EE7A45"/><ellipse cx="0" cy="-42.5" rx="6.2" ry="1.7" fill="#FCEBD0"/><ellipse cx="0" cy="-49.5" rx="5.6" ry="6.6" fill="#1C2266"/></g>
+                <g id="f1" filter="url(#paper)"><ellipse cx="0" cy="-24" rx="6.6" ry="24" fill="#D9612E"/><ellipse cx="0" cy="-35.5" rx="6.2" ry="1.7" fill="#FCEBD0"/><ellipse cx="0" cy="-42.5" rx="5.6" ry="6.6" fill="#1C2266"/></g>
+                <g id="f0" filter="url(#paper)"><ellipse cx="0" cy="-20" rx="6.6" ry="20" fill="#EE7A45"/><ellipse cx="0" cy="-27.5" rx="6.2" ry="1.7" fill="#FCEBD0"/><ellipse cx="0" cy="-34.5" rx="5.6" ry="6.6" fill="#1C2266"/></g>
+              </g></g>
+              <circle filter="url(#paper)" cx="90" cy="78" r="25" fill="#FCEBD0"/>
+              <path d="M68 70 C70 54 86 47 100 51 C113 55 117 68 115 80 C106 70 88 64 68 70 Z" fill="#EDB04A"/>
+              <path filter="url(#paper)" d="M70 79 C54 81 34 89 13 103 C34 95 54 89 72 87 Z" fill="#1F2468"/>
+              <g transform="translate(71 86)"><path id="hJaw" d="M0 0 C-15 2 -33 8 -52 15 C-33 11 -15 6 2 4 Z" fill="#2A2F78"/></g>
+              <g transform="translate(83 77)"><g id="hEye">
+                <circle r="9" fill="#EDA43C"/>
+                <circle r="7.4" fill="none" stroke="#FFF4DE" stroke-width=".8" opacity=".85"/>
+                <g id="hPupil"><circle r="5.2" fill="#10143D"/><circle cx="-1.8" cy="-2" r="1.9" fill="#FFFFFF"/><circle cx="1.8" cy="1.6" r=".8" fill="#FFFFFF" opacity=".8"/></g>
+              </g></g>
+            </g></g></g></g>
+          </g>
+        </svg>
+      </button>
+
+      <div class="taskbar">
+        <div class="apps" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+        <svg class="tray-icon" viewBox="0 0 80 80" aria-label="Mubsir in the tray" role="img"><rect width="80" height="80" rx="17.6" fill="#080D3F"/><use href="#mubsir-mark"/></svg>
+        <span>ENG · عربي</span>
+        <span class="clock"><span id="clock">14:32</span><br><span id="date">4/11/2026</span></span>
       </div>
-      <div class="taskbar"><div class="start"><i></i><i></i><i></i><i></i><i></i></div><span>ENG · عربي</span><span id="clock">14:32</span></div>
     </div>
   </div>
+  <p class="sr" id="sr" aria-live="polite"></p>
 
-  <section class="ref" aria-label="What each state means">
-    <div><b>Listening</b><p>Crest opens, a ring pulses, live waveform and the words as they are heard.</p></div>
-    <div><b>Thinking</b><p>A soft shimmer and a one-line plan. Short, so it never feels slow.</p></div>
-    <div><b>Doing</b><p>Steps tick off one by one, so the user can see what Mubsir touches.</p></div>
-    <div><b>Pointing</b><p>A crest-orange pointer flies from Hudhud to the exact button and names it.</p></div>
-    <div><b>Speaking</b><p>Beak moves with the voice; captions in English or Arabic highlight word by word.</p></div>
-    <div><b>Reading</b><p>Book, page and progress; the current line glows on the page itself.</p></div>
-    <div><b>Payment</b><p>Real facts from the page, then four quick Ctrl presses. Nothing else can approve it.</p></div>
-    <div><b>Idle</b><p>Just Hudhud breathing and blinking. In the app it fades to a small dot after a while.</p></div>
-  </section>
-  <p class="foot">Prototype for direction only. The real companion is a native Windows window (WPF) that never steals focus, is click-through except its buttons, follows Windows "reduce motion", and uses no CPU when nothing moves. Colours, sizes and timings from this page become its motion tokens.</p>
+  <div class="below">
+    <section aria-labelledby="h-states">
+      <h2 id="h-states">States</h2>
+      <dl class="states">
+        <div><dt>Idle</dt><dd>The notch rests as a small pill with an amber light. Hudhud breathes and blinks, and now and then glances up at the notch, stretches a wing, hops, or turns round to scratch its back. Hover the notch to peek.</dd></div>
+        <div><dt>Listening</dt><dd>The notch pours out with the app icon's eye; its rings ripple while your words appear. Hudhud opens its crest.</dd></div>
+        <div><dt>Thinking</dt><dd>A one-line plan with a soft shimmer. Hudhud looks up and nods.</dd></div>
+        <div><dt>Doing</dt><dd>Steps tick off one by one, so you see everything Mubsir touches. Right Ctrl stops it.</dd></div>
+        <div><dt>Pointing</dt><dd>The pointer flies out of the notch to the exact button and names it.</dd></div>
+        <div><dt>Speaking</dt><dd>Captions follow the voice word by word, then the Arabic line. Hudhud's beak moves with it.</dd></div>
+        <div><dt>Reading</dt><dd>Book, page and progress in the notch; the current line glows on the page.</dd></div>
+        <div><dt>Payment</dt><dd>The real amount and site. Only four Ctrl presses approve it, each one felt in the notch. Esc cancels.</dd></div>
+      </dl>
+    </section>
+    <section aria-labelledby="h-tokens">
+      <h2 id="h-tokens">Motion tokens</h2>
+      <div class="tokens-wrap">
+        <table>
+          <thead><tr><th>What moves</th><th>Response</th><th>Damping</th></tr></thead>
+          <tbody>
+            <tr><td>Notch width</td><td class="num">0.52 s</td><td class="num">0.72</td></tr>
+            <tr><td>Notch height (leads, so it pours out)</td><td class="num">0.44 s</td><td class="num">0.76</td></tr>
+            <tr><td>Text and icons in the notch</td><td class="num">0.32 s</td><td class="num">1.00</td></tr>
+            <tr><td>Hudhud crest</td><td class="num">0.42 s</td><td class="num">0.55</td></tr>
+            <tr><td>Hudhud head</td><td class="num">0.62 s</td><td class="num">0.80</td></tr>
+            <tr><td>Hudhud hop</td><td class="num">0.46 s</td><td class="num">0.42</td></tr>
+            <tr><td>Pointer, X and Y</td><td class="num">0.66 / 0.50 s</td><td class="num">0.90 / 0.78</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">Springs instead of fixed durations, set the way Apple sets them: response is how fast a value gets there, damping 1.0 means no bounce. Every value starts from where it is on screen, so nothing jumps when a state changes mid-motion. Text enters with a 10 px blur that clears as it settles.</p>
+    </section>
+  </div>
+  <p class="foot">The notch is drawn by Mubsir itself, so it looks and works the same on any PC screen, desktop or laptop, with or without a camera notch. This page is a prototype for direction only: the real notch and Hudhud are a native Windows overlay (WPF) that never takes focus, lets clicks pass through except on its own buttons, follows Windows' reduce-motion setting and reuses the springs above.</p>
 </div>
 
 <script>
 (() => {
+  'use strict';
   const $ = (s, r = document) => r.querySelector(s);
-  const stage = $('#stage'), shell = $('#shell'), comp = $('#comp'), card = $('#card'), cardin = $('#cardin');
-  const hoopoe = $('#hoopoe'), app = $('#app'), wintitle = $('#wintitle'), ptr = $('#ptr'), ptag = $('#ptag'), lower = $('#lower');
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let state = 'idle', timers = [], raf = 0, demo = false, ctrlTimes = [];
 
-  // scale the 960x600 stage to its shell
-  const fit = () => { stage.style.transform = `scale(${shell.clientWidth / 960})`; };
+  /* ---------- springs: response (s) and damping fraction, like SwiftUI ---------- */
+  const T = {
+    notchW: { response: 0.52, damping: 0.72 }, notchH: { response: 0.44, damping: 0.76 },
+    content: { response: 0.32, damping: 1 }, crest: { response: 0.42, damping: 0.55 },
+    head: { response: 0.62, damping: 0.8 }, eye: { response: 0.25, damping: 0.9 },
+    body: { response: 0.46, damping: 0.42 }, glow: { response: 0.7, damping: 1 },
+    ptrX: { response: 0.66, damping: 0.9 }, ptrY: { response: 0.5, damping: 0.78 },
+    wing: { response: 0.38, damping: 0.5 }, turn: { response: 0.3, damping: 0.86 }
+  };
+  const springs = [];
+  class Spring {
+    constructor(x, tok) { this.x = x; this.v = 0; this.to = x; const w = 2 * Math.PI / tok.response; this.k = w * w; this.c = 2 * tok.damping * w; springs.push(this); }
+    set(to) { this.to = to; if (reduce) { this.x = to; this.v = 0; } return this; }
+    jump(x) { this.x = this.to = x; this.v = 0; return this; }
+    kick(v) { if (!reduce) this.v += v; return this; }
+    step(dt) {
+      if (this.v === 0 && this.x === this.to) return;
+      const n = Math.max(1, Math.ceil(dt / 0.004)), h = dt / n;
+      for (let i = 0; i < n; i++) { const a = -this.k * (this.x - this.to) - this.c * this.v; this.v += a * h; this.x += this.v * h; }
+      if (Math.abs(this.v) < 1e-4 && Math.abs(this.x - this.to) < 1e-4) { this.x = this.to; this.v = 0; }
+    }
+  }
+
+  /* ---------- elements ---------- */
+  const shell = $('#shell'), stage = $('#stage'), notch = $('#notch'), app = $('#app'), wintitle = $('#wintitle');
+  const hud = $('#hud'), hglow = $('#hglow'), hBody = $('#hBody'), hHead = $('#hHead'), hFlip = $('#hFlip'), hCrest = $('#hCrest');
+  const hWing = $('#hWing'), hTail = $('#hTail'), prim = [0, 1, 2].map(i => $('#p' + i));
+  const hEye = $('#hEye'), hPupil = $('#hPupil'), hJaw = $('#hJaw'), ptr = $('#ptr'), sr = $('#sr'), fpsEl = $('#fps'), playBtn = $('#play');
+  const feathers = [0, 1, 2, 3, 4, 5].map(i => $('#f' + i));
+  const OPEN = [-48, -27, -7, 14, 35, 55], CLOSED = [58, 64, 70, 76, 82, 88];
+
+  // CSS zoom lays the desktop out at its final size, so text and lines stay sharp; transform is the fallback.
+  let k = 1;
+  const canZoom = !!(window.CSS && CSS.supports('zoom', '2'));
+  const fit = () => { k = shell.clientWidth / 960; if (canZoom) stage.style.zoom = k; else stage.style.transform = `scale(${k})`; };
   new ResizeObserver(fit).observe(shell); fit();
 
-  const later = (fn, ms) => { const t = setTimeout(fn, ms); timers.push(t); return t; };
-  const clearAll = () => { timers.forEach(clearTimeout); timers = []; cancelAnimationFrame(raf); raf = 0; };
+  /* ---------- the notch: size per state, panes cross-fade with blur ---------- */
+  const SIZES = { idle: [120, 28], peek: [236, 34], listening: [404, 98], thinking: [304, 44], doing: [424, 164],
+    pointing: [344, 48], speaking: [452, 136], reading: [404, 86], confirm: [444, 206], paid: [276, 48] };
+  const nw = new Spring(64, T.notchW), nh = new Spring(0, T.notchH), nr = new Spring(0, T.notchH);
+  const panes = {};
+  $$('.pane', notch).forEach(el => {
+    const name = el.dataset.pane, [w, h] = SIZES[name];
+    el.style.setProperty('--w', w + 'px'); el.style.setProperty('--h', h + 'px'); el.hidden = true;
+    panes[name] = { el, on: false, o: new Spring(0, T.content), s: new Spring(1.05, T.content), b: new Spring(10, T.content) };
+  });
+  let shown = null;
+  function showPane(name) {
+    if (shown === name) return;
+    if (shown) { const p = panes[shown]; p.on = false; p.o.set(0); p.s.set(0.95); p.b.set(6); }
+    shown = name;
+    const p = panes[name]; p.on = true;
+    const fresh = p.el.hidden || p.o.x < 0.02;
+    if (fresh) { p.o.jump(0); p.s.jump(1.05); p.b.jump(10); p.el.hidden = false; }
+    const go = () => { if (p.on) { p.o.set(1); p.s.set(1); p.b.set(0); } };
+    if (fresh && !reduce) setTimeout(go, 70); else go();
+  }
+  function setNotch(name) { const [w, h] = SIZES[name]; nw.set(w); nh.set(h); nr.set(Math.min(h / 2, 36)); showPane(name); }
 
-  // ---------- app window views ----------
-  const views = {
-    settings: () => {
-      wintitle.textContent = 'Settings · Windows Update';
-      app.className = 'body v-settings';
-      app.innerHTML = `<h2>Windows Update</h2><p>Last checked: yesterday, 21:04</p>
+  /* ---------- Hudhud ---------- */
+  const POSE = {
+    idle:      { crest: 0.16, tilt: 0,   lx: 0,    ly: 0,    raise: 0,   lid: 1 },
+    peek:      { crest: 0.5,  tilt: 5,   lx: -1,   ly: -1.4, raise: 0,   lid: 1 },
+    listening: { crest: 1,    tilt: 7,   lx: -1.2, ly: -1.6, raise: 0.2, lid: 1 },
+    thinking:  { crest: 0.55, tilt: 11,  lx: -0.6, ly: -2,   raise: 0,   lid: 0.86 },
+    doing:     { crest: 0.62, tilt: 2,   lx: -1.6, ly: -0.4, raise: 0,   lid: 1 },
+    pointing:  { crest: 0.85, tilt: 5,   lx: -2,   ly: -1,   raise: 0.2, lid: 1 },
+    speaking:  { crest: 0.45, tilt: 3,   lx: -1,   ly: 0,    raise: 0,   lid: 1 },
+    reading:   { crest: 0.3,  tilt: -9,  lx: -1.4, ly: 1.3,  raise: 0,   lid: 0.74 },
+    confirm:   { crest: 1,    tilt: 3,   lx: -1.4, ly: -0.6, raise: 1,   lid: 1.08 },
+    paid:      { crest: 0.9,  tilt: 6,   lx: -1,   ly: -1,   raise: 0.3, lid: 1 }
+  };
+  const crest = new Spring(0.16, T.crest), raise = new Spring(0, T.crest), tilt = new Spring(0, T.head);
+  const lookX = new Spring(0, T.eye), lookY = new Spring(0, T.eye), lid = new Spring(1, T.eye);
+  const bodyY = new Spring(30, T.body), glow = new Spring(0, T.glow), enter = new Spring(0, T.content);
+  const wing = new Spring(0, T.wing), spread = new Spring(0, T.wing), flip = new Spring(1, T.turn);
+  const WING = { listening: [-4, 0.2], pointing: [-3, 0.2], confirm: [-7, 0.5], paid: [-6, 0.6] };
+  let act = null;   // an idle move in progress, e.g. { name: 'preen', t: seconds }
+  function setPose(name) {
+    const p = POSE[name], w = WING[name] || [0, 0];
+    crest.set(p.crest); tilt.set(p.tilt); lookX.set(p.lx); lookY.set(p.ly); raise.set(p.raise); lid.set(p.lid);
+    wing.set(w[0]); spread.set(w[1]); flip.set(1); act = null;
+    glow.set(name === 'listening' ? 1 : name === 'confirm' ? 0.65 : 0);
+  }
+  let blinkAt = 1.4, blinkTwice = false;
+  function blink(t) {
+    if (reduce) return 0;
+    const d = t - blinkAt;
+    if (d < 0) return 0;
+    if (d > 0.17) {
+      if (blinkTwice) { blinkTwice = false; blinkAt = t + 0.1; } else { blinkAt = t + 2.4 + Math.random() * 3.8; blinkTwice = Math.random() < 0.25; }
+      return 0;
+    }
+    return Math.sin(Math.PI * d / 0.17);
+  }
+
+  /* ---------- pointer ---------- */
+  const px = new Spring(474, T.ptrX), py = new Spring(0, T.ptrY), po = new Spring(0, T.content);
+  let flying = false;
+
+  /* ---------- waveforms ---------- */
+  const waves = $$('.wave', notch).map(el => { el.innerHTML = '<i></i>'.repeat(+el.dataset.n); return { el, pane: el.closest('.pane'), bars: $$('i', el), talk: el.dataset.kind === 'talk' }; });
+  const ripples = $$('.ripple', notch);
+  let jaw = 0;
+
+  /* ---------- frame loop ---------- */
+  let last = performance.now(), t0 = last, frames = 0, fpsT = last;
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    const t = (now - t0) / 1000;
+    for (const s of springs) s.step(dt);
+    drawNotch(); drawPanes(); drawWaves(t); drawHud(t); drawPointer();
+    frames++;
+    if (now - fpsT > 700) { fpsEl.textContent = Math.round(frames * 1000 / (now - fpsT)) + ' fps'; frames = 0; fpsT = now; }
+    requestAnimationFrame(frame);
+  }
+
+  function drawNotch() {
+    const h = Math.max(0, nh.x), r = Math.max(0, Math.min(nr.x, h));
+    notch.style.width = Math.max(0, nw.x).toFixed(2) + 'px';
+    notch.style.height = h.toFixed(2) + 'px';
+    notch.style.borderRadius = `0 0 ${r.toFixed(2)}px ${r.toFixed(2)}px`;
+    notch.style.setProperty('--f', Math.min(12, h / 2).toFixed(2) + 'px');
+  }
+  function drawPanes() {
+    for (const name in panes) {
+      const p = panes[name];
+      if (p.el.hidden) continue;
+      p.el.style.opacity = Math.max(0, Math.min(1, p.o.x)).toFixed(3);
+      p.el.style.transform = `scale(${p.s.x.toFixed(4)})`;
+      p.el.style.filter = p.b.x > 0.05 ? `blur(${p.b.x.toFixed(2)}px)` : 'none';
+      if (!p.on && p.o.x < 0.01) p.el.hidden = true;
+    }
+  }
+  function drawWaves(t) {
+    let env = 0;
+    const f = t * 60;
+    for (const w of waves) {
+      if (w.pane.hidden) continue;
+      w.bars.forEach((b, i) => {
+        const e = w.talk ? 0.5 + 0.5 * Math.sin(f / 7 + i / 3) : 0.35 + 0.65 * Math.abs(Math.sin(f / 11));
+        const h = reduce ? 0.4 : 0.14 + Math.abs(Math.sin(f / 3.1 + i * 0.9) * Math.cos(f / 5.3 + i * 0.37)) * 0.86 * e;
+        b.style.transform = `scaleY(${h.toFixed(3)})`;
+      });
+      if (w.talk) env = 0.5 + 0.5 * Math.sin(f / 7);
+    }
+    const phase = (t * 1.15) % 1;
+    for (const c of ripples) {
+      c.setAttribute('r', (10 + phase * 10).toFixed(2));
+      c.setAttribute('opacity', reduce ? 0 : ((1 - phase) * 0.55).toFixed(3));
+    }
+    const target = state === 'speaking' && !reduce ? Math.abs(Math.sin(f / 2.3)) * (0.35 + 0.65 * env) : 0;
+    jaw += (target - jaw) * 0.35;
+  }
+  function drawHud(t) {
+    const a = reduce ? 0 : 1;
+    const breath = Math.sin(t * 2 * Math.PI / 3.6) * a;
+    // squash and stretch from vertical speed, plus a slow weight shift over the feet
+    const st = Math.max(-0.07, Math.min(0.09, -bodyY.v * 0.0007)) * a;
+    const sway = Math.sin(t * 2 * Math.PI / 5.2) * 0.7 * a;
+    hBody.setAttribute('transform', `translate(0 ${(bodyY.x + breath * 1.1).toFixed(2)}) translate(122 188) rotate(${sway.toFixed(2)}) scale(${(1 - st * 0.6).toFixed(4)} ${(1 + st).toFixed(4)}) translate(-122 -188)`);
+    const d = act ? t - act.t : 0, scratching = !!act && act.name === 'preen' && d > 0.38 && d < 1.3;
+    let hx = tilt.x;
+    if (state === 'thinking') hx += Math.sin(t * 2 * Math.PI / 1.7) * 2.5 * a;
+    if (state === 'doing') hx += Math.sin(t * 2 * Math.PI / 0.85) * 3 * a;
+    if (scratching) hx += Math.sin(d * 2 * Math.PI * 9) * 5;
+    hHead.setAttribute('transform', `translate(0 ${(breath * 0.6).toFixed(2)}) rotate(${hx.toFixed(2)})`);
+    hFlip.setAttribute('transform', `translate(90 0) scale(${flip.x.toFixed(4)} 1) translate(-90 0)`);
+    hWing.setAttribute('transform', `rotate(${(wing.x - breath * 1.2).toFixed(2)})`);
+    for (let i = 0; i < 3; i++) prim[i].setAttribute('transform', `rotate(${(14 + i * 9 + spread.x * (i * 6 - 6)).toFixed(2)})`);
+    let tw = Math.sin(t * 2 * Math.PI / 2.6) * 1.6 * a;
+    if (scratching) tw += Math.sin(d * 2 * Math.PI * 7) * 8;
+    hTail.setAttribute('transform', `rotate(${tw.toFixed(2)})`);
+    const c = crest.x;
+    for (let i = 0; i < 6; i++) {
+      const ang = CLOSED[i] + (OPEN[i] - CLOSED[i]) * c + Math.sin(t * 2.2 + i * 0.8) * (0.8 + 1.6 * Math.max(0, c)) * a;
+      feathers[i].setAttribute('transform', `rotate(${ang.toFixed(2)})`);
+    }
+    hCrest.setAttribute('transform', `scale(${(1 + raise.x * 0.09).toFixed(4)})`);
+    hEye.setAttribute('transform', `scale(1 ${Math.max(0.06, lid.x * (1 - blink(t) * 0.94)).toFixed(3)})`);
+    hPupil.setAttribute('transform', `translate(${lookX.x.toFixed(2)} ${lookY.x.toFixed(2)})`);
+    hJaw.setAttribute('transform', `rotate(${(-jaw * 13).toFixed(2)})`);
+    hud.style.opacity = Math.max(0, Math.min(1, enter.x)).toFixed(3);
+    hglow.style.opacity = Math.max(0, glow.x).toFixed(3);
+    hglow.style.transform = `scale(${(0.88 + glow.x * 0.12 + breath * 0.04 * glow.x).toFixed(3)})`;
+  }
+  function drawPointer() {
+    ptr.style.opacity = Math.max(0, Math.min(1, po.x)).toFixed(3);
+    if (po.x < 0.005 && po.to === 0) return;
+    const rot = Math.max(-16, Math.min(16, px.v * 0.012));
+    ptr.style.transform = `translate(${px.x.toFixed(2)}px, ${py.x.toFixed(2)}px) rotate(${rot.toFixed(2)}deg)`;
+    if (flying && Math.abs(px.x - px.to) < 1.5 && Math.abs(py.x - py.to) < 1.5 && Math.abs(px.v) < 40) { flying = false; ptr.classList.add('land'); }
+  }
+
+  /* ---------- the app window ---------- */
+  let view = '';
+  const LOCK = '<svg width="11" height="12" viewBox="0 0 11 12" aria-hidden="true"><rect x="1" y="5" width="9" height="6.5" rx="1.5" fill="currentColor"/><path d="M3 5 V3.6 a2.5 2.5 0 0 1 5 0 V5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>';
+  function showView(kind, paid) {
+    if (kind === view && kind !== 'pay') return;
+    view = kind;
+    if (kind === 'settings') {
+      wintitle.textContent = 'Settings · Windows Update'; app.className = 'body v-settings';
+      app.innerHTML = `<h3>Windows Update</h3><p>Last checked: yesterday, 21:04</p>
         <div class="upd"><div class="ic">↻</div><div class="t"><b>Updates available</b>3 updates are ready to install</div>
         <button class="btn-blue" id="target" type="button" tabindex="-1">Check for updates</button></div>
         <div class="list"><div>2026-11 Cumulative Update for Windows 11</div><div>.NET 10.0.14 Security Update</div><div>Microsoft Defender definitions 1.421.88</div></div>`;
-    },
-    book: () => {
-      wintitle.textContent = 'Introducing Phonology.pdf';
-      app.className = 'body v-book';
+    } else if (kind === 'book') {
+      wintitle.textContent = 'Introducing Phonology.pdf'; app.className = 'body v-book';
       app.innerHTML = `<div class="meta">Chapter 3 · Phonemes and allophones · page 34</div>
         <span class="ln">A phoneme is the smallest unit of sound that can change</span>
         <span class="ln">a word's meaning. In English, <span class="ipa">/p/</span> and <span class="ipa">/b/</span> are separate</span>
@@ -282,184 +656,172 @@ kbd { font-family: inherit; font-size: 12px; border: 1px solid var(--line); bord
         <span class="ln">is a schwa, <span class="ipa">ə</span>, the most common vowel in English.</span>
         <span class="ln">Allophones are variants of one phoneme, like the aspirated</span>
         <span class="ln"><span class="ipa">[pʰ]</span> in <i>pin</i> and the plain <span class="ipa">[p]</span> in <i>spin</i>.</span>`;
-    },
-    pay: (paid) => {
-      wintitle.textContent = 'Vodafone Cash · Pay bill';
-      app.className = 'body v-pay';
-      app.innerHTML = `<h2>Pay your bill</h2><p class="url">🔒 vodafone.com.eg/pay</p>
-        <div class="card"><div class="row"><span>Service</span><b>Home internet, 140 GB</b></div>
-        <div class="row"><span>Amount</span><b>EGP 450.00</b></div><div class="row"><span>Card</span><b>Visa ending 4417</b></div>
-        <div class="row"><span>Status</span><b class="${paid ? 'paid' : ''}">${paid ? 'Paid ✓' : 'Waiting for approval'}</b></div></div>`;
+    } else {
+      wintitle.textContent = 'Pay a bill · pay.example.com'; app.className = 'body v-pay';
+      app.innerHTML = `<h3>Electricity bill</h3><div class="url">${LOCK}pay.example.com/bills</div>
+        <div class="card"><div class="row"><span>Service</span><b>Electricity, October</b></div>
+        <div class="row"><span>Amount</span><b>EGP 250.00</b></div><div class="row"><span>Card</span><b>Visa ending 4417</b></div>
+        <div class="row"><span>Status</span><b class="${paid ? 'paid' : ''}">${paid ? 'Paid ✓' : 'Waiting for your approval'}</b></div></div>`;
     }
-  };
+  }
 
-  // ---------- hoopoe poses ----------
-  const pose = (crest, head) => {
-    hoopoe.classList.remove('crest-open', 'crest-half', 'tilt', 'down', 'bob');
-    if (crest) hoopoe.classList.add(crest);
-    if (head) hoopoe.classList.add(head);
+  /* ---------- states ---------- */
+  let state = 'idle', timers = [], demoOn = false, demoTimer = 0, idleTimer = 0, taps = [], peeking = false;
+  const later = (fn, ms) => { const id = setTimeout(fn, ms); timers.push(id); return id; };
+  const clearAll = () => { timers.forEach(clearTimeout); timers = []; };
+  function words(el, text, every, done) {
+    el.innerHTML = text.split(' ').map(w => `<span class="w">${w}</span>`).join(' ');
+    const ws = $$('.w', el);
+    if (reduce) { ws.forEach(w => w.classList.add('on')); if (done) done(); return; }
+    ws.forEach((w, i) => later(() => { w.classList.add('on'); if (i === ws.length - 1 && done) done(); }, 160 + i * every));
+  }
+  const SAY = {
+    idle: 'Mubsir is ready.', listening: 'Listening.', thinking: 'Thinking: opening Windows Update.',
+    doing: 'Doing: opened Settings, went to Windows Update, found 3 updates, clicking Check for updates.',
+    pointing: "Showing you: it's the Check for updates button.", speaking: 'Settings is open. There are 3 updates ready. Shall I install them?',
+    reading: 'Reading Introducing Phonology, chapter 3, page 34. Say next page, repeat, or ask about this page.',
+    confirm: 'Please confirm: pay EGP 250 for the October electricity bill on pay.example.com. Press Control four times to pay, or Escape to cancel.',
+    paid: 'Paid EGP 250.'
   };
-
-  // ---------- card ----------
-  const setCard = (html) => {
-    if (!html) { card.style.width = '0px'; card.style.height = '0px'; card.classList.remove('show'); return; }
-    cardin.innerHTML = html;
-    requestAnimationFrame(() => {
-      card.style.width = cardin.offsetWidth + 'px';
-      card.style.height = cardin.offsetHeight + 'px';
-      card.classList.add('show');
-    });
-  };
-  const resize = () => { card.style.width = cardin.offsetWidth + 'px'; card.style.height = cardin.offsetHeight + 'px'; };
-  const wave = (n = 26) => `<div class="wave" id="wave">${'<i></i>'.repeat(n)}</div>`;
-  const runWave = (talk) => {
-    const bars = [...document.querySelectorAll('#wave i')]; let t = 0;
-    const step = () => {
-      t += 1;
-      bars.forEach((b, i) => {
-        const env = talk ? (0.55 + 0.45 * Math.sin(t / 7 + i / 3)) : (0.4 + 0.6 * Math.abs(Math.sin(t / 11)));
-        const h = 4 + Math.abs(Math.sin(t / 3.1 + i * 0.9) * Math.cos(t / 5.3 + i * 0.37)) * 24 * env;
-        b.style.height = h.toFixed(1) + 'px';
-      });
-      if (talk) lower.style.transform = `rotate(${(Math.abs(Math.sin(t / 2.3)) * 11).toFixed(1)}deg)`;
-      raf = requestAnimationFrame(step);
-    };
-    if (!reduce) step();
-  };
-  const words = (el, txt, every = 260, done) => {
-    el.innerHTML = txt.split(' ').map(w => `<span class="w">${w}</span>`).join(' ');
-    const ws = [...el.querySelectorAll('.w')];
-    ws.forEach((w, i) => later(() => { w.classList.add('on'); if (i === ws.length - 1 && done) done(); }, reduce ? 0 : i * every));
-  };
-
-  // ---------- pointer ----------
-  const fly = () => {
-    const target = $('#target'); if (!target) return;
-    const sr = stage.getBoundingClientRect(), k = sr.width / 960;
-    const tr = target.getBoundingClientRect(), br = $('#bird').getBoundingClientRect();
-    const p0 = { x: (br.left - sr.left) / k + 10, y: (br.top - sr.top) / k + 10 };
-    const p2 = { x: (tr.left - sr.left) / k + tr.width / k * 0.55, y: (tr.top - sr.top) / k + tr.height / k * 0.55 };
-    const p1 = { x: (p0.x + p2.x) / 2 + 40, y: Math.min(p0.y, p2.y) - 140 };
-    ptr.classList.remove('land'); ptr.style.opacity = 1;
-    const dur = reduce ? 1 : 950, t0 = performance.now();
-    const ease = (t) => 1 - Math.pow(1 - t, 3);
-    const step = (now) => {
-      const t = Math.min(1, (now - t0) / dur), e = ease(t), u = 1 - e;
-      const x = u * u * p0.x + 2 * u * e * p1.x + e * e * p2.x, y = u * u * p0.y + 2 * u * e * p1.y + e * e * p2.y;
-      ptr.style.transform = `translate(${x}px, ${y}px)`;
-      if (t < 1) raf = requestAnimationFrame(step); else ptr.classList.add('land');
-    };
-    raf = requestAnimationFrame(step);
-  };
-
-  // ---------- states ----------
-  const S = {
-    idle() { views.settings(); pose(null, null); setCard(''); },
-    listening() {
-      views.settings(); pose('crest-open', 'tilt');
-      setCard(`<div class="lab"><span class="dot"></span>Listening</div>${wave()}<div class="say" id="heard"></div>`);
-      runWave(false);
-      words($('#heard'), 'Open Windows Update and check for updates', 230, resize);
-      later(resize, 60);
-    },
-    thinking() {
-      views.settings(); pose('crest-half', 'bob');
-      setCard(`<div class="lab"><span class="dot"></span>Thinking</div><div class="shimmer">Opening Windows Update…</div>`);
-    },
+  const STATES = {
+    idle() { showView('settings'); },
+    listening() { showView('settings'); words($('#heard'), 'Open Windows Update and check for updates', 210); },
+    thinking() { showView('settings'); },
     doing() {
-      views.settings(); pose('crest-half', null);
-      const steps = ['Opened Settings', 'Went to Windows Update', 'Found 3 updates'];
-      setCard(`<div class="lab"><span class="dot"></span>Doing</div><ol class="steps">${steps.map(s =>
-        `<li><svg viewBox="0 0 16 16"><path class="tick" d="M3 8.5 L6.5 12 L13 4.5"/></svg>${s}</li>`).join('')}
-        <li><span class="spin"></span>Clicking “Check for updates”</li></ol>`);
-      const lis = () => [...cardin.querySelectorAll('li')];
-      lis().forEach((li, i) => {
-        later(() => li.classList.add('in'), reduce ? 0 : 200 + i * 520);
-        if (i < steps.length) later(() => li.classList.add('done'), reduce ? 0 : 450 + i * 520);
+      showView('settings');
+      const items = $$('#steps li');
+      items.forEach(li => li.classList.remove('in', 'done'));
+      items.forEach((li, i) => {
+        later(() => li.classList.add('in'), reduce ? 0 : 120 + i * 430);
+        if (i < items.length - 1) later(() => li.classList.add('done'), reduce ? 0 : 400 + i * 430);
       });
     },
     pointing() {
-      views.settings(); pose('crest-open', null);
-      setCard(`<div class="lab"><span class="dot"></span>Showing you</div><div class="say">It's this button, top right of the update box.</div>`);
-      ptag.textContent = 'Check for updates';
-      later(fly, 120);
+      showView('settings');
+      later(() => {
+        const target = $('#target'); if (!target || state !== 'pointing') return;
+        const s = stage.getBoundingClientRect(), r = target.getBoundingClientRect(), kk = s.width / 960 || 1;
+        px.jump(474); py.jump(Math.max(0, nh.x - 6)); po.jump(0); po.set(1);
+        px.set((r.left - s.left) / kk + r.width / kk * 0.5); py.set((r.top - s.top) / kk + r.height / kk * 0.55);
+        ptr.classList.remove('land'); flying = true;
+      }, 160);
     },
     speaking() {
-      views.settings(); pose(null, null);
-      setCard(`<div class="lab"><span class="dot"></span>Speaking</div>${wave(22)}<div class="say" id="cap"></div><div class="ar" id="capar"></div>`);
-      runWave(true);
-      words($('#cap'), 'Settings is open. There are 3 updates ready. Shall I install them?', 230, () => {
-        later(() => { $('#capar').textContent = 'فتحت الإعدادات. فيه ٣ تحديثات جاهزة، أنزّلهم؟'; resize(); }, 250);
-      });
-      later(resize, 60);
+      showView('settings');
+      const ar = $('#capar'); ar.classList.remove('in');
+      words($('#cap'), 'Settings is open. There are 3 updates ready. Shall I install them?', 190, () => later(() => ar.classList.add('in'), 220));
     },
     reading() {
-      views.book(); pose(null, 'down');
-      const pct = 34 / 312;
-      setCard(`<div class="lab"><span class="dot"></span>Reading</div><div class="rd">
-        <svg class="ring" viewBox="0 0 44 44"><circle class="bg" cx="22" cy="22" r="18"/><circle class="fg" id="rfg" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="113.1"/></svg>
-        <div class="t"><b>Introducing Phonology</b>Chapter 3 · page 34 of 312<br><span class="ok">Saved audio · free to replay</span></div></div>`);
-      later(() => { const f = $('#rfg'); if (f) f.style.strokeDashoffset = (113.1 * (1 - pct)).toFixed(1); }, 300);
-      const lns = [...app.querySelectorAll('.ln')];
-      lns.forEach((l, i) => later(() => { lns.forEach(x => x.classList.remove('on')); l.classList.add('on'); }, reduce ? 0 : i * 1100));
+      showView('book');
+      const fg = $('#rfg'); fg.style.strokeDashoffset = '113.1';
+      later(() => { fg.style.strokeDashoffset = (113.1 * (1 - 34 / 312)).toFixed(1); }, 220);
+      const lines = $$('.ln', app);
+      lines.forEach((l, i) => later(() => { lines.forEach(x => x.classList.remove('on')); l.classList.add('on'); }, reduce ? 0 : 200 + i * 1000));
     },
-    confirm(paid) {
-      views.pay(paid); pose('crest-open', 'tilt'); ctrlTimes = [];
-      if (paid) {
-        pose(null, null);
-        setCard(`<div class="lab"><span class="dot" style="background:var(--ok)"></span>Done</div><div class="say">Paid EGP 450 to Vodafone Cash.</div>`);
-        return;
-      }
-      setCard(`<div class="lab"><span class="dot"></span>Please confirm</div>
-        <div class="facts">Pay <b>EGP 450</b> to <b>Vodafone Cash</b><br>for <b>Home internet, 140 GB</b><br><span class="dom">on vodafone.com.eg</span></div>
-        <div class="taps" id="taps"><i></i><i></i><i></i><i></i><span>Press Ctrl 4 times</span></div>
-        <div class="cbtns"><button class="yes" type="button" id="tapbtn">Tap for Ctrl</button><button type="button" id="cancel">Cancel</button></div>`);
-      later(() => {
-        const tb = $('#tapbtn'), cb = $('#cancel');
-        if (tb) tb.addEventListener('click', ctrlTap);
-        if (cb) cb.addEventListener('click', () => go('idle'));
-      }, 0);
+    confirm() {
+      showView('pay', false); taps = []; paintTaps();
+      if (demoOn) [1400, 1750, 2050, 2350].forEach(ms => later(() => ctrlTap(true), ms));
+    },
+    paid() {
+      showView('pay', true);
+      bodyY.kick(-170); crest.kick(6); wing.kick(-260); later(() => wing.kick(-220), 280);
+      later(() => { if (!demoOn) go('idle'); }, 3200);
     }
   };
 
-  function ctrlTap() {
+  function go(name) {
+    clearAll(); clearTimeout(idleTimer);
+    state = name; stage.dataset.state = name;
+    flying = false; po.set(0); ptr.classList.remove('land');
+    $$('.chips [data-s]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.s === name || (name === 'paid' && b.dataset.s === 'confirm'))));
+    setNotch(name); setPose(name); bodyY.set(0);
+    STATES[name]();
+    sr.textContent = SAY[name];
+    if (name === 'idle') idleLife();
+  }
+
+  // Little things Hudhud does on its own while idle.
+  const clock = () => (performance.now() - t0) / 1000;
+  const whileIdle = (fn, ms) => setTimeout(() => { if (state === 'idle' && !peeking) fn(); }, ms);
+  const MOVES = [
+    [0.26, function glance() { tilt.set(6); lookX.set(-1.2); lookY.set(-1.6); whileIdle(() => setPose('idle'), 1400); }],
+    [0.26, function preen() {   // turns round and scratches its back and rump, tail wiggling
+      act = { name: 'preen', t: clock() }; flip.set(-1); tilt.set(40); wing.set(-16); spread.set(0.7); crest.set(0.35); lookY.set(0.8);
+      whileIdle(() => setPose('idle'), 1500);
+    }],
+    [0.18, function stretch() { wing.set(-28); spread.set(1.7); crest.set(0.75); bodyY.set(-2); whileIdle(() => { setPose('idle'); bodyY.set(0); }, 950); }],
+    [0.18, function flick() { crest.kick(5); }],
+    [0.12, function hop() { bodyY.kick(-140); crest.kick(3); wing.kick(-120); }]
+  ];
+  function idleLife() {
+    clearTimeout(idleTimer);
+    if (reduce) return;
+    idleTimer = setTimeout(() => {
+      if (state === 'idle' && !peeking) {
+        let r = Math.random();
+        for (const [p, move] of MOVES) { if ((r -= p) < 0) { move(); break; } }
+      }
+      if (state === 'idle') idleLife();
+    }, 2800 + Math.random() * 3800);
+  }
+
+  function paintTaps(flash) {
+    $$('#taps i').forEach((d, i) => d.classList.toggle('on', i < taps.length));
+    if (flash) { const cap = $('#ctrlcap'); cap.classList.add('hit'); setTimeout(() => cap.classList.remove('hit'), 140); }
+  }
+  function ctrlTap(flash) {
     if (state !== 'confirm') return;
     const now = performance.now();
-    ctrlTimes = ctrlTimes.filter(t => now - t < 2000); ctrlTimes.push(now);
-    const dots = [...document.querySelectorAll('#taps i')];
-    dots.forEach((d, i) => d.classList.toggle('on', i < ctrlTimes.length));
-    if (ctrlTimes.length >= 4) { later(() => { clearAll(); S.confirm(true); }, 250); }
+    taps = taps.filter(x => now - x < 2000); taps.push(now);
+    paintTaps(flash !== false); nh.kick(70); crest.kick(2);
+    if (taps.length >= 4) later(() => go('paid'), 300);
   }
 
-  function go(name) {
-    clearAll(); demo = demo && name !== 'idle' ? demo : demo;
-    state = name; comp.dataset.state = name;
-    ptr.style.opacity = 0; ptr.classList.remove('land'); lower.style.transform = '';
-    document.querySelectorAll('.controls [data-s]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.s === name)));
-    S[name]();
-  }
-
-  document.querySelectorAll('.controls [data-s]').forEach(b => b.addEventListener('click', () => { demo = false; go(b.dataset.s); }));
-  $('#bird').addEventListener('click', () => { demo = false; go(state === 'listening' ? 'thinking' : 'listening'); });
-  window.addEventListener('keydown', (e) => { if ((e.key === 'Control') && !e.repeat) ctrlTap(); });
-
-  // ---------- demo ----------
-  const seq = [['listening', 2900], ['thinking', 1500], ['doing', 2600], ['pointing', 2600], ['speaking', 4600], ['reading', 7000], ['confirm', 6000], ['idle', 0]];
-  $('#play').addEventListener('click', () => {
-    demo = true; let t = 0;
-    clearAll();
-    const run = (i) => {
-      if (!demo || i >= seq.length) return;
-      go(seq[i][0]);
-      if (seq[i][1]) timers.push(setTimeout(() => run(i + 1), seq[i][1]));
+  /* ---------- demo ---------- */
+  const SEQ = [['listening', 3300], ['thinking', 1700], ['doing', 3000], ['pointing', 2900], ['speaking', 5400], ['reading', 5200], ['confirm', 4900], ['idle', 0]];
+  function stopDemo() { demoOn = false; clearTimeout(demoTimer); playBtn.setAttribute('aria-pressed', 'false'); playBtn.textContent = '▶ Play the demo'; }
+  function play() {
+    if (demoOn) { stopDemo(); go('idle'); return; }
+    demoOn = true; playBtn.setAttribute('aria-pressed', 'true'); playBtn.textContent = '■ Stop';
+    let i = 0;
+    const run = () => {
+      if (!demoOn) return;
+      const [name, ms] = SEQ[i++];
+      go(name);
+      if (ms && i < SEQ.length) demoTimer = setTimeout(run, ms); else stopDemo();
     };
-    run(0);
+    run();
+  }
+
+  /* ---------- input ---------- */
+  playBtn.addEventListener('click', play);
+  $$('.chips [data-s]').forEach(b => b.addEventListener('click', () => { stopDemo(); go(b.dataset.s); }));
+  const talk = () => { stopDemo(); go(state === 'listening' ? 'thinking' : 'listening'); };
+  hud.addEventListener('click', talk);
+  hud.addEventListener('pointerenter', () => crest.kick(4));
+  notch.addEventListener('pointerdown', (e) => { if (!e.target.closest('button')) nw.kick(-90); });
+  notch.addEventListener('pointerenter', () => { if (state === 'idle') { peeking = true; setNotch('peek'); setPose('peek'); } });
+  notch.addEventListener('pointerleave', () => { peeking = false; if (state === 'idle') { setNotch('idle'); setPose('idle'); } });
+  notch.addEventListener('click', (e) => { if (e.target.closest('button')) return; if (state === 'idle') { stopDemo(); go('listening'); } });
+  notch.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && state === 'idle') { e.preventDefault(); stopDemo(); go('listening'); } });
+  $('#tapbtn').addEventListener('click', () => ctrlTap(true));
+  $('#cancel').addEventListener('click', () => { stopDemo(); go('idle'); });
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Control' && !e.repeat) ctrlTap(true);
+    if (e.key === 'Escape' && state !== 'idle') { stopDemo(); go('idle'); }
   });
 
-  // clock
-  const tick = () => { const d = new Date(); $('#clock').textContent = d.toTimeString().slice(0, 5); };
+  /* ---------- clock ---------- */
+  const tick = () => { const d = new Date(); $('#clock').textContent = d.toTimeString().slice(0, 5); $('#date').textContent = d.toLocaleDateString('en-GB'); };
   tick(); setInterval(tick, 30000);
 
-  go('idle');
+  /* ---------- start: the notch comes out of the top edge, Hudhud hops in ---------- */
+  /* a link can open one state: #listening, #thinking, #doing, #pointing, #speaking, #reading, #payment */
+  const fromHash = () => { const h = location.hash.slice(1), name = h === 'payment' ? 'confirm' : h; return name !== 'paid' && STATES[name] ? name : null; };
+  window.addEventListener('hashchange', () => { const name = fromHash(); if (name) { stopDemo(); go(name); } });
+
+  showView('settings');
+  requestAnimationFrame(frame);
+  setTimeout(() => { enter.set(1); bodyY.set(0); go(fromHash() || 'idle'); }, reduce ? 0 : 380);
 })();
 </script>

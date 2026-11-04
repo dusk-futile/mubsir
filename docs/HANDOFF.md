@@ -4,7 +4,67 @@ Update this file at the end of every session. Newest entry on top.
 
 ---
 
-## 2026-11-04 (end of planning chat) — read this first
+## 2026-11-04 (design session) — app icon done, Hudhud concepts ready to pick
+
+- **Image generation works through the owner's own ChatGPT**, signed in inside the Claude desktop
+  app's browser pane. No API key was needed and none is in the repo. (Codex CLI's image tool also
+  works with the owner's ChatGPT login, but the owner rejected its quality.)
+- **App icon chosen: the seeing eye.** The owner picked it from two rounds of six concepts: an amber eye on
+  Night navy, iris = sound rings, lower lid sweeping into the tail of م. Hudhud stays the companion
+  (owner: "eye icon + Hudhud"). Details and rules: `docs/BRAND.md`.
+- Built on branch `brand/eye-icon-hudhud`:
+  - `assets/brand/`: SVG masters (full; medium for 24–48 px; small for 16–20 px; tile-less mark),
+    `png/` 16–1024 px, `mubsir.ico` (9 sizes, each from the right drawing), `brand-sheet.png` and
+    `social-preview.png` with their HTML sources.
+  - `scripts/build-icons.py` rebuilds the PNGs and the `.ico` from the SVGs (Pillow + Chrome/Edge).
+  - App: `Mubsir.App.csproj` embeds the icon (`ApplicationIcon`). `TrayIcon` loads it at the tray
+    size for the DPI (icon group 32512) and falls back to the system icon. The README shows the logo.
+  - Checked on macOS with SDK 10.0.401: `dotnet build src/Mubsir.App -c Release` → 0 errors,
+    0 warnings; `Mubsir.dll` holds RT_GROUP_ICON 32512 with 9 images; every `.ico` frame matches its PNG.
+  - **Not checked on Windows yet:** the tray icon at 100 / 125 / 150 / 200 % scaling and the exe icon
+    in Explorer. Resources are copied into `Mubsir.exe` only when building on Windows (the release
+    workflow does).
+- **Hudhud concepts**, all navy/amber with the icon's sound-wave eye: 6 characters and 3
+  companion-card states in `prototypes/hudhud-companion/assets/concepts/`. **Owner chose concept 4,
+  the layered paper-cut hoopoe** (`hudhud-4-paper-cut.jpg`).
+- **Prototype rebuilt** (`prototypes/hudhud-companion/index.html`, republished to the owner's link,
+  version 2). Owner asked for Apple-smooth motion and an iPhone-style notch:
+  - **The notch** hangs from the top edge (concave fillets like a MacBook notch) and pours out into
+    each state; its content cross-fades with a 10 px blur. It carries the app icon's eye, whose rings
+    ripple while listening and speaking.
+  - **Hudhud** is the paper-cut hoopoe redrawn as layered SVG (body, bib, wing, tail, legs, head,
+    6 crest feathers, beak with a moving jaw, eye with pupil). It breathes, blinks (sometimes twice),
+    glances up at the notch, opens its crest when listening, nods when thinking, looks down when
+    reading, raises its crest for payments and hops when paid.
+  - **Motion** is a small spring engine with Apple's parameters (response, damping). Every value
+    starts from where it is on screen, so states interrupt each other without jumps. The motion tokens
+    are listed on the page and are meant to be reused by the WPF overlay.
+  - States from the first prototype are kept (idle, listening, thinking, doing, pointing, speaking,
+    reading, payment with 4× Ctrl, paid). A link can open one state: `#listening`, `#payment`, etc.
+  - Checked: no console errors, 60 fps in the desktop app's browser, all states laid out at 2× with
+    reduced motion. Not checked on a 120 Hz screen or on Windows.
+  - Owner feedback, same day (published as version 3):
+    - No backend wording in the UI; the reading line now says what the user can say.
+    - Hudhud is smaller (116 px) with no ground shadow, visible legs with toes, and a detailed wing (three
+      flight feathers under a striped covert) that lifts and spreads.
+    - New idle moves: turns its head round to scratch its back while its tail wiggles, wing stretch,
+      glance, crest flick, and a hop with squash and stretch. It flaps when a payment is done.
+    - The stage scales with CSS zoom so text stays sharp.
+    - The page states that the notch is drawn by Mubsir, so it works on any PC.
+- Skills used this session: `apple-design` and `improve-animations` (Emil Kowalski, installed for
+  this Mac with `npx skills add emilkowalski/skills@<name> -g`), plus `find-skills`.
+- **Owner to-do:** upload `assets/brand/social-preview.png` in GitHub → Settings → General →
+  Social preview (GitHub has no API for it).
+
+### Next session
+1. Owner reviews the prototype link. Fix anything they flag in the look or motion.
+2. Then the backend, following `docs/EXECUTION.md` (owner: "show me first the UI, then work on the
+   backend").
+3. Later, for the native overlay: port the notch and Hudhud to WPF with the same springs.
+
+---
+
+## 2026-11-04 (end of planning chat)
 
 - Full summary of the planning conversation: `docs/CONVERSATION-SUMMARY.md`.
 - **Owner's verdict on the Hudhud prototype: it looks bad.** Keep its behaviour (states, flow,

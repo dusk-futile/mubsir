@@ -21,6 +21,7 @@ internal sealed unsafe class TrayIcon : IDisposable
     private readonly IEventLog _log;
     private readonly uint _taskbarCreated;
     private nint _hwnd;
+    private nint _icon;
     private bool _added;
 
     public TrayIcon(TrayActions actions, Lang lang, IEventLog log)
@@ -40,6 +41,7 @@ internal sealed unsafe class TrayIcon : IDisposable
             return false;
         }
 
+        _icon = LoadAppIcon();
         return AddIcon();
     }
 
@@ -54,6 +56,27 @@ internal sealed unsafe class TrayIcon : IDisposable
 
         NativeWindow.Destroy(_hwnd);
         _hwnd = 0;
+
+        if (_icon != 0)
+        {
+            User32.DestroyIcon(_icon);
+            _icon = 0;
+        }
+    }
+
+    // Mubsir's own icon at the tray size for this DPI. The compiler embeds <ApplicationIcon> in
+    // Mubsir.exe as icon group 32512 (the same number as IDI_APPLICATION). 0 = use the system icon.
+    private nint LoadAppIcon()
+    {
+        int cx = User32.GetSystemMetrics(Win32.SM_CXSMICON);
+        int cy = User32.GetSystemMetrics(Win32.SM_CYSMICON);
+        nint icon = User32.LoadImageW(NativeWindow.ModuleHandle, Win32.IDI_APPLICATION, Win32.IMAGE_ICON, cx, cy, 0);
+        if (icon == 0)
+        {
+            _log.Error("tray_icon_" + NativeQueries.LastError());
+        }
+
+        return icon;
     }
 
     private bool AddIcon()
@@ -61,7 +84,7 @@ internal sealed unsafe class TrayIcon : IDisposable
         NOTIFYICONDATAW data = NewData();
         data.UFlags = Win32.NIF_MESSAGE | Win32.NIF_ICON | Win32.NIF_TIP | Win32.NIF_SHOWTIP;
         data.UCallbackMessage = CallbackMessage;
-        data.HIcon = User32.LoadIconW(0, Win32.IDI_APPLICATION);
+        data.HIcon = _icon != 0 ? _icon : User32.LoadIconW(0, Win32.IDI_APPLICATION);
         const string tip = "Mubsir";
         for (int i = 0; i < tip.Length && i < 127; i++)
         {
