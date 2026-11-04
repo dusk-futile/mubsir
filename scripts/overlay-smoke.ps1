@@ -33,6 +33,10 @@ public static class SmokeInput {
     [DllImport("user32.dll")] static extern bool SetCursorPos(int x, int y);
     [DllImport("user32.dll")] static extern void mouse_event(uint flags, int dx, int dy, uint data, UIntPtr extra);
 
+    public static void MoveTo(int x, int y) {
+        SetCursorPos(x, y);
+    }
+
     // Moves there, gives the overlay time to notice the cursor is on it, then clicks.
     public static void ClickAt(int x, int y) {
         SetCursorPos(x, y);
@@ -116,6 +120,14 @@ function Test-PanelShowing([string]$name) {
     }
     $bitmap.Dispose()
     return $showing
+}
+
+# The notch is pure black, so a black pixel at this spot means the notch reaches it.
+function Test-NotchAt([string]$name, [int]$x, [int]$y) {
+    $bitmap = New-Object System.Drawing.Bitmap (Join-Path $Out "$name.png")
+    $c = $bitmap.GetPixel($x, $y)
+    $bitmap.Dispose()
+    return ($c.R -lt 4 -and $c.G -lt 4 -and $c.B -lt 4)
 }
 
 function Assert-Running($process, [string]$when) {
@@ -238,6 +250,22 @@ if ($dpi -eq 96) {
     Start-Sleep -Milliseconds 800
     Shot 'panel-button-pressed'
     if (Test-PanelShowing 'panel-button-pressed') { throw 'pressing a panel button did not close the panel' }
+
+    # Resting, the notch is 120 wide. Hovering it peeks (236 wide), and clicking it starts listening (404 wide).
+    $middle = [int]($screen.Width / 2)
+    [SmokeInput]::MoveTo(120, 300)
+    Start-Sleep -Milliseconds 500
+    Shot 'notch-resting'
+    [SmokeInput]::MoveTo($middle, 8)
+    Start-Sleep -Milliseconds 1000
+    Shot 'notch-hover'
+    if (Test-NotchAt 'notch-resting' ($middle - 100) 8) { throw 'the resting notch is wider than it should be' }
+    if (-not (Test-NotchAt 'notch-hover' ($middle - 100) 8)) { throw 'hovering the notch did not make it peek' }
+    [SmokeInput]::ClickAt($middle, 8)
+    Start-Sleep -Milliseconds 1200
+    Shot 'notch-clicked'
+    if (-not (Test-NotchAt 'notch-clicked' ($middle - 180) 8)) { throw 'clicking the notch did not start listening' }
+    Note 'Notch: peeks on hover, starts listening on a click.'
 }
 
 [SmokeInput]::Press($VkEscape)
