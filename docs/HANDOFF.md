@@ -16,12 +16,16 @@ Update this file at the end of every session. Newest entry on top.
 - Added this file and `CLAUDE.md` so work can continue from another device.
 - Draft PR: https://github.com/dusk-futile/mubsir/pull/6 (branch `claude/jolly-fermi-i04fxf`).
 
-### Known problem: CI is red (not caused by the plan)
-`Core build and add-on` fails on `main` too: `NU1004 Microsoft.NET.ILLink.Tasks 10.0.12 → 10.0.14`.
-The runner's SDK (10.0.403) is newer than the one the lock files were made with. Fix needs a machine
-with the .NET 10 SDK (the cloud session couldn't download it):
-1. `dotnet restore Mubsir.slnx --force-evaluate`, commit `src/*/packages.lock.json`.
-2. In `global.json` set `"version": "10.0.403", "rollForward": "latestPatch"`.
+### CI: lock file fix pushed
+`Core build and add-on` was red on `main` too: `NU1004 Microsoft.NET.ILLink.Tasks 10.0.12 → 10.0.14`.
+The runner's SDK (10.0.403) adds the implicit ILLink reference at 10.0.14. The .NET SDK could not be
+downloaded in the cloud session, so `src/Mubsir.Core/packages.lock.json` was updated by hand to
+10.0.14 with the hash computed from the nuget.org package. Check the PR's CI result.
+
+This will happen again whenever the runner gets a newer SDK patch. Real fix, on a machine with the
+.NET 10 SDK: `dotnet restore Mubsir.slnx --force-evaluate` and commit the lock files. To stop it
+recurring, pin the SDK in `global.json` (e.g. `"version": "10.0.403", "rollForward": "disable"`) and
+let Dependabot bump it.
 
 ### Owner to-do (can't be done from a Claude session)
 - [ ] Make the repo private: GitHub → repo **Settings** → **General** → bottom "Danger Zone" →
