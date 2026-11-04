@@ -155,7 +155,11 @@ internal static class Ui
         return block;
     }
 
-    public static TextBlock Label(string text, Brush brush) => Text(text.ToUpperInvariant(), 11.5, brush, FontWeights.SemiBold);
+    public static TextBlock Label(string text, Brush brush) => Text(Tracked(text), 11.5, brush, FontWeights.SemiBold);
+
+    /// <summary>A small uppercase label with the prototype's letter spacing. WPF has no letter-spacing
+    /// setting, so a hair space goes between the letters.</summary>
+    public static string Tracked(string text) => string.Join('\u200A', text.ToUpperInvariant().ToCharArray());
 
     /// <summary>The app icon's eye. Drawn once as vectors and shared, so it stays sharp at any scale.</summary>
     public static Image Mark(Color color, double width, double height)
@@ -404,11 +408,17 @@ internal sealed class ClickThrough
         }
 
         Point p = _window.PointFromScreen(screen);
+        // Empty means nothing here is interactive right now, like a closed panel.
         Rect rect = _interactive();
-        bool over = rect.Contains(p);
-        Rect nearby = rect;
-        nearby.Inflate(NearDistance, NearDistance);
-        TimeSpan interval = nearby.Contains(p) ? Near : Far;
+        bool over = !rect.IsEmpty && rect.Contains(p);
+        bool near = false;
+        if (!rect.IsEmpty)
+        {
+            rect.Inflate(NearDistance, NearDistance);
+            near = rect.Contains(p);
+        }
+
+        TimeSpan interval = near ? Near : Far;
         if (_timer.Interval != interval)
         {
             _timer.Interval = interval;

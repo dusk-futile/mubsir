@@ -541,7 +541,7 @@ internal sealed class DoingPane : Pane
             DoingMode.Undoing => ("Stopping and undoing", P.CrestBrush),
             _ => ("Working on it", P.AmberBrush),
         };
-        _label.Text = label.ToUpperInvariant();
+        _label.Text = Ui.Tracked(label);
         _label.Foreground = brush;
         _stop.Visibility = content.Mode == DoingMode.Running ? Visibility.Visible : Visibility.Hidden;
 

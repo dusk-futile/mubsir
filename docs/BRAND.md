@@ -115,5 +115,7 @@ GitHub social preview (`assets/brand/social-preview.png`).
 Done since: the Hudhud concept (4, paper-cut), its cutout parts and rig, and the companion and notch
 states in this style (`prototypes/hudhud-companion/`).
 
-Still to do: the owner approves the prototype's look and motion, then the sound set and the native
-WPF overlay that reuses the rig and the motion tokens.
+The owner approved the prototype's look on 2026-11-04 (version 5), and the native overlay that reuses
+the rig and the motion tokens is under way in `src/Mubsir.Overlay`.
+
+Still to do: the sound set, and Readex Pro in the native overlay (it uses Segoe UI for now).

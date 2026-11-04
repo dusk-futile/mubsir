@@ -26,7 +26,7 @@ internal static class OverlayDemo
         try
         {
             using OverlayHost overlay = OverlayHost.Start();
-            overlay.Failed += e => ConsoleIo.WriteLine("overlay error: " + e.GetType().Name);
+            overlay.Failed += e => ConsoleIo.WriteLine("overlay error: " + e);
             new Script(overlay).Run();
             return 0;
         }

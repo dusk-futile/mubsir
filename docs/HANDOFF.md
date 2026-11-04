@@ -20,17 +20,20 @@ opens the panel, and clicking the notch replays the story. Esc quits.
     by both and embedded in the assembly.
   - Clicking Hudhud opens a small Mubsir panel (Talk, Read this screen, Settings). A click anywhere else
     closes it, and Hudhud stays awake while it is open.
-  - It never takes focus. Both windows stay click-through until the cursor is on the notch or the bird,
+  - It never takes focus. Its windows stay click-through until the cursor is on the notch or the bird,
     because soft shadows have visible pixels that would otherwise swallow clicks. An error inside the
     overlay can't take the app down: it carries on, and closes itself after three failures.
   - Respects Windows' "Show animations" setting. Draws only as much as it needs: every refresh while
-    something moves, ten times a second for a sleeping bird. Hides over full-screen apps while it has
-    nothing to show, and comes back when it does.
-- **`Mubsir.Core/Motion`**: spring engine, tokens, rig and pose math, with 21 tests in
+    something really moves, 30 fps for resting breaths, 10 fps for a sleeping bird. Hides over full-screen
+    apps while it has nothing to show, and comes back when it does.
+  - Hudhud's paper shadows and light edge are baked into its pictures at startup (`PaperBaker` in Core),
+    not drawn as live effects: without a GPU, live effects cost 85 % of a core while idle.
+- **`Mubsir.Core/Motion`**: spring engine, tokens, rig, pose math and shadow baking, with 29 tests in
   `tests/Mubsir.Core.Tests` (the repo's first .NET unit tests).
 - **CI smoke test** (`scripts/overlay-smoke.ps1`, on windows-2025): runs the real demo on a Windows
   desktop, saves screenshots as the `overlay-shots` artifact, tests Ctrl undo, the panel and a clean Esc
-  exit, and records memory and CPU. Numbers are in `docs/RESULTS.md`. This is how to check native visuals from a Mac.
+  exit, and records memory, CPU and frame rate. Numbers are in `docs/RESULTS.md`. This is how to check
+  the native visuals from a Mac.
 - The zip grows from 62.7 MB to 86.9 MB because the app now ships WPF.
 
 ### Next session (normal mode, PLAN phase 7)
@@ -41,6 +44,8 @@ opens the panel, and clicking the notch replays the story. Esc quits.
 3. Still to build: the monitor with the mouse, dragging Hudhud to another corner, the teaching board,
    and Readex Pro as the font (static TTFs; it uses Segoe UI for now).
 
+---
+
 ## 2026-11-04 (night) — repo cleaned, all open work merged
 
 - **Contributors cleaned.** The six early commits that named the AI assistant as their author were
@@ -48,11 +53,13 @@ opens the panel, and clicking the notch replays the story. Esc quits.
   The files are byte-for-byte the same. The v0.1.0 tag still points at the same first commit, and
   stars are not affected. A full backup of the repo from before the rewrite is on the owner's Mac:
   `~/Desktop/mubsir-before-cleanup-2026-11-04.bundle`.
-  - The old session branch was deleted, and the tool credit lines were removed from PRs #6 and #8.
+  - The old session branch was deleted, and the tool credit lines were removed from PRs #6 and #8 and
+    three old PR comments.
   - GitHub still shows the old commits inside closed PRs #6–#8 (it keeps those refs; only GitHub
     Support can purge them). The 6 forks keep their old copies.
 - **Agent files have neutral names:** instructions in `AGENTS.md`, skills in `.agents/skills/`.
-  Tools that only look for their own file name need to be pointed at `AGENTS.md`.
+  Tools that only look for their own file name need to be pointed at `AGENTS.md`. On the owner's Mac a
+  small untracked shim does this (listed in `.git/info/exclude`, so it never reaches the repo).
 - **Merged into `main`** (squash, in this order): #10 (CI fix, SDK pinned), #9 (app icon, brand kit,
   notch + Hudhud prototype), #11 (Phase 1 relay, server side).
 - **Built and tested** on macOS with SDK 10.0.401:
@@ -60,6 +67,8 @@ opens the panel, and clicking the notch replays the story. Esc quits.
   - NVDA add-on built.
   - Relay: type check clean, 37/37 tests.
   - GitHub CI green on all three PRs: Core build and add-on, Windows build, and relay tests.
+
+---
 
 ## 2026-11-04 (evening) — Hudhud rebuilt from ChatGPT-drawn parts, notch pass
 

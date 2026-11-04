@@ -136,6 +136,12 @@ catch {
     Note "Could not read the animation setting: $($_.Exception.Message)"
 }
 
+# The app itself must still start normally with WPF in the package.
+$version = Start-Process -FilePath $Exe -ArgumentList '--version' -PassThru -Wait
+if ($version.ExitCode -ne 0) {
+    throw "Mubsir.exe --version exited with code $($version.ExitCode)"
+}
+
 # First run: the whole story, then Hudhud falls asleep and Ctrl wakes it.
 $demo = Start-Process -FilePath $Exe -ArgumentList '--overlay-demo' -PassThru -RedirectStandardOutput (Join-Path $Out 'demo-log.txt')
 for ($t = 1; $t -le 36; $t++) {
@@ -181,6 +187,14 @@ if ($dpi -eq 96) {
     if (-not (Test-PanelShowing 'panel-open')) { throw 'clicking Hudhud did not open the panel' }
     if (Test-PanelShowing 'panel-closed') { throw 'clicking elsewhere did not close the panel' }
     Note 'Panel: opens on a click on Hudhud, closes on a click elsewhere.'
+
+    # Its buttons must really take a click, which means the window stopped being click-through in time.
+    [SmokeInput]::ClickAt($birdX, $birdY)
+    Start-Sleep -Milliseconds 600
+    [SmokeInput]::ClickAt($work.Right - 274 + 100, $work.Bottom - 112 - 32)
+    Start-Sleep -Milliseconds 800
+    Shot 'panel-button-pressed'
+    if (Test-PanelShowing 'panel-button-pressed') { throw 'pressing a panel button did not close the panel' }
 }
 
 [SmokeInput]::Press($VkEscape)
@@ -191,6 +205,18 @@ Note "Exit code after Esc: $($demo.ExitCode)"
 if ($demo.ExitCode -ne 0) {
     throw "the overlay demo exited with code $($demo.ExitCode)"
 }
+
+# The overlay survives its own errors, so the demo's log is the only place they would show.
+$log = Get-Content (Join-Path $Out 'demo-log.txt') -Raw
+$rates = ([regex]::Matches($log, '(\d+) frames a second') | ForEach-Object { $_.Groups[1].Value }) -join ', '
+Note "Frames a second, every 5 s: $rates"
+if ($log -match 'overlay error') {
+    throw "the overlay reported an error: $log"
+}
+if ($dpi -eq 96 -and $log -notmatch 'Panel: Settings') {
+    throw 'the Settings button in the panel did not take the click'
+}
+Note 'Panel: its buttons take clicks.'
 
 # Second run: Ctrl in the middle of the checklist stops it and undoes the finished steps.
 $demo = Start-Process -FilePath $Exe -ArgumentList '--overlay-demo' -PassThru
