@@ -26,8 +26,8 @@ public sealed class OverlayHost : IDisposable
         _thread.SetApartmentState(ApartmentState.STA);
     }
 
-    /// <summary>Hudhud was clicked while awake: open Mubsir.</summary>
-    public event Action? HudhudClicked;
+    /// <summary>Something was chosen in the panel Hudhud opens when it is clicked.</summary>
+    public event Action<CompanionAction>? ActionChosen;
 
     /// <summary>The notch was clicked: start talking.</summary>
     public event Action? NotchClicked;
@@ -73,6 +73,9 @@ public sealed class OverlayHost : IDisposable
 
     /// <summary>A small squeeze of the notch, to feel a key press land.</summary>
     public void NudgeNotch() => Post(c => c.Notch.Nudge(0, 70));
+
+    /// <summary>Closes the panel if it is open (the app's Esc).</summary>
+    public void ClosePanel() => Post(c => c.Panel.SetOpen(false));
 
     public void Dispose()
     {
@@ -122,7 +125,7 @@ public sealed class OverlayHost : IDisposable
             companion.Notch.StopClicked += () => StopRequested?.Invoke();
             companion.Notch.TapClicked += () => ConfirmTapRequested?.Invoke();
             companion.Notch.CancelClicked += () => CancelRequested?.Invoke();
-            companion.Hudhud.Clicked += () => HudhudClicked?.Invoke();
+            companion.Panel.ActionChosen += action => ActionChosen?.Invoke(action);
             companion.Open();
             _companion = companion;
         }
@@ -160,8 +163,13 @@ public sealed class OverlayHost : IDisposable
             bool reduceMotion = !SystemParameters.ClientAreaAnimation;
             Notch = new NotchWindow(assets, _loop, reduceMotion);
             Hudhud = new HudhudWindow(assets, _loop, reduceMotion);
+            Panel = new PanelWindow(assets, _loop, reduceMotion);
             _loop.Add(Notch);
             _loop.Add(Hudhud);
+            _loop.Add(Panel);
+            Hudhud.Clicked += Panel.Toggle;
+            Panel.OpenChanged += Hudhud.Hold;
+            Panel.CursorOnOpener = () => Hudhud.CursorOver;
             Notch.Hovered += Hudhud.Peek;
             Hudhud.VoiceSource = () => Notch.VoiceValue;
             Hudhud.AsleepChanged += Notch.SetAsleep;
@@ -171,10 +179,13 @@ public sealed class OverlayHost : IDisposable
 
         public HudhudWindow Hudhud { get; }
 
+        public PanelWindow Panel { get; }
+
         public void Open()
         {
             Notch.Show();
             Hudhud.Show();
+            Panel.Show();
             _loop.Wake();
 
             // The notch comes out of the top edge, then Hudhud hops in.
@@ -194,6 +205,7 @@ public sealed class OverlayHost : IDisposable
         public void Go(CompanionState state, CompanionContent? content)
         {
             _started = true;
+            Panel.SetOpen(false);
             Notch.Go(state, content);
             Hudhud.Go(state);
         }
@@ -203,6 +215,7 @@ public sealed class OverlayHost : IDisposable
             _loop.Stop();
             Notch.Close();
             Hudhud.Close();
+            Panel.Close();
         }
     }
 }

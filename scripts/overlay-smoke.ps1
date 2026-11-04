@@ -26,6 +26,18 @@ public static class SmokeInput {
     [DllImport("user32.dll")] static extern IntPtr GetDC(IntPtr hwnd);
     [DllImport("user32.dll")] static extern int ReleaseDC(IntPtr hwnd, IntPtr dc);
     [DllImport("gdi32.dll")] static extern bool BitBlt(IntPtr dst, int x, int y, int w, int h, IntPtr src, int sx, int sy, uint rop);
+    [DllImport("user32.dll")] static extern bool SetCursorPos(int x, int y);
+    [DllImport("user32.dll")] static extern void mouse_event(uint flags, int dx, int dy, uint data, UIntPtr extra);
+
+    // Moves there, gives the overlay time to notice the cursor is on it, then clicks.
+    public static void ClickAt(int x, int y) {
+        SetCursorPos(x, y);
+        System.Threading.Thread.Sleep(400);
+        mouse_event(0x0002, 0, 0, 0, UIntPtr.Zero);
+        System.Threading.Thread.Sleep(50);
+        mouse_event(0x0004, 0, 0, 0, UIntPtr.Zero);
+    }
+
     const uint SrcCopy = 0x00CC0020;
     const uint CaptureBlt = 0x40000000;
 
@@ -85,7 +97,7 @@ Note "Screen: $($screen.Width) x $($screen.Height)"
 
 # First run: the whole story, then Hudhud falls asleep and Ctrl wakes it.
 $demo = Start-Process -FilePath $Exe -ArgumentList '--overlay-demo' -PassThru
-for ($t = 1; $t -le 30; $t++) {
+for ($t = 1; $t -le 36; $t++) {
     Start-Sleep -Seconds 1
     Assert-Running $demo "at $t s"
     Shot ('story-{0:d2}' -f $t)
@@ -107,6 +119,19 @@ Shot 'woken-shake'
 Start-Sleep -Seconds 2
 Shot 'woken'
 Assert-Running $demo 'after waking'
+
+# A click on the bird opens the panel, and a click anywhere else closes it again.
+$work = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
+$birdX = $work.Right - 28 - 46
+$birdY = $work.Bottom - 2 - 42
+Shot 'before-click'
+[SmokeInput]::ClickAt($birdX, $birdY)
+Start-Sleep -Milliseconds 800
+Shot 'panel-open'
+[SmokeInput]::ClickAt(120, 300)
+Start-Sleep -Milliseconds 800
+Shot 'panel-closed'
+Assert-Running $demo 'after the panel'
 
 [SmokeInput]::Press($VkEscape)
 if (-not $demo.WaitForExit(5000)) {

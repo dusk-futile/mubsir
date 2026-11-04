@@ -7,7 +7,8 @@ namespace Mubsir.App.Host;
 /// <summary>
 /// <c>Mubsir.exe --overlay-demo</c>: runs the notch and Hudhud on their own, over the real desktop, through
 /// the same story as the HTML prototype. Nothing is listened to, sent or clicked; it only shows the visuals.
-/// Ctrl stops the checklist and undoes it, or wakes Hudhud. Clicking the notch plays it again. Esc quits.
+/// Ctrl stops the checklist and undoes it, or wakes Hudhud. Clicking Hudhud opens the panel. Clicking the
+/// notch plays the story again. Esc quits.
 /// </summary>
 internal static class OverlayDemo
 {
@@ -21,7 +22,7 @@ internal static class OverlayDemo
     public static int Run()
     {
         ConsoleIo.Attach();
-        ConsoleIo.WriteLine("Mubsir overlay demo. Ctrl stops and undoes, or wakes Hudhud. Click the notch to replay. Esc quits.");
+        ConsoleIo.WriteLine("Mubsir overlay demo. Ctrl stops and undoes, or wakes Hudhud. Click Hudhud to open the panel, or the notch to replay. Esc quits.");
         try
         {
             using OverlayHost overlay = OverlayHost.Start();
@@ -53,7 +54,14 @@ internal static class OverlayDemo
             _overlay = overlay;
             overlay.UseDemoVoice();
             overlay.NotchClicked += () => _replay = true;
-            overlay.HudhudClicked += () => ConsoleIo.WriteLine("Hudhud was clicked: this is where Mubsir opens.");
+            overlay.ActionChosen += action =>
+            {
+                ConsoleIo.WriteLine("Panel: " + action);
+                if (action == CompanionAction.Talk)
+                {
+                    _replay = true;
+                }
+            };
             overlay.StopRequested += () => _stopPressed = true;
             overlay.ConfirmTapRequested += () => _tapPressed = true;
             overlay.CancelRequested += () => _cancelPressed = true;
@@ -85,7 +93,25 @@ internal static class OverlayDemo
 
             if (!_exit)
             {
+                _overlay.Show(CompanionState.Pointing, new CompanionContent { PointText = "It's the Install all button" });
+                Wait(2.4);
+            }
+
+            if (!_exit)
+            {
                 Speaking();
+            }
+
+            if (!_exit)
+            {
+                _overlay.Show(CompanionState.Reading, new CompanionContent
+                {
+                    BookTitle = "Introducing Phonology",
+                    BookPlace = "Chapter 3 · page 34 of 312",
+                    BookHint = "Say “next page”, “repeat” or ask about this page",
+                    BookProgress = 34.0 / 312,
+                });
+                Wait(3);
             }
 
             if (!_exit)

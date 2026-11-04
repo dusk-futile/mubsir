@@ -328,6 +328,8 @@ internal sealed class ClickThrough
     /// <summary>The cursor came onto or left the interactive part.</summary>
     public event Action<bool>? HoverChanged;
 
+    public bool IsOver => _over;
+
     private void Check()
     {
         if (PresentationSource.FromVisual(_window) is null || !Win32.TryGetCursor(out Point screen))
@@ -362,6 +364,7 @@ internal static class Win32
     private const long WsExTransparent = 0x00000020;
     private const long WsExNoActivate = 0x08000000;
     private const long WsExToolWindow = 0x00000080;
+    private const int VkLeftButton = 0x01;
 
     /// <summary>Never takes keyboard focus and never shows in Alt+Tab.</summary>
     public static void MakeOverlay(Window window)
@@ -381,6 +384,8 @@ internal static class Win32
             SetWindowLongPtr(hwnd, GwlExStyle, (nint)next);
         }
     }
+
+    public static bool IsLeftButtonDown() => (GetAsyncKeyState(VkLeftButton) & 0x8000) != 0;
 
     public static bool TryGetCursor(out Point screen)
     {
@@ -412,6 +417,9 @@ internal static class Win32
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetCursorPos(out CursorPoint point);
+
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int key);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct CursorPoint

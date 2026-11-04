@@ -64,6 +64,7 @@ internal sealed class HudhudWindow : Window, IAnimated
     private CompanionState _state = CompanionState.Idle;
     private bool _asleep;
     private bool _peeking;
+    private bool _held;
     private double _sleepStart;
     private double _lastActivity;
     private double _shakeStart = -1;
@@ -217,6 +218,17 @@ internal sealed class HudhudWindow : Window, IAnimated
     /// <summary>Where the voice level comes from while speaking.</summary>
     public Func<double>? VoiceSource { get; set; }
 
+    /// <summary>The cursor is on the bird right now.</summary>
+    public bool CursorOver => _clickThrough.IsOver;
+
+    /// <summary>While the panel is open Hudhud stays awake and keeps still.</summary>
+    public void Hold(bool held)
+    {
+        _held = held;
+        _lastActivity = _loop.Now;
+        _loop.Wake();
+    }
+
     /// <summary>Brings the bird in. Call once, after the windows are showing.</summary>
     public void Enter()
     {
@@ -322,7 +334,7 @@ internal sealed class HudhudWindow : Window, IAnimated
         moving |= StepDust(dt);
 
         // Sleep after a while with nothing to do.
-        if (_state == CompanionState.Idle && !_asleep && !_peeking && now - _lastActivity > _assets.Tokens.Hudhud.SleepAfterSeconds)
+        if (_state == CompanionState.Idle && !_asleep && !_peeking && !_held && now - _lastActivity > _assets.Tokens.Hudhud.SleepAfterSeconds)
         {
             Sleep();
             moving = true;
@@ -735,7 +747,7 @@ internal sealed class HudhudWindow : Window, IAnimated
 
     private void OnLifeTimer()
     {
-        if (_state == CompanionState.Idle && !_peeking && !_asleep)
+        if (_state == CompanionState.Idle && !_peeking && !_asleep && !_held)
         {
             PlayMove(_random.NextDouble());
             _loop.Wake();

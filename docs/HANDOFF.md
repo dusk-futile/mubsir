@@ -8,8 +8,8 @@ Update this file at the end of every session. Newest entry on top.
 
 The owner approved prototype version 5 (smaller bird, paper-layer shadows) and asked to start the real
 thing. Try it on a Windows PC with `Mubsir.exe --overlay-demo`. It runs over the real desktop and listens
-to, sends and clicks nothing. Ctrl stops the checklist and undoes it, or wakes Hudhud. Clicking the notch
-replays the story. Esc quits.
+to, sends and clicks nothing. Ctrl stops the checklist and undoes it, or wakes Hudhud. Clicking Hudhud
+opens the panel, and clicking the notch replays the story. Esc quits.
 
 - **`src/Mubsir.Overlay`** (WPF built in code, on its own UI thread):
   - The notch morphs between states on the prototype's springs (`motion-tokens.json`). Panes exist for
@@ -17,6 +17,8 @@ replays the story. Esc quits.
     its text only. Voice wave and glowing rim are in.
   - Hudhud is the same cut-out puppet as the prototype. `assets/hudhud/rig.json` and the PNGs are shared
     by both and embedded in the assembly.
+  - Clicking Hudhud opens a small Mubsir panel (Talk, Read this screen, Settings). A click anywhere else
+    closes it, and Hudhud stays awake while it is open.
   - It never takes focus. Both windows stay click-through until the cursor is on the notch or the bird,
     because soft shadows have visible pixels that would otherwise swallow clicks. An error inside the
     overlay can't take the app down: it carries on, and closes itself after three failures.
@@ -25,8 +27,8 @@ replays the story. Esc quits.
 - **`Mubsir.Core/Motion`**: spring engine, tokens, rig and pose math, with 21 tests in
   `tests/Mubsir.Core.Tests` (the repo's first .NET unit tests).
 - **CI smoke test** (`scripts/overlay-smoke.ps1`, on windows-2025): runs the real demo on a Windows
-  desktop, saves screenshots as the `overlay-shots` artifact, tests Ctrl undo and a clean Esc exit, and
-  records memory and CPU. Numbers are in `docs/RESULTS.md`. This is how to check native visuals from a Mac.
+  desktop, saves screenshots as the `overlay-shots` artifact, tests Ctrl undo, the panel and a clean Esc
+  exit, and records memory and CPU. Numbers are in `docs/RESULTS.md`. This is how to check native visuals from a Mac.
 - The zip grows from 62.7 MB to 86.9 MB because the app now ships WPF.
 
 ### Next session (normal mode, PLAN phase 7)
@@ -34,8 +36,8 @@ replays the story. Esc quits.
 2. Wire it to the real app: a normal or blind mode setting (blind mode must create no overlay windows),
    then `UtteranceFlow` (listening, transcript), `TaskRunner` (thinking, doing steps, stop and undo),
    `Narrator` (speaking, voice level) and `Confirmer` (the four Ctrl presses).
-3. Still to build: the flying pointer window, the panel Hudhud opens, the monitor with the mouse,
-   hiding over full-screen apps, and Readex Pro as the font (static TTFs; it uses Segoe UI for now).
+3. Still to build: the flying pointer window, the monitor with the mouse, hiding over full-screen apps,
+   and Readex Pro as the font (static TTFs; it uses Segoe UI for now).
 
 ## 2026-11-04 (night) — repo cleaned, all open work merged
 
