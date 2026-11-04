@@ -12,6 +12,9 @@ Update this file at the end of every session. Newest entry on top.
 - Owner confirmed they have the rights to the books: shared library on the owner's server (prepared
   text + voice audio) so each book is voiced once for all users. Plan §6 has an example session with
   per-step costs and a 5-book cost estimate (≈ $100 first reader with Fish, ≈ $2–3 after).
+- Reading check-in: continuous reading pauses after 2 minutes ("Shall I continue?"), stops after 15 s
+  of silence. Pay only for what is read: voice at most ~30 s ahead and never past the requested range
+  (pages 46–80, first quarter of a page, N lines, a section, a time). Plan §6 has per-page costs.
 - Font map trick: learn a legacy IPA font's code map from 1–3 vision-fixed pages, fix the rest locally.
 - Optional on-device wake word "Hey Mubsir" / "يا مبصر" (Right Ctrl stays the default).
 - Repo is still public until the owner changes it (Settings → General → Danger Zone).

@@ -324,15 +324,29 @@ on a 4 GB RAM PC.
    if the book has no usable TOC.
 5. **Save a prepared book file** (`.mvb`) in the vault folder: compressed text per page + structure +
    a small search index (SQLite FTS5). Roughly 1–3 MB for a 600-page book.
-6. **Audio, just ahead of the reader**: while you read page 40, pages 41–45 are already being voiced
-   in the background. Audio is saved as Opus (~16–24 kbps, about 10 MB per hour of speech) under a
-   disk cap (default 1 GB, oldest books evicted first). Re-reading costs nothing.
-   The whole book is **not** voiced up front: most people never finish most books, and that would
-   waste money. Optional per book: "prepare all audio tonight" for someone who will listen offline.
-7. **Speed changes are free**: audio is made once at normal speed and sped up or slowed down on the PC
+6. **Audio only for what is actually read.** Voice is made sentence by sentence, at most **~30 seconds
+   ahead** of the reader (a few sentences), and **never past the end of what was asked**: "read pages
+   46 to 80" never voices page 81; "read the first quarter of the page" stops there. Text extraction
+   (free, local) may cover the whole book, but **paid steps — voice and vision fixes — only run on the
+   part being read**. Worst-case waste when the user stops: ~30 seconds of audio (≈ $0.01).
+   Audio is saved as Opus (~16–24 kbps, about 10 MB per hour of speech) under a disk cap (default 1 GB,
+   oldest books evicted first) and in the shared library. Re-reading costs nothing.
+7. **Reading amounts the user can ask for** (all understood in Arabic and English): a range of pages
+   ("46 to 80"), a part of a page ("first quarter", "the last paragraph"), N lines / sentences /
+   paragraphs, a section or chapter from the TOC, or a time ("read for 30 seconds", "for 10 minutes").
+   The reader stops exactly there and says where it stopped.
+8. **Speed changes are free**: audio is made once at normal speed and sped up or slowed down on the PC
    (pitch-preserving time-stretch), so "read faster" never re-buys the audio.
-8. **One pronunciation list per book**: names and terms are fixed once ("Chomsky", "allophone") and
+9. **One pronunciation list per book**: names and terms are fixed once ("Chomsky", "allophone") and
    reused for every page, so the book sounds consistent.
+
+**Reading check-in (2-minute rule).** A blind user may fall asleep, walk away or forget Mubsir is
+reading. So continuous reading **pauses by itself after 2 minutes** (setting: 1–10 minutes), at the end
+of a sentence, with a soft earcon and "Shall I continue?". Say "continue" / "كمّل" or tap Right Ctrl to go
+on; silence for 15 seconds means it stops, saves the exact position and voices nothing more. If the user
+asked for a specific amount ("read pages 46 to 80", "read for 10 minutes"), that request is the
+permission: it reads to the end of it, still with a check-in every 10 minutes. This is also a cost
+guard: a forgotten reader can never voice more than a few minutes of audio.
 
 **Questions about the book with few tokens:** "what does chapter 3 say about allophones?" searches the
 local index and sends Haiku only the 3–5 best-matching passages (a few thousand tokens), not the
@@ -381,6 +395,20 @@ runs a small **on-device** keyword spotter (no audio leaves the PC until it hear
 Off by default on shared PCs.
 
 ### Cost estimate: one person reads 5 books of 600 pages
+
+**Cost follows what is read, not the book's size.** Price per page (≈ 2,200 characters) with Fish
+Audio ≈ **$0.03**; with ElevenLabs Flash ≈ $0.09. Examples for a first reader (0 for later readers of the
+same pages):
+
+| What the user reads | Fish Audio | ElevenLabs Flash |
+| --- | --- | --- |
+| First quarter of one page | ≈ $0.01 | ≈ $0.02 |
+| One page | ≈ $0.03 | ≈ $0.09 |
+| Pages 46 to 80 (35 pages) | ≈ $1.15 | ≈ $3 |
+| One 30-page chapter | ≈ $1 | ≈ $2.60 |
+| A whole 600-page book | ≈ $20 | ≈ $53 |
+
+The table below is the **upper bound**: someone reading five whole books cover to cover.
 
 Assumptions (textbook): ~2,200 characters per page → **~1.3 M characters per book, ~6.6 M for 5 books**,
 about **110 hours of listening** at normal speed (≈ 1,000 characters per minute). 5 % of pages need a
