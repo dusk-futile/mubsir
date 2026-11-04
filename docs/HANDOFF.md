@@ -88,7 +88,13 @@ as an environment secret, or a connected tool). Plan:
 - Added this file and `CLAUDE.md` so work can continue from another device.
 - Draft PR: https://github.com/dusk-futile/mubsir/pull/6 (branch `claude/jolly-fermi-i04fxf`).
 
-### Known problem: CI is red (also red on `main`, not caused by the plan)
+### Fixed (2026-11-04, design session): CI was red
+Fixed by pinning `global.json` to exactly SDK 10.0.401 with `rollForward: disable`, so CI installs the SDK
+the lock files were made with. A locked restore (`CI=true`) of Core and App passes with that SDK and leaves
+the lock files unchanged. To move to a newer SDK later: install it, run
+`dotnet restore Mubsir.slnx --force-evaluate`, and commit the lock files together with the new version in
+`global.json`. The original notes follow.
+
 `Core build and add-on` fails in locked restore: `NU1004 Microsoft.NET.ILLink.Tasks 10.0.12 → 10.0.14`.
 The runner's .NET SDK 10.0.403 adds the implicit ILLink reference (from `IsTrimmable` /
 `IsAotCompatible` in `Mubsir.Core.csproj`) at 10.0.14, but the lock file says 10.0.12.
