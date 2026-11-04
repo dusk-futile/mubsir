@@ -50,6 +50,13 @@ public static class SmokeInput {
         SystemParametersInfo(SetClientAreaAnimation, 0, new IntPtr(1), SendChange);
     }
 
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr FindWindow(string className, string title);
+    [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hwnd);
+
+    public static bool IsVisible(string title) {
+        return IsWindowVisible(FindWindow(null, title));
+    }
+
     const uint SrcCopy = 0x00CC0020;
     const uint CaptureBlt = 0x40000000;
 
@@ -181,6 +188,32 @@ Shot 'panel-open'
 Start-Sleep -Milliseconds 800
 Shot 'panel-closed'
 Assert-Running $demo 'after the panel'
+
+# A full-screen app has the screen: the bird steps aside while there is nothing to show, then comes back.
+$cover = New-Object System.Windows.Forms.Form
+$cover.FormBorderStyle = 'None'
+$cover.WindowState = 'Maximized'
+$cover.TopMost = $true
+$cover.BackColor = [System.Drawing.Color]::DarkSlateGray
+$cover.Show()
+$cover.Activate()
+for ($i = 0; $i -lt 40; $i++) {
+    [System.Windows.Forms.Application]::DoEvents()
+    Start-Sleep -Milliseconds 100
+}
+$hiddenOver = -not [SmokeInput]::IsVisible('Hudhud')
+$cover.Close()
+$cover.Dispose()
+for ($i = 0; $i -lt 40; $i++) {
+    [System.Windows.Forms.Application]::DoEvents()
+    Start-Sleep -Milliseconds 100
+}
+$backAfter = [SmokeInput]::IsVisible('Hudhud')
+Note "Full-screen app: Hudhud hidden while it runs: $hiddenOver; back afterwards: $backAfter"
+if (-not $backAfter) {
+    throw 'Hudhud did not come back after the full-screen app closed'
+}
+Assert-Running $demo 'after the full-screen test'
 $dpi = [System.Drawing.Graphics]::FromHwnd([IntPtr]::Zero).DpiX
 if ($dpi -eq 96) {
     if (Test-PanelShowing 'before-click') { throw 'the panel was showing before Hudhud was clicked' }
