@@ -9,6 +9,11 @@ Update this file at the end of every session. Newest entry on top.
 - PLAN §6 "Book preparation": extract and fix each book once locally, cache voice audio just ahead of
   the reader, free speed changes, local search index so questions send only a few passages to Haiku,
   4 GB RAM limits. Roadmap phase 4 includes it.
+- Owner confirmed they have the rights to the books: shared library on the owner's server (prepared
+  text + voice audio) so each book is voiced once for all users. Plan §6 has an example session with
+  per-step costs and a 5-book cost estimate (≈ $100 first reader with Fish, ≈ $2–3 after).
+- Font map trick: learn a legacy IPA font's code map from 1–3 vision-fixed pages, fix the rest locally.
+- Optional on-device wake word "Hey Mubsir" / "يا مبصر" (Right Ctrl stays the default).
 - Repo is still public until the owner changes it (Settings → General → Danger Zone).
 
 ---

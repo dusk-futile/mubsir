@@ -287,6 +287,10 @@ TTS voice mangles or skips. Mubsir handles them itself, before the voice sees th
    garbage ("fYnim"). Mubsir checks each page: if letters are unknown, private-use (U+E000–F8FF) or
    don't form words, it sends **that page image** to Claude vision (Haiku first, Sonnet if unsure), which
    returns clean Unicode text with the IPA. The fixed page is cached so it is paid for once.
+   **Font map trick:** a legacy font maps the same wrong code to the same symbol on every page. After
+   vision fixes the first 1–3 broken pages, Mubsir learns that font's code → real symbol map and fixes
+   the rest of the book **locally, for free, and exactly** (no image guessing). Vision is used again only
+   for codes the map has not seen yet.
 5. **Never skip silently.** If a symbol is still unknown, Mubsir says "unknown symbol" and offers to
    spell its Unicode name, so the reader always knows something was there.
 
@@ -339,15 +343,65 @@ makes follow-up questions much cheaper.
 **4 GB RAM rules for preparation:** one page in memory at a time, background thread at low priority,
 paused while the user is talking or reading aloud, about 150 MB peak, stops on battery saver.
 
-**Shared audio cache (later, with care):** the owner's server could keep audio by (file fingerprint +
-voice), so a second user with the identical file downloads it instead of paying again. This is
-redistributing a recording of a book, so it is limited to public-domain or user-owned material until
-legal advice says otherwise (check Egypt's position under the Marrakesh Treaty for accessible copies).
-Default: each user's audio stays on their own PC.
+**Shared library on the owner's server (decided 2026-11-04: the owner has the rights to the books):**
+the server keeps, per book (file fingerprint) and voice:
+- the prepared text file (`.mvb`), including vision-fixed pages and the font map,
+- the voice audio, sentence by sentence (Opus).
+
+The first person to read a page pays for it once; **everyone after that downloads it** for the cost of
+storage. A PC downloads the prepared text when a book is opened, and audio a few pages ahead of the
+reader. Popular books can be fully voiced on the server once, in advance. Storage: a 600-page book is
+roughly 40–50 hours of speech ≈ 0.5 GB of Opus audio; on Cloudflare R2 that is about a cent a month,
+with no download fees.
 
 Done when: a 600-page English phonology PDF is prepared in the background on a 4 GB PC without
 slowing it down, any page opens in under 1 second, and reading the same page twice costs 0 tokens and
 0 voice characters.
+
+### Example session and what each step costs
+
+```
+PC starts           → Mubsir starts at sign-in, "Mubsir is ready"                        local, $0
+"Hey Mubsir" / Right Ctrl → listening earcon                                              local, $0
+"Find the book whose contents have chapters on allophones and stress"
+                    → local search over the TOCs of every prepared book on the PC        local, $0
+                    → Haiku ranks the matches and phrases the answer                     ~$0.001
+"I found 4. One: Introducing Phonology. Two: … Which one?"   "Number one."
+                    → opens it, maximises the window                                     local, $0
+"Read me the table of contents"   → from the prepared file, read aloud                   voice only
+"Go to the start of chapter 1"    → "Chapter 1, Phonetics, page 1. It has 4 sections: …" ~$0.001
+"Read"  → straight from page to voice (no AI), audio cached / downloaded                 voice only
+Right Ctrl → stops on the word.   "Read that again" → replays cached audio                $0
+"Continue" → resumes at the stopped word                                                 voice only
+"يعني إيه allophone؟" → local index finds passages → Haiku answers in Arabic             ~$0.002
+```
+
+Wake word: the default trigger is the Right Ctrl key. An optional "Hey Mubsir" / "يا مبصر" wake word
+runs a small **on-device** keyword spotter (no audio leaves the PC until it hears the name; low CPU).
+Off by default on shared PCs.
+
+### Cost estimate: one person reads 5 books of 600 pages
+
+Assumptions (textbook): ~2,200 characters per page → **~1.3 M characters per book, ~6.6 M for 5 books**,
+about **110 hours of listening** at normal speed (≈ 1,000 characters per minute). 5 % of pages need a
+vision fix before the font map takes over. ~1,000 voice commands and questions.
+
+| Part | First reader of these 5 books | Next readers of the same books (shared library) |
+| --- | --- | --- |
+| Voice — Fish Audio (~$15 per 1 M bytes; English ≈ 1 byte/char) | **≈ $100** | $0 |
+| Voice — if ElevenLabs Flash instead (~$0.04 / 1K chars) | ≈ $265 | $0 |
+| Vision fixes (≈ 150 pages × Haiku ≈ $0.0006 / page; worst case all 3,000 pages ≈ $2) | ≈ $0.10 | $0 |
+| Commands and questions (Haiku, ≈ $0.001–0.002 each) | ≈ $1–2 | ≈ $1–2 |
+| Speech-to-text for commands (≈ 1–2 hours of talking) | ≈ $1 (depends on the STT winner) | ≈ $1 |
+| Server storage (≈ 2.5 GB audio) | ≈ $0.05 / month | shared |
+| **Total** | **≈ $100–105** (≈ $20 per book) | **≈ $2–3** |
+
+Takeaways:
+- **The voice is ~95 % of the cost; the AI is ~2 %.** Tokens are already near zero, because reading
+  never goes through the AI. The way to save money is to voice each book only once (shared library).
+- Speed is free: listening at 2× halves the time (55 hours), not the cost, and changes nothing on the bill.
+- A denser book (2,800 chars/page) costs ~25 % more; a lighter one (1,500) ~30 % less.
+- Fish prices and per-byte billing to be confirmed on Fish's pricing page before the pilot.
 
 ### Full access, with a gate you can't trigger by accident
 
