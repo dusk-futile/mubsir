@@ -22,6 +22,19 @@ public static class SmokeInput {
         System.Threading.Thread.Sleep(40);
         keybd_event(vk, 0, 2, UIntPtr.Zero);
     }
+
+    [DllImport("user32.dll")] static extern IntPtr GetDC(IntPtr hwnd);
+    [DllImport("user32.dll")] static extern int ReleaseDC(IntPtr hwnd, IntPtr dc);
+    [DllImport("gdi32.dll")] static extern bool BitBlt(IntPtr dst, int x, int y, int w, int h, IntPtr src, int sx, int sy, uint rop);
+    const uint SrcCopy = 0x00CC0020;
+    const uint CaptureBlt = 0x40000000;
+
+    // CaptureBlt also picks up layered (transparent) windows like the overlay's.
+    public static void CopyScreen(IntPtr target, int width, int height) {
+        IntPtr screen = GetDC(IntPtr.Zero);
+        BitBlt(target, 0, 0, width, height, screen, 0, 0, SrcCopy | CaptureBlt);
+        ReleaseDC(IntPtr.Zero, screen);
+    }
 }
 '@
 
@@ -40,9 +53,9 @@ function Shot([string]$name) {
     $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
     $bitmap = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
     $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
-    # CaptureBlt also picks up layered (transparent) windows like the overlay's.
-    $mode = [System.Drawing.CopyPixelOperation]::SourceCopy -bor [System.Drawing.CopyPixelOperation]::CaptureBlt
-    $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size, $mode)
+    $target = $graphics.GetHdc()
+    [SmokeInput]::CopyScreen($target, $bounds.Width, $bounds.Height)
+    $graphics.ReleaseHdc($target)
     $bitmap.Save((Join-Path $Out "$name.png"), [System.Drawing.Imaging.ImageFormat]::Png)
     $graphics.Dispose()
     $bitmap.Dispose()
@@ -82,7 +95,7 @@ Note "Memory after the story: $(Memory-Mb $demo) MB"
 Note "CPU, awake and idle: $(Measure-Cpu $demo 5) % of one core"
 
 # It sleeps 20 s after the last activity.
-Start-Sleep -Seconds 12
+Start-Sleep -Seconds 16
 Assert-Running $demo 'while falling asleep'
 Shot 'asleep'
 Note "CPU, asleep: $(Measure-Cpu $demo 5) % of one core"

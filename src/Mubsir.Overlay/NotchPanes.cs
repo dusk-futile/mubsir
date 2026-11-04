@@ -229,6 +229,7 @@ internal sealed class IdlePane : Pane
 {
     private readonly WpfEllipse _light;
     private readonly ScaleTransform _scale = new(1, 1);
+    private double _drawnAt;
 
     public IdlePane(PaneContext context, Size2 size)
         : base(context, size)
@@ -258,6 +259,13 @@ internal sealed class IdlePane : Pane
             return FrameNeed.None;
         }
 
+        // A slow pulse: ten updates a second are enough, however fast Hudhud is being drawn.
+        if (t - _drawnAt < 0.1)
+        {
+            return FrameNeed.Slow;
+        }
+
+        _drawnAt = t;
         double period = Asleep ? 6 : 3.6;
         double dip = 0.5 - (0.5 * Math.Cos(t * Math.PI * 2 / period));
         _light.Opacity = (1 - (0.6 * dip)) * (Asleep ? 0.45 : 1);

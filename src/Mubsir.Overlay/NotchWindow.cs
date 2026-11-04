@@ -40,6 +40,9 @@ internal sealed class NotchWindow : Window, IAnimated
     private double _voiceTarget;
     private double _nextSyllable;
     private bool _hovering;
+    private double _drawnWidth = -1;
+    private double _drawnHeight = -1;
+    private double _drawnRadius = -1;
 
     public NotchWindow(OverlayAssets assets, FrameLoop loop, bool reduceMotion)
     {
@@ -324,8 +327,16 @@ internal sealed class NotchWindow : Window, IAnimated
         double h = Math.Max(0, _height.Value);
         double fillet = Math.Min(_assets.Tokens.NotchFilletMax, h / 2);
         double r = Math.Clamp(_radius.Value, 0, Math.Max(0, Math.Min(h - fillet, w / 2)));
-        _shape.Data = Outline(_center, w, h, r, fillet);
-        _panesLayer.Clip = Outline(_center, w, h, r, 0);
+
+        // Hudhud keeps the clock running, but a notch at rest must not redraw its shadow every frame.
+        if (w != _drawnWidth || h != _drawnHeight || r != _drawnRadius)
+        {
+            _drawnWidth = w;
+            _drawnHeight = h;
+            _drawnRadius = r;
+            _shape.Data = Outline(_center, w, h, r, fillet);
+            _panesLayer.Clip = Outline(_center, w, h, r, 0);
+        }
 
         double level = Math.Clamp(_rimLevel.Value, 0, 1) * (0.75 + (0.25 * Math.Min(1, _voice.Value * 1.4)));
         if (level > 0.005)
