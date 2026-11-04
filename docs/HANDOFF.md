@@ -19,6 +19,13 @@ Update this file at the end of every session. Newest entry on top.
   untitled files from text, ≈ $0.20 per 400 books). The open book prepares only previous / current / next
   page. Numbered choices (max 4), numbered starting points. Shared library stores audio by exact sentence
   text + voice; the server generates everything itself; personal data stays on the user's PC.
+- Owner decisions (latest): repo stays **public** (private would erase 71 stars); commits authored only
+  as dusk-futile, no AI attribution lines; **no daily switch to Windows voices** (premium always, only an
+  abuse guard + monthly budget alerts); password dictation with spelled read-back and corrections;
+  full mouse/keyboard parity (windows, websites, settings, text). Brand options in `docs/BRAND.md`
+  (recommended: Fanoos lantern) — owner to choose.
+- The build will run on the owner's Windows PC (Claude Desktop or `claude remote-control` there), which
+  also solves the "real Windows PC" testing need in EXECUTION.md.
 - Added `docs/EXECUTION.md`: build order, what runs where (real Windows PC needed for end-to-end),
   tests and the numbers to report in `docs/RESULTS.md`.
 - Plan: notch design (states, motion, performance budget, HTML prototype → WPF), limits policy (free vs
@@ -30,7 +37,7 @@ Update this file at the end of every session. Newest entry on top.
   small Mubsir Helper service (PLAN §8).
 - Font map trick: learn a legacy IPA font's code map from 1–3 vision-fixed pages, fix the rest locally.
 - Optional on-device wake word "Hey Mubsir" / "يا مبصر" (Right Ctrl stays the default).
-- Repo is still public until the owner changes it (Settings → General → Danger Zone).
+- Repo stays **public** to keep its 71 stars (making it private would erase them).
 
 ---
 
@@ -68,8 +75,8 @@ Alternatively, allow `builds.dotnet.microsoft.com` in the cloud environment's ne
 ask Claude to do it.
 
 ### Owner to-do (can't be done from a Claude session)
-- [ ] Make the repo private: GitHub → repo **Settings** → **General** → bottom "Danger Zone" →
-      **Change repository visibility** → Private.
+- [x] ~~Make the repo private~~ — **cancelled**: GitHub permanently erases stars and watchers when a
+      public repo is made private. The repo stays public; never commit keys.
 - [ ] Create accounts and keys: Anthropic Console, ElevenLabs, Cloudflare (Workers + R2). Set a monthly
       spend limit in each console. Keys go into the Worker as secrets later, **never** into the repo.
 - [ ] Decide the pilot's monthly budget (sets per-device daily caps; see PLAN §9 cost table).

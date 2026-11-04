@@ -83,3 +83,19 @@ At the end of each phase, give the owner (in plain language, short):
 2. The key numbers from `RESULTS.md` (pass / fail against targets).
 3. What it cost to test, and the updated monthly cost estimate.
 4. What is next and anything the owner must do (keys, testers, approvals).
+
+## Quality bar ("flawless")
+
+The owner's goal is code that does not break. Concretely, every PR must meet all of these:
+
+- **Builds with zero warnings** (`TreatWarningsAsErrors` on for new projects), nullable on, .NET analyzers
+  on at the "recommended" level.
+- **Tests first for logic**: every `Mubsir.Core` change ships with unit tests (xUnit). Parsers, the
+  policy engine, the symbol reader, the page checks and the cost guards get table-driven tests with
+  real samples, including Arabic, mixed text and broken input. Coverage of `Mubsir.Core` ≥ 85 %.
+- **Never crash the user's PC session**: every background task has a timeout and a catch that logs an
+  error code and recovers; the existing `Supervisor` restarts the app; the emergency stop always works.
+- **Review before merge**: run the `code-review` and `security-review` skills on each PR, and fix every
+  real finding. Safety-gate code (passwords, payments, admin helper) gets a second, dedicated review.
+- **Measured, not assumed**: performance and accuracy claims come with numbers in `RESULTS.md`.
+- **If something is wrong, find the root cause and fix it**, then add a test that would have caught it.

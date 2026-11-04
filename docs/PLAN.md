@@ -17,7 +17,8 @@
 | Voice | **Fish Audio (hosted API) is the lead choice**, confirmed by a blind listening test in week 1 against ElevenLabs, Azure and Google. Two voice jobs: conversation and reading. Windows voices only as an emergency fallback (§9) |
 | Access | **Full access**, including passwords and payments, behind a deliberate confirmation gesture (§6) |
 | Name | Mubsir · مُبصِر |
-| Repository | Private; everything (plan, decisions, handoff) lives in the repo so work can continue from any device |
+| Repository | **Stays public** (making it private would permanently erase its stars and watchers). Everything (plan, decisions, handoff) lives in the repo. Never commit keys or secrets |
+| Authorship | Every commit is authored by **dusk-futile** only, with no AI co-author lines |
 
 ---
 
@@ -209,7 +210,11 @@ Each row is a tool group the model can call. ✅ = exists in the current code, �
 | --- | --- | --- | --- |
 | Screen reading | "What's on this page?" "Read the titles" | `read_screen`, `describe_screen`, `ocr_window` | ✅ |
 | UI control | Click, type, scroll, focus, menus, maximise | `invoke`, `set_text`, `type_text`, `press_keys`, `scroll`, `focus`, 🆕 `window` (max/min/move/close) | ✅🔧 |
-| Raw mouse | "Drag this here", apps with no UIA | 🆕 `mouse` (move, click, drag, coordinates from UIA or computer-use) | 🆕 |
+| Raw mouse | "Drag this here", apps with no UIA | 🆕 `mouse` (move, click, double/right click, drag, hover, scroll at a point; targets from UIA or computer-use) | 🆕 |
+| Windows & layout | "Make it full screen", "put it in the top left", "split screen with Word", "make it smaller", "move it to the other monitor" | 🆕 `window`: maximise, minimise, restore, snap (left/right/quarters), resize, move, monitor, always-on-top, close | 🆕 |
+| Websites | "Search Google for…", "open the third result", "go back", "fill this form", "zoom in" | Browser via UIA + keyboard; links, buttons, forms, tabs, back/forward, zoom; screenshot + computer-use only when the page has no accessible names | 🔧 |
+| Settings | "Turn on dark mode", "change the display scale", "connect to my Wi-Fi" | `open_settings` with direct `ms-settings:` pages, then UIA on the page; system changes are level 2 | 🔧 |
+| Text editing | "Select this paragraph", "copy it", "paste in WhatsApp", "undo" | Selection, clipboard, keyboard shortcuts through UIA text patterns | 🔧 |
 | Apps & web | "Open settings", "open the browser and search" | `open_app`, `open_url`, `browse_search`, `open_settings`, `switch_to` | ✅ |
 | Files | "Open the book about tigers", "which one is newest?" | `find_files`, `list_folder`, `move/copy/rename/recycle` | ✅ |
 | Books & documents | Table of contents, "book number three", go to page 1400, read 2 lines, read for 30 s | `read_document` (PDF/DOCX/EPUB/TXT), 🔧 `toc`, 🔧 `goto_page`, 🔧 `read_for(seconds|lines|sentences)`, bookmarks (`ReadingPositions`) | ✅🔧 |
@@ -404,14 +409,16 @@ is free, it reads to the end with no check-ins.
 1. **Check-in every 2 minutes** while new (paid) audio is being made; 15 s of silence stops it and saves
    the place. "Read pages 46 to 80" is allowed; it still checks in every 10 minutes. A forgotten reader
    can never cost more than a few minutes of audio.
-2. **Invisible daily premium budget per device** (e.g. 60 minutes of new audio). After it, reading
-   **continues without stopping** in the on-device Windows natural voice. The owner chooses whether
-   the switch is silent or marked by one short soft tone (no words). Premium returns the next day.
+2. **Always the premium voice** (owner's decision 2026-11-04: no daily switch to Windows voices). The
+   only per-device ceiling is a very high **abuse guard** (e.g. 8 hours of new audio a day) that a real
+   person never reaches; it exists to stop scripts or a stolen device token. Windows voices are used
+   only when the PC is offline.
 3. **Cached audio is always premium and free**, so popular books stay in the good voice forever.
 4. **AI and speech-to-text** are so cheap (§9 price list) that their daily soft cap (e.g. 500 requests)
    is only an abuse guard; normal users never get near it.
-5. **Global monthly budget** for the owner: at 80 % an alert to the owner; at 100 % everyone's new
-   audio uses the Windows voice until the month ends; AI keeps working within a separate hard ceiling.
+5. **Global monthly budget** for the owner: alerts at 50 %, 80 % and 100 %. The owner decides then
+   (raise the budget, or switch to a cheaper premium voice); there is a hard stop only at an emergency
+   ceiling the owner sets (e.g. 2× the budget), so a bug can never empty the bank account.
 
 **Questions about the book with few tokens:** "what does chapter 3 say about allophones?" searches the
 local index and sends Haiku only the 3–5 best-matching passages (a few thousand tokens), not the
@@ -524,6 +531,10 @@ Takeaways:
 - A denser book (2,800 chars/page) costs ~25 % more; a lighter one (1,500) ~30 % less.
 - Fish prices and per-byte billing to be confirmed on Fish's pricing page before the pilot.
 
+**Goal: anything a mouse and keyboard can do, the voice can do.** If a target has an accessible name
+(most apps and websites), Mubsir uses it directly: exact and cheap. If not, it falls back to a
+screenshot and the computer-use toolset (Sonnet), and remembers that app needs it.
+
 ### Full access, with a gate you can't trigger by accident
 
 A blind user can't type a password they can't see, so Mubsir must be able to log in and pay for them.
@@ -546,9 +557,19 @@ If the website domain doesn't match the saved login (a phishing page), Mubsir re
 
 **How passwords work without the AI ever seeing them (Secrets Vault):**
 
-1. Setup: "Save my Gmail password." Mubsir opens a secure entry mode. The user either types it once
-   (each key is echoed by voice), or spells it aloud. Secure entry uses **on-device Windows speech
-   recognition only**, so the password never goes to the cloud. Mubsir reads it back for checking.
+1. Setup: "Save my Gmail password." Mubsir opens a **secure entry mode** (a distinct sound tells the user
+   it is on; the AI is paused). The user types it, or **says and spells it**:
+   ```
+   You:    "My password is one two four, dusk, spelled D U S K, capital D."
+   Mubsir: "I have: 1, 2, 4, capital D as in David, u, s, k. Is that right?"
+   You:    "No, the s is a capital S."
+   Mubsir: "Changed. 1, 2, 4, capital D, u, capital S, k. Is that right?"   You: "Yes."
+   ```
+   Every character is read back with its case and a clear example word ("S as in Sara"), digits one
+   by one, symbols by name ("at sign", "underscore"). Corrections work by position ("the third letter"),
+   by character ("the s"), "delete the last one", "start again". Secure entry uses **on-device
+   recognition** (a small local speech model loaded only for this, then unloaded), so the password never
+   goes to the cloud; no logs, no history.
 2. It is stored in the Windows Credential Manager (encrypted with the user's Windows login), tied to the
    site's domain, e.g. `accounts.google.com`.
 3. Later: "Log into Gmail." The AI calls `fill_secret("gmail")`. Mubsir checks the domain, asks for the
@@ -719,7 +740,7 @@ Rough relay traffic: 10 users reading 2 hours a day ≈ 20,000 requests a day, i
 | Protection | Why |
 | --- | --- |
 | One token per device, created on first start | A leaked token can be switched off without breaking everyone |
-| **Invisible daily caps per device** (e.g. 60 minutes of new premium audio, 500 AI requests), set from the server | One heavy user or a script can't run up the bill |
+| **Abuse guard per device** (e.g. 8 hours of new audio, 500 AI requests a day), set from the server; real users never reach it | A script or stolen token can't run up the bill |
 | **Global monthly budget** with an alert at 50 % / 80 % and a hard stop at 100 % | No surprise bills |
 | Over-cap behaviour: reading continues in the Windows natural voice, silently or with one soft tone; no "limit reached" message | The user is never stopped or lectured |
 | Invite codes (optional switch) | If the zip spreads beyond the people it was sent to |
@@ -776,8 +797,13 @@ Rules:
 | Typical | 50 commands, 20 pages | $1.50 | $0.90 | $4.50 | $18 | **≈ $25** |
 | Heavy reader | 50 commands, 60 pages | $1.50 | $0.90 | $4.50 | $54 | **≈ $60** |
 
-With the 60-minute daily premium-audio cap (§6 Limits), a heavy reader costs at most **≈ $35 / month**;
-reading beyond it continues in the free Windows voice, or in premium wherever the audio is already cached.
+There is no daily switch to Windows voices, so a heavy reader really costs ≈ $60 / month as first reader;
+pages already in the shared library cost $0, so in practice it is lower.
+
+**What the user types mean:** "light" = uses Mubsir for commands and a little reading, about 10 minutes
+of talking and 5 book pages a day; "typical" = about 25 minutes of talking and 20 pages (~45 minutes of
+listening) a day; "heavy reader" = about 2 hours of listening a day (60 pages). These are planning
+assumptions; the pilot measures real usage per user (counts only, never content).
 
 **Owner's total**: pilot of 10 users (5 light, 4 typical, 1 heavy) ≈ **$200 / month** + ≈ $15 fixed.
 100 users with the same mix ≈ $2,000 / month before library savings; when many users read the same
@@ -798,7 +824,7 @@ cost roughly $50 – $400 a month depending on how much they read. Ways to bring
 
 1. Audio cache (same page never billed twice; shared across users for the same public book file).
 2. The cheapest voice that wins the listening test for each job (Azure is ~$15 per 1M for reading).
-3. A daily premium-audio cap, with Windows natural voices after it.
+3. Check-ins so a forgotten reader stops after a few minutes (no daily voice switch: owner's decision).
 4. Apply to voice providers' programmes for non-profit / accessibility projects and ask Anthropic about
    startup or non-profit credits. A free tool for blind Arabic speakers is a strong case. (Not verified
    what is on offer today; check before the pilot.)
@@ -905,8 +931,8 @@ Still open:
 1. **Monthly budget** the owner is willing to spend during the pilot. This sets the per-device daily caps (§9).
 2. **Pilot users:** can the owner find ~10 blind testers (schools, associations) for phase 8?
 3. **Code signing certificate** before the pilot (about $10/month) — recommended.
-4. **Distribution link:** the repo is private, so GitHub Releases can't be downloaded by testers. The zip
-   will be hosted on the owner's Cloudflare account (R2) next to the server, or shared by Drive/WhatsApp.
+4. **Distribution link:** the repo stays public (to keep its stars), so the zip can be published as a
+   GitHub Release, or hosted on the owner's Cloudflare R2, or shared by Drive/WhatsApp.
 
 ## Sources
 
