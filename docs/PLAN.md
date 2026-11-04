@@ -66,7 +66,21 @@ we do not copy Saywork's code, name or branding.
 3. **Encrypted long-term memory** of whole conversations you can resume ("continue what we did yesterday at 6 PM").
 4. **Arabic-first**: Egyptian, Gulf, Levantine, Maghrebi and MSA, mixed with English mid-sentence.
 
+5. **Reads anything**: any book in two languages, IPA and other special symbols, broken PDF fonts (§6).
+
 The existing Mubsir code (29k lines of C#) already has #1, #2 and #4 in part (§11).
+
+| | Clicky | Saywork | **Mubsir** |
+| --- | --- | --- | --- |
+| Points at / explains the screen | ✅ | — | ✅ (normal mode) |
+| Actually clicks and types for you | ❌ | ✅ (Caps Lock tasks) | ✅ full PC control, safety gate |
+| Dictation into any app | ❌ | ✅ | ✅ (Caps Lock) |
+| Blind mode (no sight needed, NVDA) | ❌ | ❌ (as far as we know) | ✅ |
+| Reads books by page, bookmarks, timed reading | ❌ | ❌ (as far as we know) | ✅ |
+| Phonetic symbols, maths, broken PDFs | ❌ | ❌ | ✅ |
+| Memory across days ("yesterday at 6 PM") | ❌ | ❌ (as far as we know) | ✅ encrypted vault |
+| Passwords and payments for blind users | ❌ | asks before paid actions | ✅ local Secrets Vault + 4× Right Ctrl |
+| Egyptian Arabic + English | ❌ | ✅ | ✅ |
 
 ---
 
@@ -469,7 +483,7 @@ Rules:
   with roughly 7–20 GB of VRAM. They can never run on users' 4 GB PCs. Self-hosting on the owner's GPU
   server is a later cost option, only after a written licence from Fish Audio.
 
-### What it will cost (estimate, verify on elevenlabs.io/pricing)
+### What it will cost (estimates; verify on each provider's pricing page)
 
 Reported API list prices (October 2026): **Flash v2.5 ≈ $0.04 per 1,000 characters**,
 **Multilingual v2 / v3 ≈ $0.08 per 1,000 characters**. 1,000 characters ≈ 1 minute of speech.
@@ -492,6 +506,18 @@ cost roughly $50 – $400 a month depending on how much they read. Ways to bring
 ## 10. Staying light on old PCs
 
 Target: 4 GB RAM Windows 10 PCs (the current README target).
+
+**What a user's PC needs** (all AI and voices run in the cloud through the owner's server):
+
+| | Minimum |
+| --- | --- |
+| Windows | 10 (22H2) or 11, 64-bit |
+| Memory | 4 GB RAM |
+| Graphics card | None needed |
+| Disk | ~300 MB for Mubsir, plus the audio cache (capped, e.g. 1 GB) |
+| Audio | Microphone + speakers or headphones (headphones recommended in shared rooms) |
+| Internet | ~1 Mbps; voice streaming needs a stable connection. Offline: screen reading, OCR and Windows voices still work |
+| Screen reader | NVDA for blind users (installer offers it) |
 
 - Native .NET 10 app, no Electron, no browser engine. Idle: < 80 MB RAM, ~0% CPU.
 - Overlay windows are created only in normal mode and only while showing something.

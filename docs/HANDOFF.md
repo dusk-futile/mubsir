@@ -10,9 +10,10 @@ Update this file at the end of every session. Newest entry on top.
 - Voice decision changed: **Fish Audio** is the lead (hosted API, cheaper, strong in blind tests),
   confirmed by a week-1 listening test. Fish open weights rejected for now (research licence, needs a GPU).
 - Plan §6 now has "Reading anything": Arabic speaker + English book, IPA/phonetic symbols, broken PDF fonts.
+- Plan §1 now has a Clicky / Saywork / Mubsir comparison table; §10 lists what a user's PC needs.
 - Researched Clicky (open source, read its code) and Saywork (store listing only). Findings in `docs/PLAN.md` §1.
 - Wrote `docs/PLAN.md` (Mubsir 2.0 plan). The owner approved it, then locked these decisions:
-  free for users, zip distribution with no keys, Windows only, ElevenLabs everywhere, full access with
+  free for users, zip distribution with no keys, Windows only, ElevenLabs everywhere (later changed to Fish Audio, see above), full access with
   a 4× Right Ctrl gesture for passwords and payments, name stays Mubsir.
 - Added skills `agent-reach` and `reverse-engineer-anything` to `.claude/skills/` (MIT, sources in
   `.claude/skills/README.md`). `.gitignore` now tracks `.claude/skills/` only.
