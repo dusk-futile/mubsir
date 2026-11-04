@@ -7,6 +7,7 @@ internal enum RunMode
     SetKey,
     ClearKey,
     Version,
+    OverlayDemo,
     Invalid,
 }
 
@@ -29,6 +30,11 @@ internal sealed record CommandLine(
         if (args.Any(a => Is(a, "--version")))
         {
             return new CommandLine(RunMode.Version);
+        }
+
+        if (args.Any(a => Is(a, "--overlay-demo")))
+        {
+            return new CommandLine(RunMode.OverlayDemo);
         }
 
         if (args.Any(a => Is(a, WatchFlag)))

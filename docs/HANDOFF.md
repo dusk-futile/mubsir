@@ -33,7 +33,7 @@ checklist, and Ctrl to stop and undo. Published as version 4 on the owner's link
 
 - **Hudhud is now a cutout puppet.** ChatGPT (the owner's account, in the desktop app's browser pane)
   drew two part sheets on a lime-green background. The parts were cut out with soft chroma-key edges
-  into `prototypes/hudhud-companion/assets/hudhud-rig/` (16 PNGs). `rig.json` gives each part's joint,
+  into `assets/hudhud/` (16 PNGs; moved there from the prototype folder so the app shares them). `rig.json` gives each part's joint,
   place and resting angle; `build.py` bakes them into `index.html` as one layered SVG.
   - The crest feathers grow from the crown: they slide forward and fan up when raised and lie back
     when folded. The flight feathers tuck under the wing and spread when it lifts.

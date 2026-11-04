@@ -9,7 +9,7 @@ Status (2026-11-04, design session): two parts, both chosen by the owner.
   The owner chose concept 4, the **layered paper-cut** hoopoe
   (`prototypes/hudhud-companion/assets/concepts/hudhud-4-paper-cut.jpg`), now an animated cutout
   puppet: ChatGPT drew each part (body, head with open and closed eyes, wing, three flight feathers,
-  six crest feathers, tail, legs), and `prototypes/hudhud-companion/assets/hudhud-rig/rig.json` says
+  six crest feathers, tail, legs), and `assets/hudhud/rig.json` says
   where each part's joint is. The hand-drawn SVG version looked blocky to the owner and was replaced.
 
 The name stays **Mubsir · مُبصِر** ("the one who sees"). Most important for blind users, the identity
