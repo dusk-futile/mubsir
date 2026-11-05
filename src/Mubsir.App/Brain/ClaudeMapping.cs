@@ -77,7 +77,7 @@ internal static class ClaudeMapping
         AnthropicUnprocessableEntityException => new BrainFailed(BrainErrorKind.BadRequest, "http_422"),
         Anthropic5xxException x => new BrainFailed(BrainErrorKind.Overloaded, StatusCode(x, "http_5xx")),
         Anthropic4xxException x => new BrainFailed(BrainErrorKind.BadRequest, StatusCode(x, "http_4xx")),
-        AnthropicSseException => new BrainFailed(BrainErrorKind.Overloaded, "stream_error"),
+        AnthropicSseException => new BrainFailed(BrainErrorKind.Network, "stream_error"),
         AnthropicIOException => new BrainFailed(BrainErrorKind.Network, "io"),
         HttpRequestException => new BrainFailed(BrainErrorKind.Network, "http_request"),
         TimeoutException or TaskCanceledException or OperationCanceledException => new BrainFailed(BrainErrorKind.Network, "timeout"),

@@ -36,8 +36,7 @@ internal sealed class ClaudeTurnAccumulator
 
         if (ev.TryPickContentBlockStart(out var start))
         {
-            StartBlock(start);
-            return null;
+            return StartBlock(start);
         }
 
         if (ev.TryPickStart(out var messageStart))
@@ -189,7 +188,7 @@ internal sealed class ClaudeTurnAccumulator
         return null;
     }
 
-    private void StartBlock(Sdk.RawContentBlockStartEvent e)
+    private string? StartBlock(Sdk.RawContentBlockStartEvent e)
     {
         var b = e.ContentBlock;
         Block block;
@@ -197,6 +196,14 @@ internal sealed class ClaudeTurnAccumulator
         {
             block = new Block(BlockKind.Text);
             block.Text.Append(text.Text);
+            _blocks[e.Index] = block;
+            if (text.Text.Length > 0)
+            {
+                SawFirstText = true;
+                return text.Text;
+            }
+
+            return null;
         }
         else if (b.TryPickThinking(out var thinking))
         {
@@ -227,6 +234,7 @@ internal sealed class ClaudeTurnAccumulator
         }
 
         _blocks[e.Index] = block;
+        return null;
     }
 
     private static void AppendInitialInput(Block block, IReadOnlyDictionary<string, JsonElement>? input)

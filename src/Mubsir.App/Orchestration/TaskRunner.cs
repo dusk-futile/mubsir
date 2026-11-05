@@ -327,6 +327,12 @@ internal sealed class TaskRunner
                 _app.Speech.PlayEarcon(Earcon.Done);
                 break;
             case AgentEnd.BrainError:
+                if (!string.IsNullOrWhiteSpace(outcome.FinalText) || _narrator.HasOutput)
+                {
+                    _app.Speech.Speak(Strings.Get(StringKey.ConnectionDropped, lang), UtteranceKind.System, lang, interrupt: false);
+                    break;
+                }
+
                 _app.SayBrainError(outcome.Error ?? BrainErrorKind.Other, lang);
                 break;
         }

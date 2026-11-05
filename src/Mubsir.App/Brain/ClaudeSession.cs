@@ -18,7 +18,7 @@ internal sealed class ClaudeSession : IBrainSession
     private readonly BrainSessionOptions _options;
     private readonly string _model;
     private readonly IEventLog _log;
-    private readonly List<Sdk.MessageParam> _history = [];
+    private readonly List<ConversationMessage> _history = [];
     private readonly List<Sdk.TextBlockParam> _system;
     private readonly List<Sdk.ToolUnion> _tools;
     private readonly SemaphoreSlim _busy = new(1, 1);
@@ -163,7 +163,21 @@ internal sealed class ClaudeSession : IBrainSession
 
                 if (content.Count > 0)
                 {
-                    _history.Add(new Sdk.MessageParam { Role = Sdk.Role.Assistant, Content = content });
+                    var blocks = new List<ConversationBlock>(content.Count);
+                    foreach (var c in content)
+                    {
+                        if (c.TryPickToolUse(out var tu))
+                        {
+                            blocks.Add(new ConversationBlock.ToolUse(tu.ID, tu.Name, c));
+                        }
+                        else
+                        {
+                            blocks.Add(new ConversationBlock.Other(c));
+                        }
+                    }
+
+                    _history.Add(new ConversationMessage(ConversationRole.Assistant, blocks));
+                    ConversationTrimmer.PrepareHistory(_history);
                 }
 
                 yield return new UsageReported(usage);
@@ -241,44 +255,36 @@ internal sealed class ClaudeSession : IBrainSession
         {
             case UserTurn turn:
                 {
-                    var content = new List<Sdk.ContentBlockParam>();
+                    var blocks = new List<ConversationBlock>();
                     if (!string.IsNullOrWhiteSpace(turn.ScreenContextText))
                     {
-                        content.Add(new Sdk.TextBlockParam { Text = ClaudeMapping.WrapScreen(turn.ScreenContextText) });
+                        blocks.Add(new ConversationBlock.Text(ClaudeMapping.WrapScreen(turn.ScreenContextText)));
                     }
 
                     if (turn.JpegImage is { Length: > 0 } jpeg)
                     {
-                        content.Add(new Sdk.ImageBlockParam
-                        {
-                            Source = new Sdk.Base64ImageSource
-                            {
-                                Data = Convert.ToBase64String(jpeg),
-                                MediaType = Sdk.MediaType.ImageJpeg,
-                            },
-                        });
+                        blocks.Add(new ConversationBlock.Image(jpeg, "image/jpeg"));
                     }
 
-                    content.Add(new Sdk.TextBlockParam { Text = string.IsNullOrWhiteSpace(turn.Text) ? "(no words)" : turn.Text });
-                    _history.Add(new Sdk.MessageParam { Role = Sdk.Role.User, Content = content });
+                    blocks.Add(new ConversationBlock.Text(string.IsNullOrWhiteSpace(turn.Text) ? "(no words)" : turn.Text));
+                    _history.Add(new ConversationMessage(ConversationRole.User, blocks));
+                    ConversationTrimmer.PrepareHistory(_history);
                     return null;
                 }
 
             case ToolResults results when results.Results.Count > 0:
                 {
-                    var content = new List<Sdk.ContentBlockParam>(results.Results.Count);
+                    var blocks = new List<ConversationBlock>(results.Results.Count);
                     foreach (var r in results.Results)
                     {
-                        var block = new Sdk.ToolResultBlockParam
-                        {
-                            ToolUseID = r.ToolCallId,
-                            Content = string.IsNullOrEmpty(r.Content) ? "(empty)" : r.Content,
-                        };
-
-                        content.Add(r.IsError ? block with { IsError = true } : block);
+                        blocks.Add(new ConversationBlock.ToolResult(
+                            r.ToolCallId,
+                            string.IsNullOrEmpty(r.Content) ? "(empty)" : r.Content,
+                            r.IsError));
                     }
 
-                    _history.Add(new Sdk.MessageParam { Role = Sdk.Role.User, Content = content });
+                    _history.Add(new ConversationMessage(ConversationRole.User, blocks));
+                    ConversationTrimmer.PrepareHistory(_history);
                     return null;
                 }
 
@@ -289,12 +295,13 @@ internal sealed class ClaudeSession : IBrainSession
 
     private Sdk.MessageCreateParams BuildParams()
     {
+        ConversationTrimmer.PrepareHistory(_history);
         var p = new Sdk.MessageCreateParams
         {
             Model = _model,
             MaxTokens = Quick ? QuickMaxTokens : AgentMaxTokens,
             System = _system,
-            Messages = [.. _history],
+            Messages = _history.Select(ToSdkMessage).ToList(),
             OutputConfig = new Sdk.OutputConfig { Effort = Sdk.Effort.Low },
         };
 
@@ -348,5 +355,49 @@ internal sealed class ClaudeSession : IBrainSession
         catch (Exception)
         {
         }
+    }
+
+    private static Sdk.MessageParam ToSdkMessage(ConversationMessage msg)
+    {
+        var content = new List<Sdk.ContentBlockParam>(msg.Blocks.Count);
+        foreach (var b in msg.Blocks)
+        {
+            switch (b)
+            {
+                case ConversationBlock.Text t:
+                    content.Add(new Sdk.TextBlockParam { Text = t.Content });
+                    break;
+                case ConversationBlock.Image img:
+                    content.Add(new Sdk.ImageBlockParam
+                    {
+                        Source = new Sdk.Base64ImageSource
+                        {
+                            Data = Convert.ToBase64String(img.Bytes),
+                            MediaType = Sdk.MediaType.ImageJpeg,
+                        },
+                    });
+                    break;
+                case ConversationBlock.ToolResult tr:
+                    var rBlock = new Sdk.ToolResultBlockParam
+                    {
+                        ToolUseID = tr.ToolCallId,
+                        Content = string.IsNullOrEmpty(tr.Content) ? "(empty)" : tr.Content,
+                    };
+                    content.Add(tr.IsError ? rBlock with { IsError = true } : rBlock);
+                    break;
+                case ConversationBlock.ToolUse { Raw: Sdk.ContentBlockParam raw }:
+                    content.Add(raw);
+                    break;
+                case ConversationBlock.Other { Raw: Sdk.ContentBlockParam raw }:
+                    content.Add(raw);
+                    break;
+            }
+        }
+
+        return new Sdk.MessageParam
+        {
+            Role = msg.Role == ConversationRole.User ? Sdk.Role.User : Sdk.Role.Assistant,
+            Content = content,
+        };
     }
 }

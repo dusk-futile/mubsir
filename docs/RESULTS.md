@@ -9,7 +9,7 @@ Measured 2026-11-05 on macOS, SDK 10.0.401, on branch `feat/reading-direct`. Not
 
 | Test | Sample | Value | Target | Result |
 | --- | --- | --- | --- | --- |
-| Core unit tests, all | 240 tests | 240 pass | all pass | Pass |
+| Core unit tests, all | 404 tests | 404 pass | all pass | Pass |
 | Teaching blocks action tools | 7 tools | all blocked by the policy | all | Pass |
 | A first conversation with answers it can't understand | 30 tries | finishes on safe defaults | can't get stuck | Pass |
 | Release build of the solution | Core, Overlay, App, tests | 0 errors | 0 | Pass |

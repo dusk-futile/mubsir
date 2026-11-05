@@ -61,12 +61,13 @@ public sealed class AgentLoop(
                 ct.ThrowIfCancellationRequested();
                 if (turn.Error is { } error)
                 {
-                    if (turn.Text.Length > 0)
+                    string? partialText = string.IsNullOrWhiteSpace(turn.Text) ? null : turn.Text;
+                    if (partialText is not null)
                     {
                         narrator.AnswerEnd();
                     }
 
-                    return new AgentOutcome(AgentEnd.BrainError, steps, error, turn.Text.Length > 0 ? turn.Text : null);
+                    return new AgentOutcome(AgentEnd.BrainError, steps, error, partialText);
                 }
 
                 if (quick || turn.Calls.Count == 0)
