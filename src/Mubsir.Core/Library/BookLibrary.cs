@@ -5,7 +5,7 @@ using Mubsir.Core.Text;
 namespace Mubsir.Core.Library;
 
 /// <summary>What Mubsir knows about one book on this PC, read locally from its first pages.</summary>
-public sealed record LibraryCard(string Path, string? Print, string Title, string? Author, int Pages, string Opening, long Length, DateTime Written, bool Locked = false);
+public sealed record LibraryCard(string Path, string? Print, string Title, string? Author, int Pages, string Opening, long Length, DateTime Written, bool Locked = false, string? About = null, string? Keywords = null);
 
 public static class BookTitle
 {
@@ -71,6 +71,15 @@ public sealed class BookLibrary(string file)
         lock (_gate)
         {
             return Cards().TryGetValue(Key(path), out LibraryCard? card) && card.Length == length && card.Written == written;
+        }
+    }
+
+    /// <summary>Books that may be described and aren't yet.</summary>
+    public IReadOnlyList<LibraryCard> Undescribed(int count)
+    {
+        lock (_gate)
+        {
+            return Cards().Values.Where(BookDescriber.Worth).Take(count).ToArray();
         }
     }
 
@@ -143,6 +152,7 @@ public sealed class BookLibrary(string file)
                 string name = ArabicFolding.Fold(System.IO.Path.GetFileNameWithoutExtension(card.Path));
                 string opening = ArabicFolding.Fold(card.Opening);
                 string author = ArabicFolding.Fold(card.Author ?? string.Empty);
+                string about = ArabicFolding.Fold((card.About ?? string.Empty) + " " + (card.Keywords ?? string.Empty));
                 double score = 0;
                 int hit = 0;
                 foreach (string term in terms)
@@ -150,6 +160,7 @@ public sealed class BookLibrary(string file)
                     double best = title.Contains(term, StringComparison.Ordinal) ? 5
                         : name.Contains(term, StringComparison.Ordinal) ? 3
                         : author.Contains(term, StringComparison.Ordinal) ? 3
+                        : about.Contains(term, StringComparison.Ordinal) ? 2
                         : opening.Contains(term, StringComparison.Ordinal) ? 1 : 0;
                     score += best;
                     hit += best > 0 ? 1 : 0;
@@ -286,10 +297,22 @@ public static class BookListText
             string pages = c.Pages > 0 ? (ar ? $"، {c.Pages} صفحة" : $", {c.Pages} pages") : string.Empty;
             bool twin = cards.Count(o => string.Equals(o.Title, c.Title, StringComparison.OrdinalIgnoreCase)) > 1;
             string where = twin ? (ar ? "، في " : ", in ") + System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(c.Path)) : string.Empty;
-            lines.Add($"{i + 1}: {c.Title}{pages}{where}.");
+            string about = FirstSentence(c.About) is { } first ? " " + first : string.Empty;
+            lines.Add($"{i + 1}: {c.Title}{pages}{where}.{about}");
         }
 
         lines.Add(ar ? "قول الرقم." : "Say the number.");
         return string.Join(' ', lines);
+    }
+
+    private static string? FirstSentence(string? about)
+    {
+        if (string.IsNullOrWhiteSpace(about))
+        {
+            return null;
+        }
+
+        int end = about.IndexOfAny(['.', '؟', '?', '!', '\n']);
+        return end > 0 ? about[..(end + 1)].Trim() : about.Trim();
     }
 }

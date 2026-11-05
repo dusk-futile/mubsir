@@ -3,6 +3,28 @@
 Measured numbers for each phase (`docs/EXECUTION.md` → "Tests and the numbers to report").
 Every row: date, commit, sample size, value, target, pass or fail.
 
+## Full PC control, numbered results, book descriptions, IPA, voices
+
+Measured 2026-11-05 on macOS, SDK 10.0.401. Nothing here has run on Windows. `docs/WINDOWS-TEST.md` rows 16 to 22 prove it.
+
+| Test | Sample | Value | Target | Result |
+| --- | --- | --- | --- | --- |
+| Core unit tests, all | 440 tests | 440 pass | all pass | Pass |
+| Release build of the solution | Core, Overlay, App, tests | 0 errors, 0 warnings | 0 | Pass |
+| Voice sample links work with no key | 14 voices | 14 return 200 | all | Pass |
+
+Local voices, one 10 to 15 second passage each, on an Intel i3-8100 (4 cores, 3.6 GHz), macOS, sherpa-onnx. Above 1x it can read live. RAM is the whole Python process, so the app would differ.
+
+| Voice | On disk | Threads | Speed | Peak RAM | Result |
+| --- | --- | --- | --- | --- | --- |
+| Kokoro multi-lang v1.0, int8 | 182 MB | 2 | 0.5 to 0.6x | 418 MB | Too slow to read live |
+| Kokoro multi-lang v1.0, int8 | 182 MB | 4 | 0.3x | 333 MB | Too slow to read live |
+| Piper Amy, English, medium | 79 MB | 2 | 9.2x | 294 MB | Fast enough |
+| Piper Ryan, English, medium | 78 MB | 2 | 12.1x | 232 MB | Fast enough |
+| Piper Kareem, Arabic, medium | 78 MB | 2 | 10.9x | 308 MB | Fast enough |
+
+Sherpa-onnx 2.0 could not phonemize Kokoro v0.19 or Piper here, so Piper ran on 1.12.40. Piper needs espeak-ng, which is GPL: check the licence before shipping it. No local voice is in the app yet.
+
 ## Own-keys app, setup, teaching and audit fixes
 
 Measured 2026-11-05 on macOS, SDK 10.0.401, on branch `feat/reading-direct`. Nothing below has run on Windows or by ear. `docs/WINDOWS-TEST.md` lists what proves each part.

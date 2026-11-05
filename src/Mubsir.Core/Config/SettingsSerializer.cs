@@ -95,6 +95,7 @@ public static class SettingsSerializer
             AgentMaxSeconds = s.AgentMaxSeconds > 0 ? s.AgentMaxSeconds : MubsirSettings.DefaultAgentMaxSeconds,
             UserKind = Enum.IsDefined(s.UserKind) ? s.UserKind : UserKind.Unknown,
             FishVoiceId = string.IsNullOrWhiteSpace(s.FishVoiceId) ? null : s.FishVoiceId.Trim(),
+            FishVoiceIdArabic = string.IsNullOrWhiteSpace(s.FishVoiceIdArabic) ? null : s.FishVoiceIdArabic.Trim(),
             SessionsFolder = string.IsNullOrWhiteSpace(s.SessionsFolder) ? null : s.SessionsFolder.Trim(),
         };
     }

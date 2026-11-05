@@ -85,8 +85,8 @@ public interface IPageRepair
 /// </summary>
 public sealed class PageImageBudget(string? file = null)
 {
-    public const int MaxInARow = 3;
-    public const int MaxPerBookPerDay = 10;
+    public const int MaxInARow = 20;
+    public const int MaxPerBookPerDay = 25;
 
     private readonly object _gate = new();
     private readonly Dictionary<string, string> _repaired = new(StringComparer.Ordinal);

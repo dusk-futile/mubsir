@@ -77,6 +77,12 @@ internal static class SetupDemo
 
         public string? GetFishVoiceId() => null;
 
+        public string? GetFishVoiceIdArabic() => null;
+
+        public void SetFishVoiceIdArabic(string? voiceId)
+        {
+        }
+
         public void SetFishVoiceId(string? voiceId)
         {
         }

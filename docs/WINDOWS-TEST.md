@@ -31,4 +31,11 @@ Each test says what proves it. Anything not proved stays "not tested".
 | 12 | Read a real book for 20 minutes through NVDA, stop, resume tomorrow's place. Do it once in the Fish voice with Mubsir Bridge installed: are the gaps between sentences acceptable, and does the spending command match Fish's own usage page? | The place is right, and the cost matches |
 | 13 | Sleep and wake the PC, then hold Right Ctrl | It listens at once |
 | 14 | RAM and CPU on a 4 GB PC or VM: with and without Hudhud, asleep and active | Numbers go in `docs/RESULTS.md` |
+| 16 | Say "دور على مواعيد الصلاة" in Chrome and Edge | Up to 5 real results read with numbers, no ads; "رقم واحد" opens it |
+| 17 | `click_on` in an app with no accessible buttons, such as Paint. Say "اضغط على الدايرة الزرقا" | The right place gets clicked. A button that says Pay asks for a key press first |
+| 18 | "افتح الملف" on a PDF and on an installer | The PDF opens, the installer asks for Enter, a .bat is refused |
+| 19 | "غير الصوت" with a Fish key, then pick a number | Each sample plays with its number, Ctrl stops them, the choice stays after a restart |
+| 20 | Read a page in the Fish voice twice | The second time costs nothing in the spending command |
+| 21 | A book with /ʃɪp/ in it | Said sound by sound |
+| 22 | Say yes to describing books, then wait for the next scan and search by subject | Bank statements and short files aren't described |
 | 15 | Install `Mubsir.msix` with a test signature | It starts, listens and restarts at sign-in |

@@ -52,6 +52,10 @@ public interface ISetupDriver
 
     void SetFishVoiceId(string? voiceId);
 
+    string? GetFishVoiceIdArabic();
+
+    void SetFishVoiceIdArabic(string? voiceId);
+
     void TestVoice(Lang lang);
 
     void ReportProblem();
@@ -65,6 +69,29 @@ public interface ISetupDriver
 /// </summary>
 public sealed class SetupWindow : Window
 {
+    private ComboBox VoiceList(string name, Lang lang, string? current, Action<string?> choose)
+    {
+        var list = new ComboBox { FontFamily = Font, FontSize = 13, Margin = new Thickness(0, 0, 0, 10) };
+        AutomationProperties.SetName(list, name);
+        list.Items.Add(name + ": " + T("الافتراضي", "default"));
+        foreach (var voice in Mubsir.Core.Speech.VoiceCatalog.For(lang))
+        {
+            list.Items.Add(name + " " + voice.Number + ": " + voice.Name);
+            if (voice.Id == current)
+            {
+                list.SelectedIndex = voice.Number;
+            }
+        }
+
+        if (list.SelectedIndex < 0)
+        {
+            list.SelectedIndex = 0;
+        }
+
+        list.SelectionChanged += (_, _) => choose(list.SelectedIndex == 0 ? null : Mubsir.Core.Speech.VoiceCatalog.Get(lang, list.SelectedIndex)?.Id);
+        return list;
+    }
+
     private static readonly Brush Ground = Palette.Solid(Color.FromRgb(0xF7, 0xF6, 0xF3));
     private static readonly Brush Ink = Palette.Solid(Color.FromRgb(0x1B, 0x1C, 0x20));
     private static readonly Brush Quiet = Palette.Solid(Color.FromRgb(0x5E, 0x60, 0x68));
@@ -545,6 +572,13 @@ public sealed class SetupWindow : Window
             _driver.TestVoice(Lang.English);
         }));
         Add(voiceTestPanel);
+
+        Add(VoiceList(T("صوت العربية", "Arabic voice"), Lang.Arabic, _driver.GetFishVoiceIdArabic(), _driver.SetFishVoiceIdArabic));
+        Add(VoiceList(T("صوت الإنجليزية", "English voice"), Lang.English, _driver.GetFishVoiceId(), id =>
+        {
+            _driver.SetFishVoiceId(id);
+            voiceIdBox.Text = id ?? string.Empty;
+        }));
 
         // NVDA Add-on installation
         Add(Words(T("إضافة NVDA Bridge", "NVDA Bridge Add-on"), 14, Ink, FontWeights.SemiBold));

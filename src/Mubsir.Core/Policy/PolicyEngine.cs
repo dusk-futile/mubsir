@@ -36,7 +36,7 @@ public sealed class PolicyEngine
 
     /// <summary>A file's name or a page can carry instructions. After reading those, moving files needs a yes.</summary>
     private static PolicyDecision? CheckFilesAfterUntrusted(string tool, TaskContext task) =>
-        task.UntrustedContentSeen && tool is ToolNames.MoveFile or ToolNames.CopyFile or ToolNames.RenameFile
+        task.UntrustedContentSeen && tool is ToolNames.MoveFile or ToolNames.CopyFile or ToolNames.RenameFile or ToolNames.OpenFile
             ? Confirm(ReasonCodes.ConfirmUntrustedFile, new ConfirmationFacts { Kind = ConfirmKind.Generic, ToolName = tool, SuggestedByPage = true })
             : null;
 
@@ -53,7 +53,7 @@ public sealed class PolicyEngine
         var t = (tool ?? "").Trim().ToLowerInvariant();
         return t switch
         {
-            ToolNames.ReadDocument or ToolNames.ListFolder or ToolNames.FindFiles => true,
+            ToolNames.ReadDocument or ToolNames.ListFolder or ToolNames.FindFiles or ToolNames.ReadClipboard or ToolNames.BrowseSearch => true,
             ToolNames.ReadScreen or ToolNames.OcrWindow or ToolNames.DescribeScreen => PolicyRules.IsUntrustedSource(screen),
             _ => false,
         };
@@ -67,7 +67,7 @@ public sealed class PolicyEngine
     private static PolicyDecision? CheckBlock(string tool, AgentAction a, TaskContext task, List<string> chords)
     {
         var screen = a.Screen;
-        bool input = tool is ToolNames.Invoke or ToolNames.SetText or ToolNames.TypeText or ToolNames.PressKeys;
+        bool input = tool is ToolNames.Invoke or ToolNames.ClickOn or ToolNames.SetText or ToolNames.TypeText or ToolNames.PressKeys;
         bool typing = tool is ToolNames.SetText or ToolNames.TypeText;
 
         if (input && screen is { IsElevated: true })
@@ -99,10 +99,11 @@ public sealed class PolicyEngine
         var specific = tool switch
         {
             ToolNames.OpenUrl => CheckOpenUrl(a),
-            ToolNames.Invoke => CheckInvokeTarget(a),
+            ToolNames.Invoke or ToolNames.ClickOn => CheckInvokeTarget(a),
             ToolNames.OpenApp => CheckOpenApp(a),
             ToolNames.OpenSettings => PolicyRules.IsBlockedSettingsPage(Arg(a, "page")) ? Block(ReasonCodes.Settings) : null,
             ToolNames.SetText or ToolNames.TypeText => CheckTyping(a, task),
+            ToolNames.OpenFile when PolicyRules.KindOfFile(FirstPath(a)) == OpenFileKind.Refused => Block(ReasonCodes.Executable),
             _ when ToolNames.FileTools.Contains(tool) => CheckFiles(tool, a, task),
             _ => null,
         };
@@ -116,7 +117,7 @@ public sealed class PolicyEngine
             return Block(ReasonCodes.AccountSecurity);
         }
 
-        if (tool == ToolNames.DescribeScreen && task.PrivateMode)
+        if (tool is ToolNames.DescribeScreen or ToolNames.ClickOn && task.PrivateMode)
         {
             return Block(ReasonCodes.PrivateNoScreenshot);
         }
@@ -237,6 +238,8 @@ public sealed class PolicyEngine
 
         return null;
     }
+
+    private static string? FirstPath(AgentAction a) => a.FilePaths.Count > 0 ? a.FilePaths[0] : Arg(a, "path");
 
     private static PolicyDecision? CheckOpenApp(AgentAction a)
     {
@@ -362,7 +365,7 @@ public sealed class PolicyEngine
             case ToolNames.SetText or ToolNames.TypeText:
                 return Block(ReasonCodes.BankNoTyping);
 
-            case ToolNames.DescribeScreen:
+            case ToolNames.DescribeScreen or ToolNames.ClickOn or ToolNames.ReadClipboard:
                 return Block(ReasonCodes.BankNoScreenshot);
 
             case ToolNames.Invoke:
@@ -429,6 +432,18 @@ public sealed class PolicyEngine
         {
             case ToolNames.Invoke:
                 return ConfirmClick(a, task, chord: null);
+
+            case ToolNames.ClickOn:
+                return ConfirmClick(a, task, chord: null)
+                    ?? (task.UntrustedContentSeen
+                        ? Confirm(ReasonCodes.ConfirmUntrustedClick, new ConfirmationFacts { Kind = ConfirmKind.Generic, ButtonName = a.Target?.Name, SuggestedByPage = true, ToolName = tool })
+                        : null);
+
+            case ToolNames.OpenFile when PolicyRules.KindOfFile(FirstPath(a)) == OpenFileKind.Installer:
+                return Confirm(ReasonCodes.ConfirmVerb, new ConfirmationFacts { Kind = ConfirmKind.Install, ButtonName = FileName(FirstPath(a) ?? string.Empty), ToolName = tool });
+
+            case ToolNames.ReadClipboard when task.UntrustedContentSeen:
+                return Confirm(ReasonCodes.ConfirmUntrustedClick, new ConfirmationFacts { Kind = ConfirmKind.Generic, ButtonName = "clipboard", SuggestedByPage = true, ToolName = tool });
 
             case ToolNames.PressKeys:
                 return ConfirmKeys(a, task, chords);

@@ -1,3 +1,11 @@
+# Latest session, 2026-11-05 (third part)
+
+- **The owner wants it to work the PC like a person, with blind users first.** New tools in `Core/Brain` and `Actions/WindowsToolExecutor.Hands.cs`: `click_on` (looks at the window, its label goes through the same policy as a button), `open_file` (installers need a key press, scripts and unknown types are refused), `create_folder`, `read_clipboard`, `wait`, `choose_voice`. Dragging isn't built.
+- **Built:** numbered Google results (`Core/Web/SearchResults.cs`), book descriptions after consent (`Core/Library/BookDescriber.cs`, run by `LibraryScanner`), phonetic names (`Core/Text/IpaReader.cs`), Arabic books in Fish by default with their audio saved, one voice per language (`Core/Speech/VoiceCatalog.cs`), more page pictures a day (25 per book).
+- **Owner to pick voices:** the 14 Fish voices and 7 free samples are on a private page. Set the defaults in `MubsirSettings` once they choose. Voices named after real people or characters are left out on purpose.
+- **Local voice not in the app.** Measured numbers are in `docs/RESULTS.md`: Kokoro is too slow on an i3-8100, Piper is fast. Piper needs espeak-ng (GPL), so that needs a licence decision and the owner's ear.
+- **Next:** `docs/WINDOWS-TEST.md`, including new rows 16 to 22. None of this has run on Windows.
+
 # Latest session, 2026-11-05 (second part)
 
 - **Product changed:** a free assistive agent for everyone, on the user's own keys. The relay (`cloud/proxy`) is gone. `AGENTS.md` has the decisions.

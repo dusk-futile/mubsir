@@ -220,6 +220,13 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
         app.Settings.Update(s => s with { FishVoiceId = string.IsNullOrWhiteSpace(voiceId) ? null : voiceId.Trim() });
     }
 
+    public string? GetFishVoiceIdArabic() => app.Settings.Settings.FishVoiceIdArabic;
+
+    public void SetFishVoiceIdArabic(string? voiceId)
+    {
+        app.Settings.Update(s => s with { FishVoiceIdArabic = string.IsNullOrWhiteSpace(voiceId) ? null : voiceId.Trim() });
+    }
+
     public void TestVoice(Lang testLang)
     {
         string sentence = testLang == Lang.Arabic

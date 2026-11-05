@@ -31,7 +31,7 @@ public class OnboardingFlowTests
     [Fact]
     public void A_blind_reader_gets_a_subject_question_then_speed_and_the_plan_follows_the_answers()
     {
-        OnboardingFlow flow = Run(false, "عربي", "مش بشوف الشاشة", "عايز اقرا كتب", "الفونولوجيا", "سريعة", "خلاص");
+        OnboardingFlow flow = Run(false, "عربي", "مش بشوف الشاشة", "عايز اقرا كتب", "الفونولوجيا", "لأ", "سريعة", "خلاص");
         Assert.Null(flow.Current);
         PersonalPlan plan = flow.Plan();
         Assert.Equal(UserKind.Blind, plan.Kind);

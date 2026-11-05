@@ -333,7 +333,7 @@ public class BookFeaturesTests
     }
 
     [Fact]
-    public async Task A_broken_book_stops_at_three_images_in_a_row_and_warns()
+    public async Task A_broken_book_stops_after_too_many_images_in_a_row_and_warns()
     {
         var repair = new Repair();
         var pages = Checked(new Pages(Enumerable.Repeat(Bad, 50).ToArray()), repair, new PageImageBudget());
@@ -348,7 +348,7 @@ public class BookFeaturesTests
     }
 
     [Fact]
-    public async Task One_book_stops_at_ten_images_a_day_even_with_good_pages_between()
+    public async Task One_book_stops_at_its_daily_images_even_with_good_pages_between()
     {
         var repair = new Repair();
         string[] mixed = Enumerable.Range(0, 60).Select(i => i % 2 == 0 ? Bad : "A normal page of English text that reads perfectly well.").ToArray();

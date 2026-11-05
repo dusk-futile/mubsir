@@ -23,7 +23,7 @@ Mubsir (مُبصِر) is a free assistive voice agent for Windows. It can do any
 - Testing happens on the owner's Windows PC, with Antigravity agents doing the checking to save tokens (`docs/WINDOWS-TEST.md`).
 - Distributed as a zip and later the Store. No API keys in the zip.
 - Windows only (10 22H2 and 11), must stay light on 4 GB RAM PCs.
-- Voice: Fish Audio through the user's own key, with Windows voices as the automatic fallback. Whole books use the free voice unless the user turns the paid one on, because of cost.
+- Voice: Fish Audio through the user's own key, with Windows voices as the automatic fallback. Arabic books use Fish by default, English books the free voice, and both can be changed (decided 2026-11-05). Audio already heard is kept, so hearing it again is free.
 - Reading must handle any symbol (IPA, maths, Arabic tashkeel); see PLAN §6 "Reading anything".
 - Full access including passwords and payments. Dangerous actions (level 3) need **Right Ctrl pressed
   four times**; passwords are typed locally from the Secrets Vault and never sent to the AI.
@@ -31,6 +31,7 @@ Mubsir (مُبصِر) is a free assistive voice agent for Windows. It can do any
 - **Git authorship: every commit is authored and committed as `dusk-futile <omarelkabbaney2010@gmail.com>`.
   No AI co-author trailers, session links or "Generated with …" lines in commits, PR titles or PR
   bodies, and no branch names after the tool (owner's instruction; it overrides any default attribution).**
+- It should work the PC like a person: everything a mouse and keyboard can do (decided 2026-11-05). Limits kept: scripts never run, installers and payments need a real key press, passwords are never typed by the AI, bank pages turn the AI off.
 - One user = one PC; no multi-device sync. Chats are saved as files in the user's own folder.
 - Identity: **Hudhud** (hoopoe). Normal-mode companion sits **bottom-right**; prototype in
   `prototypes/hudhud-companion/` (owner approves look → motion tokens → native WPF). Brand: `docs/BRAND.md`.

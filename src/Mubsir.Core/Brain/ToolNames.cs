@@ -36,17 +36,24 @@ public static class ToolNames
     public const string Remember = "remember";
     public const string AskUser = "ask_user";
     public const string PointAt = "point_at";
+    public const string ClickOn = "click_on";
+    public const string OpenFile = "open_file";
+    public const string CreateFolder = "create_folder";
+    public const string ReadClipboard = "read_clipboard";
+    public const string Wait = "wait";
+    public const string ChooseVoice = "choose_voice";
 
     public static IReadOnlySet<string> All { get; } = new[]
     {
         ReadScreen, Invoke, SetText, TypeText, PressKeys, Scroll, Focus, ListWindows, SwitchTo, OpenApp, OpenUrl,
         BrowseSearch, DescribeScreen, OcrWindow, ReadDocument, FindBook, Media, ListFolder, FindFiles, MoveFile, CopyFile,
         RenameFile, Recycle, SystemStatus, SetVolume, OpenSettings, WindowsUpdateStatus, RestartPc, Remember, AskUser, PointAt,
+        ClickOn, OpenFile, CreateFolder, ReadClipboard, Wait, ChooseVoice,
     }.ToFrozenSet(StringComparer.Ordinal);
 
     public static IReadOnlySet<string> FileTools { get; } = new[]
 {
-        MoveFile, CopyFile, RenameFile, Recycle, ListFolder, FindFiles, ReadDocument,
+        MoveFile, CopyFile, RenameFile, Recycle, ListFolder, FindFiles, ReadDocument, OpenFile, CreateFolder,
     }.ToFrozenSet(StringComparer.Ordinal);
 
     public static bool IsKnown(string? name) => name is not null && All.Contains(name);

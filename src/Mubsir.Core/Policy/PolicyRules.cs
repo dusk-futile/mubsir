@@ -36,6 +36,21 @@ internal static class PolicyRules
         return name[(dot + 1)..].ToLowerInvariant();
     }
 
+    private static readonly FrozenSet<string> PlainFiles = new[]
+    {
+        "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp", "txt", "rtf", "csv", "epub",
+        "jpg", "jpeg", "png", "gif", "bmp", "webp", "tif", "tiff", "mp3", "wav", "m4a", "flac", "ogg", "aac", "mp4", "mkv", "avi", "mov", "webm", "zip",
+    }.ToFrozenSet(StringComparer.Ordinal);
+
+    /// <summary>Only named kinds open. Anything unknown, or that can run code by itself, is refused.</summary>
+    public static OpenFileKind KindOfFile(string? path) => ExtensionOf(path) switch
+    {
+        null => OpenFileKind.Refused,
+        "exe" or "msi" or "msix" or "msixbundle" or "appx" or "appxbundle" => OpenFileKind.Installer,
+        { } ext when PlainFiles.Contains(ext) => OpenFileKind.Plain,
+        _ => OpenFileKind.Refused,
+    };
+
     public static bool HasBlockedExtension(string? s) => ExtensionOf(s) is { } ext && BlockedExtensions.Contains(ext);
 
     public static bool LooksLikeExecutableName(string? s, bool browser)

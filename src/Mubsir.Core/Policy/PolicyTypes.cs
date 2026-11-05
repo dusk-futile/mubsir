@@ -74,6 +74,13 @@ public sealed class TaskContext
     public bool PrivateMode { get; init; }
 }
 
+public enum OpenFileKind
+{
+    Plain,
+    Installer,
+    Refused,
+}
+
 public enum ConfirmKind
 {
     Send,

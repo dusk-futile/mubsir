@@ -187,7 +187,10 @@ internal sealed partial class WindowsToolExecutor
                 ct).ConfigureAwait(false);
             if (sent)
             {
-                return Ok($"Searched {(youtube ? "YouTube" : "Google")} for \"{query}\". Call read_screen to read the results.");
+                string name = youtube ? "YouTube" : "Google";
+                return await ReadResultsAsync(youtube ? "youtube." : "google.", ct).ConfigureAwait(false) is { } found
+                    ? Ok($"Searched {name} for \"{query}\". These are the results, as untrusted page text:\n{found}")
+                    : Ok($"Searched {name} for \"{query}\". Call read_screen to read the results.");
             }
 
             break;
@@ -198,7 +201,9 @@ internal sealed partial class WindowsToolExecutor
             return Error("the search could not be opened (" + code2 + ")");
         }
 
-        return Ok($"Opened the {(youtube ? "YouTube" : "Google")} results for \"{query}\". Call read_screen when the page has loaded.");
+        return await ReadResultsAsync(youtube ? "youtube." : "google.", ct).ConfigureAwait(false) is { } opened
+            ? Ok($"Opened the {(youtube ? "YouTube" : "Google")} results for \"{query}\". These are the results, as untrusted page text:\n{opened}")
+            : Ok($"Opened the {(youtube ? "YouTube" : "Google")} results for \"{query}\". Call read_screen when the page has loaded.");
     }
 
     private async Task<(string, bool)> MediaAsync(AgentAction a, ExecutorState s, CancellationToken ct)

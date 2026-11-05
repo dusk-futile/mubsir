@@ -153,6 +153,34 @@ public static class ToolCatalog
             "Show the user where something is on the screen. A pointer flies to the element and stays there. It never clicks. Use it to teach, or when the user asks where something is.",
             Int("id", IdHint),
             Str("label", "A few words saying what it is, in the user's language.")),
+
+        Tool(ToolNames.ClickOn,
+            "Click something by looking at the screen, as a person would with a mouse. Use it only when the thing has no element id, "
+            + "for example in games, drawing apps, video players or pictures of buttons. It costs more and is slower than invoke.",
+            Str("target", "What to click, described so it can be seen, e.g. 'the green play button in the middle'."),
+            Choice("button", "How to click; null means a normal left click.", nullable: true, "left", "right", "double")),
+
+        Tool(ToolNames.OpenFile,
+            "Open a file in its normal app: documents, pictures, audio and video. An installer (exe or msi) needs the user's key press first. Scripts can't be opened.",
+            Str("path", "Full path of the file.")),
+
+        Tool(ToolNames.CreateFolder,
+            "Make a new folder in the user's folders.",
+            Str("path", "Full path of the new folder.")),
+
+        Tool(ToolNames.ReadClipboard,
+            "Read the text the user copied. Use it after copying with ctrl+c, or when they ask what they copied."),
+
+        Tool(ToolNames.Wait,
+            "Wait for something to finish, such as a page loading or a download.",
+            Int("seconds", "From 1 to 30.")),
+
+        Tool(ToolNames.ChooseVoice,
+            "Let the user hear and pick the voice. With no number it plays a short sample of each voice with its number, then ask which they want. "
+            + "With a number it plays that voice, and with save true it becomes their voice.",
+            Choice("language", "Which voice: the one for Arabic or the one for English.", "arabic", "english"),
+            Int("number", "The voice number, or null to hear them all.", nullable: true),
+            Bool("save", "true when the user chose this voice, otherwise false.", nullable: true)),
     ];
 
     private static readonly Dictionary<string, ToolSchema> ByName = All.ToDictionary(t => t.Name, StringComparer.Ordinal);

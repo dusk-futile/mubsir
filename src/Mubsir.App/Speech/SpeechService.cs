@@ -441,7 +441,7 @@ internal sealed class SpeechService : IDisposable
                 _nvda.SpeakText(warn);
             }
         }
-        else if (_fish is { } fish && fish.CanSpeak(job.IsBook))
+        else if (_fish is { } fish && fish.CanSpeak(job.IsBook, job.Lang))
         {
             if (nvdaRunning)
             {

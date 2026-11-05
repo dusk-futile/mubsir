@@ -21,6 +21,14 @@ internal sealed class LibraryScanner(BookLibrary library, DocumentReader documen
         "Windows", "Program Files", "Program Files (x86)", "ProgramData", "AppData", "$Recycle.Bin", "System Volume Information", "node_modules", ".git", "Recovery",
     };
 
+    private const int DescribePerScan = 200;
+    private const int DescribeFailures = 3;
+    private const int DescribeSaveEvery = 10;
+    private static readonly TimeSpan BetweenDescriptions = TimeSpan.FromSeconds(2);
+
+    /// <summary>Set when the AI may describe books. It returns null when it shouldn't or couldn't.</summary>
+    public Func<LibraryCard, CancellationToken, Task<LibraryCard?>>? Describe { get; init; }
+
     public void Start(CancellationToken stopping)
     {
         var thread = new Thread(() => Run(stopping)) { IsBackground = true, Priority = ThreadPriority.Lowest, Name = "library-scan" };
@@ -73,6 +81,39 @@ internal sealed class LibraryScanner(BookLibrary library, DocumentReader documen
         library.Forget(File.Exists);
         library.Save();
         log.Event(LogKind.Startup, tool: "library_scan");
+        DescribeBooks(stopping);
+    }
+
+    private void DescribeBooks(CancellationToken stopping)
+    {
+        if (Describe is not { } describe)
+        {
+            return;
+        }
+
+        int failures = 0;
+        int done = 0;
+        foreach (LibraryCard card in library.Undescribed(DescribePerScan))
+        {
+            stopping.ThrowIfCancellationRequested();
+            if (describe(card, stopping).GetAwaiter().GetResult() is { } described)
+            {
+                library.Put(described);
+                failures = 0;
+                if (++done % DescribeSaveEvery == 0)
+                {
+                    library.Save();
+                }
+            }
+            else if (++failures >= DescribeFailures)
+            {
+                break;
+            }
+
+            stopping.WaitHandle.WaitOne(BetweenDescriptions);
+        }
+
+        library.Save();
     }
 
     /// <summary>The places books usually are first, then every other fixed drive.</summary>

@@ -40,8 +40,10 @@ On first start it asks a few questions, and each answer changes how it behaves. 
 
 ## What it does
 
-- **It acts.** Opens apps and sites, searches, scrolls, fills in fields, plays YouTube, manages files.
+- **It works the whole PC.** Opens apps, sites and files, searches and reads you numbered results, clicks what it can see, scrolls, fills in fields, plays YouTube, manages files, and installs a program when you ask and press a key.
 - **It reads what's really there.** Web pages, Word, PDFs and scanned Arabic books.
+- **It reads any symbol.** Phonetic writing such as /ʃɪp/ is said sound by sound, and maths and Greek are named.
+- **You pick the voice.** Say "غير الصوت", hear each one, and say its number.
 - **It speaks your language.** Egyptian, Gulf, Levantine, Libyan, Maghrebi and MSA, with English mixed in mid-sentence.
 - **You stay in control.** One key stops anything, instantly. Sending, paying and deleting need your OK. On bank pages the AI switches off, and you press Pay yourself.
 - **It's light.** Everything on screen has a job and can be turned off. It's built for 4 GB PCs.
@@ -69,7 +71,7 @@ Mubsir is free, and it runs on your own keys, so you pay the AI services only fo
 | Normal, 60 requests a day | about $12 | about $4 |
 | Heavy, 150 requests a day | about $30 | about $9 |
 
-Books use the free voice unless you turn that on, because a 300-page Arabic book costs about $18 in the Fish voice.
+Opening a book costs nothing, and the voice is only paid for as you listen. Arabic books use the Fish voice, about $0.50 for 10 pages, and hearing them again is free. English books use the free voice. You can change both.
 
 1. Download the latest zip from [Releases](https://github.com/dusk-futile/mubsir/releases) and extract it.
 2. Right-click `setup.ps1` → **Run with PowerShell**, as administrator. It adds Arabic speech and the Mubsir Bridge add-on for NVDA, and starts Mubsir when you sign in.

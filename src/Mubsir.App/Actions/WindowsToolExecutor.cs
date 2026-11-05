@@ -28,6 +28,8 @@ internal sealed class ExecutorState
     public bool FocusTarget { get; set; }
 
     public bool EndsTurn { get; set; }
+
+    public (int X, int Y)? ClickSpot { get; set; }
 }
 
 internal sealed partial class WindowsToolExecutor : IToolExecutor
@@ -134,6 +136,13 @@ internal sealed partial class WindowsToolExecutor : IToolExecutor
 
         MarkSensitive(task, screen);
 
+        if (tool == ToolNames.ClickOn && _policy.AllowScreenshot(task, screen))
+        {
+            var (seen, spot) = await LocateAsync(ToolArgs.Str(args, "target"), fg.Hwnd, task.Lang, ct).ConfigureAwait(false);
+            target = seen;
+            state.ClickSpot = spot;
+        }
+
         string? keyChord = null;
         if (tool == ToolNames.PressKeys)
         {
@@ -148,7 +157,7 @@ internal sealed partial class WindowsToolExecutor : IToolExecutor
             _ => null,
         };
 
-        if (tool is ToolNames.Invoke or ToolNames.PressKeys or ToolNames.SetText)
+        if (tool is ToolNames.Invoke or ToolNames.ClickOn or ToolNames.PressKeys or ToolNames.SetText)
         {
             UiFacts.AddFacts(args, target, screen);
         }
@@ -266,7 +275,7 @@ internal sealed partial class WindowsToolExecutor : IToolExecutor
     private static readonly HashSet<string> FileTools =
     [
         ToolNames.ReadDocument, ToolNames.ListFolder, ToolNames.FindFiles, ToolNames.MoveFile,
-        ToolNames.CopyFile, ToolNames.RenameFile, ToolNames.Recycle,
+        ToolNames.CopyFile, ToolNames.RenameFile, ToolNames.Recycle, ToolNames.OpenFile, ToolNames.CreateFolder,
     ];
 
     private Task<(string Content, bool IsError)> RunToolAsync(string tool, AgentAction a, ExecutorState s, CancellationToken ct) =>
@@ -307,8 +316,16 @@ internal sealed partial class WindowsToolExecutor : IToolExecutor
         ToolNames.Remember => Task.FromResult(Remember(a)),
         ToolNames.AskUser => AskUserAsync(a, ct),
         ToolNames.PointAt => PointAtAsync(a, s, ct),
+        ToolNames.ClickOn => ClickOnAsync(a, s, ct),
+        ToolNames.OpenFile => OpenFileAsync(a, ct),
+        ToolNames.CreateFolder => Task.Run(() => CreateFolder(a), ct),
+        ToolNames.ReadClipboard => StaRunnerClipboard(ct),
+        ToolNames.Wait => WaitAsync(a, ct),
+        ToolNames.ChooseVoice => ChooseVoiceAsync(a, s, ct),
         _ => Task.FromResult(Error("unknown tool")),
     };
+
+    private Task<(string, bool)> StaRunnerClipboard(CancellationToken ct) => Task.Run(ReadClipboard, ct);
 
     private static (string, bool) Ok(string content) => (content, false);
 
@@ -381,6 +398,8 @@ internal sealed partial class WindowsToolExecutor : IToolExecutor
         {
             case ToolNames.ListFolder:
             case ToolNames.ReadDocument:
+            case ToolNames.OpenFile:
+            case ToolNames.CreateFolder:
                 return ToolArgs.Str(args, "path") is { } p ? ([Resolve(p)], null) : ([], null);
             case ToolNames.FindFiles:
                 return ToolArgs.Str(args, "folder") is { } f ? ([Resolve(f)], null) : ([], null);

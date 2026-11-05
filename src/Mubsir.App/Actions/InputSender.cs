@@ -43,6 +43,69 @@ internal static unsafe class InputSender
         return true;
     }
 
+    /// <summary>A real mouse click where the screen shows the thing.</summary>
+    public static bool Click(int x, int y, string button)
+    {
+        if (!Native.User32.SetCursorPos(x, y))
+        {
+            return false;
+        }
+
+        Thread.Sleep(40);
+        bool right = button == "right";
+        uint down = right ? ActionsNative.MouseRightDown : ActionsNative.MouseLeftDown;
+        uint up = right ? ActionsNative.MouseRightUp : ActionsNative.MouseLeftUp;
+        for (int i = 0; i < (button == "double" ? 2 : 1); i++)
+        {
+            ActionsNative.mouse_event(down, 0, 0, 0, 0);
+            ActionsNative.mouse_event(up, 0, 0, 0, 0);
+            Thread.Sleep(60);
+        }
+
+        return true;
+    }
+
+    public static string? ClipboardText()
+    {
+        for (int attempt = 0; attempt < 5; attempt++)
+        {
+            if (ActionsNative.OpenClipboard(0))
+            {
+                try
+                {
+                    nint data = ActionsNative.GetClipboardData(ActionsNative.CfUnicodeText);
+                    if (data == 0)
+                    {
+                        return null;
+                    }
+
+                    nint locked = ActionsNative.GlobalLock(data);
+                    if (locked == 0)
+                    {
+                        return null;
+                    }
+
+                    try
+                    {
+                        return Marshal.PtrToStringUni(locked);
+                    }
+                    finally
+                    {
+                        ActionsNative.GlobalUnlock(data);
+                    }
+                }
+                finally
+                {
+                    ActionsNative.CloseClipboard();
+                }
+            }
+
+            Thread.Sleep(50);
+        }
+
+        return null;
+    }
+
     public static bool TypeText(string text, CancellationToken ct)
     {
         var batch = new List<ActionsNative.Input>(TextChunk * 2);

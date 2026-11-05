@@ -66,14 +66,23 @@ public sealed record MubsirSettings
     /// <summary>Speak through Fish Audio when it has a key. Otherwise, or if it fails, the free Windows voice speaks.</summary>
     public bool UseFishVoice { get; set; } = true;
 
-    /// <summary>Whole books through the paid voice. A 300-page Arabic book costs about $18, so it's off.</summary>
+    /// <summary>English books through the paid voice. They read well for free, so it's off.</summary>
     public bool ReadBooksWithFish { get; set; }
+
+    /// <summary>Arabic books through the paid voice, about $0.50 for 10 pages. The free Arabic voices are much weaker, so it's on.</summary>
+    public bool ReadArabicBooksWithFish { get; set; } = true;
+
+    /// <summary>Send the opening of each book to the AI once, to describe it for searching. The person chooses this.</summary>
+    public bool DescribeBooks { get; set; }
 
     /// <summary>Read Arabic diacritics fully instead of leaving them to the voice.</summary>
     public bool ReadFullTashkeel { get; set; } = true;
 
-    /// <summary>A Fish Audio voice id. Empty uses Fish's default.</summary>
+    /// <summary>A Fish Audio voice id, for English and for Arabic if that has none of its own. Empty uses Fish's default.</summary>
     public string? FishVoiceId { get; set; }
+
+    /// <summary>The Fish Audio voice id for Arabic.</summary>
+    public string? FishVoiceIdArabic { get; set; }
 
     /// <summary>Keep conversations as files the user can open. Private mode saves nothing.</summary>
     public bool SaveSessions { get; set; } = true;

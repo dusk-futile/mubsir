@@ -108,6 +108,33 @@ internal static unsafe partial class ActionsNative
     [LibraryImport("user32.dll", SetLastError = true)]
     public static partial uint SendInput(uint count, Input* inputs, int size);
 
+    public const uint MouseLeftDown = 0x0002;
+    public const uint MouseLeftUp = 0x0004;
+    public const uint MouseRightDown = 0x0008;
+    public const uint MouseRightUp = 0x0010;
+    public const uint CfUnicodeText = 13;
+
+    [LibraryImport("user32.dll")]
+    public static partial void mouse_event(uint flags, int dx, int dy, int data, nint extra);
+
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool OpenClipboard(nint owner);
+
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool CloseClipboard();
+
+    [LibraryImport("user32.dll", SetLastError = true)]
+    public static partial nint GetClipboardData(uint format);
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    public static partial nint GlobalLock(nint memory);
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool GlobalUnlock(nint memory);
+
     [LibraryImport("user32.dll")]
     public static partial uint MapVirtualKeyW(uint code, uint mapType);
 

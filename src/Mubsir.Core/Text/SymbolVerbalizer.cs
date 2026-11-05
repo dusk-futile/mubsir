@@ -33,6 +33,7 @@ public static class SymbolVerbalizer
 
     private static string VerbalizeNormal(string text, Lang lang)
     {
+        text = IpaReader.Read(text, lang);
         if (text.AsSpan().IndexOfAny(NormalTriggers) < 0)
         {
             return text;

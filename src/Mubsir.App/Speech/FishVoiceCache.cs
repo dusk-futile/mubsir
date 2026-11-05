@@ -15,18 +15,27 @@ internal sealed class FishVoiceCache
     private readonly IEventLog _log;
     private readonly object _gate = new();
 
-    public FishVoiceCache(IEventLog log, string? cacheDir = null)
+    private readonly long _maxBytes;
+    private readonly long _targetBytes;
+
+    public FishVoiceCache(IEventLog log, string? cacheDir = null, long maxBytes = MaxSizeBytes, long targetBytes = TargetSizeBytes, int limit = MaxChars)
     {
         _log = log;
+        _maxBytes = maxBytes;
+        _targetBytes = targetBytes;
+        Limit = limit;
         _cacheDir = cacheDir ?? Path.Combine(AppPaths.DataDir, "voice-cache");
     }
 
     public string CacheDir => _cacheDir;
 
+    /// <summary>Longer sentences than this aren't kept.</summary>
+    public int Limit { get; }
+
     public bool TryGet(string text, string? voice, double speed, out byte[] audio)
     {
         audio = [];
-        if (string.IsNullOrWhiteSpace(text) || text.Length > MaxChars)
+        if (string.IsNullOrWhiteSpace(text) || text.Length > Limit)
         {
             return false;
         }
@@ -66,7 +75,7 @@ internal sealed class FishVoiceCache
 
     public void Put(string text, string? voice, double speed, byte[] audio)
     {
-        if (string.IsNullOrWhiteSpace(text) || text.Length > MaxChars || audio.Length == 0)
+        if (string.IsNullOrWhiteSpace(text) || text.Length > Limit || audio.Length == 0)
         {
             return;
         }
@@ -123,7 +132,7 @@ internal sealed class FishVoiceCache
                 total += f.Length;
             }
 
-            if (total <= MaxSizeBytes)
+            if (total <= _maxBytes)
             {
                 return;
             }
@@ -131,7 +140,7 @@ internal sealed class FishVoiceCache
             Array.Sort(files, (a, b) => a.LastAccessTimeUtc.CompareTo(b.LastAccessTimeUtc));
             foreach (FileInfo f in files)
             {
-                if (total <= TargetSizeBytes)
+                if (total <= _targetBytes)
                 {
                     break;
                 }

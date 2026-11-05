@@ -17,6 +17,17 @@ internal static class ActionNarration
         {
             case ToolNames.ReadScreen:
                 return ar ? "أقرأ الشاشة" : "Reading the screen";
+            case ToolNames.ClickOn:
+                return name is null ? (ar ? "أضغط" : "Clicking") : (ar ? $"أضغط {Q(name)}" : $"Clicking {Q(name)}");
+            case ToolNames.OpenFile:
+                return ar ? "أفتح الملف" : "Opening the file";
+            case ToolNames.CreateFolder:
+                return ar ? "أعمل المجلد" : "Making the folder";
+            case ToolNames.ReadClipboard:
+                return ar ? "أقرأ اللي اتنسخ" : "Reading what was copied";
+            case ToolNames.Wait:
+            case ToolNames.ChooseVoice:
+                return string.Empty;
             case ToolNames.Invoke:
                 if (action.Target is { } t)
                 {

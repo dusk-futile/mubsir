@@ -38,7 +38,8 @@ public sealed record PersonalPlan(
     string? Subject,
     string? Name,
     string FirstSuggestionArabic,
-    string FirstSuggestionEnglish)
+    string FirstSuggestionEnglish,
+    bool DescribeBooks = false)
 {
     public string FirstSuggestion => Language == Lang.Arabic ? FirstSuggestionArabic : FirstSuggestionEnglish;
 
@@ -51,6 +52,7 @@ public sealed record PersonalPlan(
         settings.ShowHudhud = ShowHudhud;
         settings.UseNvda = UseNvda;
         settings.StartInTeachMode = StartInTeachMode;
+        settings.DescribeBooks = DescribeBooks;
         settings.OnboardingDone = true;
     }
 
@@ -108,6 +110,11 @@ public sealed class OnboardingFlow
     ]);
 
     private static readonly OnboardingStep AskStudyPlace = new("subject_books", "بتقرأ إيه أكتر؟ قول الموضوع، أو قول خلاص.", "What do you read most? Say the subject, or say skip.", [], Free: true);
+
+    private static readonly OnboardingStep AskDescribeBooks = new("describe_books", "أوصف كتبك عشان ألاقيها بالموضوع؟ هبعت أول صفحة من كل كتاب للذكاء الاصطناعي مرة واحدة، و500 كتاب بحوالي 20 سنت.", "Should I describe your books so you can find them by subject? I'd send the first page of each book to the AI once, about 20 cents for 500 books.", [
+        new("yes", "أيوه", "yes", "ايوه", "اه", "نعم", "طبعا", "موافق", "yes", "okay", "sure"),
+        new("no", "لأ", "no", "لا", "لأ", "مش عايز", "no", "skip"),
+    ]);
 
     private static readonly OnboardingStep AskMessagesApp = new("subject_messages", "بتستخدم إيه أكتر: واتساب، إيميل، ولا حاجة تانية؟", "Which do you use most: WhatsApp, email, or something else?", [], Free: true);
 
@@ -237,7 +244,8 @@ public sealed class OnboardingFlow
             _subject,
             _name,
             ar,
-            en);
+            en,
+            Get("describe_books") == "yes");
     }
 
     private static (string Arabic, string English) FirstSuggestion(string goal, string? subject) => goal switch
@@ -256,6 +264,7 @@ public sealed class OnboardingFlow
         "language" => "arabic",
         "sight" => "sighted",
         "blind_goal" => "web",
+        "describe_books" => "no",
         "sighted_goal" => "handsfree",
         "learner_age" => "adult",
         "speed" => "normal",
@@ -277,7 +286,7 @@ public sealed class OnboardingFlow
             foreach (string word in option.Words)
             {
                 string key = ArabicFolding.Fold(word);
-                if (key.Length > bestLength && folded.Contains(key, StringComparison.Ordinal))
+                if (key.Length > bestLength && folded.Contains(key.Length <= 2 ? " " + key + " " : key, StringComparison.Ordinal))
                 {
                     best = option;
                     bestLength = key.Length;
@@ -334,7 +343,8 @@ public sealed class OnboardingFlow
             "work" => AskWorkApps,
             _ => Get("sight") == "lowvision" ? AskName : AskBlindSpeed,
         },
-        "subject_books" or "subject_messages" or "subject_work" => Get("sight") == "lowvision" ? AskName : AskBlindSpeed,
+        "subject_books" => AskDescribeBooks,
+        "describe_books" or "subject_messages" or "subject_work" => Get("sight") == "lowvision" ? AskName : AskBlindSpeed,
         "speed" => AskName,
         "sighted_goal" => answer == "learn" ? AskWho : AskName,
         "learner_age" => AskLearnWhat,

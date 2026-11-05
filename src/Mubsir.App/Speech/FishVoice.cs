@@ -25,12 +25,17 @@ internal sealed class FishVoice(
 {
     private const string Endpoint = "https://api.fish.audio/v1/tts";
     private const int MaxChars = 2000;
+
+    /// <summary>What's been heard is kept, so hearing a page again is free. About 16 hours of listening.</summary>
+    private const long BookCacheBytes = 500L * 1024 * 1024;
+    private static readonly TimeSpan SampleTimeout = TimeSpan.FromSeconds(15);
     private static readonly TimeSpan FirstAudioTimeout = TimeSpan.FromSeconds(8);
     private static readonly TimeSpan WholeAudioTimeout = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan RestAfterFailure = TimeSpan.FromSeconds(60);
 
     private readonly HttpClient _http = new(handler ?? new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) }) { Timeout = Timeout.InfiniteTimeSpan };
     private readonly FishVoiceCache _cache = cache ?? new FishVoiceCache(log);
+    private readonly FishVoiceCache _bookCache = new(log, AppPaths.VoiceCacheDir + "-books", BookCacheBytes, BookCacheBytes * 9 / 10, MaxChars);
     private readonly object _gate = new();
     private CancellationTokenSource _stop = new();
     private MediaPlayer? _player;
@@ -41,10 +46,41 @@ internal sealed class FishVoice(
     /// <summary>Set once when the key stops working, so the user can be told why the voice changed.</summary>
     public event Action<int>? KeyRejected;
 
-    public bool CanSpeak(bool isBook)
+    public bool HasKey => !string.IsNullOrWhiteSpace(secrets.Get(SecretNames.Fish));
+
+    /// <summary>Plays a voice's public sample. It needs no key and costs nothing. False means the user stopped it.</summary>
+    public async Task<bool> PlaySampleAsync(string url, TimeSpan most, CancellationToken ct)
+    {
+        CancellationToken stopped;
+        lock (_gate)
+        {
+            stopped = _stop.Token;
+        }
+
+        try
+        {
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(stopped, ct);
+            linked.CancelAfter(SampleTimeout);
+            byte[] sample = await _http.GetByteArrayAsync(url, linked.Token).ConfigureAwait(false);
+            await PlayAsync(new MemoryStream(sample), () => { }, most, stopped).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (stopped.IsCancellationRequested)
+        {
+            return false;
+        }
+        catch (Exception e) when (e is HttpRequestException or OperationCanceledException)
+        {
+            log.Fail(LogKind.Speech, "fish_sample_" + MetaLog.Code(e));
+        }
+
+        return !stopped.IsCancellationRequested;
+    }
+
+    public bool CanSpeak(bool isBook, Lang lang = Lang.English)
     {
         MubsirSettings s = settings.Settings;
-        if (!s.UseFishVoice || s.PrivateMode || (isBook && !s.ReadBooksWithFish) || DateTime.UtcNow < _restUntil)
+        bool bookOff = isBook && !(lang == Lang.Arabic ? s.ReadArabicBooksWithFish : s.ReadBooksWithFish);
+        if (!s.UseFishVoice || s.PrivateMode || bookOff || DateTime.UtcNow < _restUntil)
         {
             return false;
         }
@@ -69,10 +105,11 @@ internal sealed class FishVoice(
         }
 
         double speed = Math.Clamp(0.5 + (rate / 100.0), 0.5, 2.0);
-        string? voice = settings.Settings.FishVoiceId;
-        bool canCache = !isBook && !settings.Settings.PrivateMode && text.Length <= FishVoiceCache.MaxChars;
+        string? voice = lang == Lang.Arabic ? settings.Settings.FishVoiceIdArabic ?? settings.Settings.FishVoiceId : settings.Settings.FishVoiceId;
+        FishVoiceCache store = isBook ? _bookCache : _cache;
+        bool canCache = !settings.Settings.PrivateMode && text.Length <= store.Limit;
 
-        if (canCache && _cache.TryGet(text, voice, speed, out byte[] cachedAudio))
+        if (canCache && store.TryGet(text, voice, speed, out byte[] cachedAudio))
         {
             try
             {
@@ -121,7 +158,7 @@ internal sealed class FishVoice(
 
             if (canCache)
             {
-                _cache.Put(text, voice, speed, audio.ToArray());
+                store.Put(text, voice, speed, audio.ToArray());
             }
 
             audio.Position = 0;

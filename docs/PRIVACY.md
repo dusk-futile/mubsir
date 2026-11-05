@@ -29,3 +29,7 @@ Mubsir has a teaching mode that a child can use. It sends the same data to the s
 ## Questions
 
 Open an issue at https://github.com/dusk-futile/mubsir/issues.
+
+## Books
+
+If you agree during setup, the first page of each book on your PC is sent to Anthropic once, so Mubsir can describe it and find it by subject. Short files, and anything that looks like a bill, statement or ID, are skipped. Book audio you've heard is saved in `%LOCALAPPDATA%\Mubsir`, up to 500 MB, so hearing it again is free. Private mode saves none.
