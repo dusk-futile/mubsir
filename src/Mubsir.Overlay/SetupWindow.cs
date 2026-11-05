@@ -189,22 +189,21 @@ public sealed class SetupWindow : Window
     private void ShowKeys(bool speak)
     {
         Begin(T("أهلا بك في مبصر", "Welcome to Mubsir"));
-        Add(Words(T("مبصر مجاني. بيشتغل بمفاتيحك انت، فبتدفع بس اللي بتستخدمه، ومفاتيحك بتفضل مشفرة على جهازك.",
-            "Mubsir is free. It runs on your own keys, so you only pay for what you use, and your keys stay encrypted on this PC."), 14, Ink));
+        Add(Words(T("مبصر مجاني. محتاج مفتاح واحد مجاني من Google، ومفاتيحك بتفضل مشفرة على جهازك.",
+            "Mubsir is free. It needs one free key from Google, and your keys stay encrypted on this PC."), 14, Ink));
         Add(Words(T("انسخ المفتاح من الموقع وهنا هيتحفظ لوحده.", "Copy a key on the website and it's picked up here by itself."), 14, Quiet));
-        Button first = KeyRow(KeyKind.Anthropic, T("Claude: العقل", "Claude: the brain"),
-            T("مطلوب. هنستخدم Haiku 5.5، الأسرع والأرخص والأكثر اعتمادية للمهام دي.", "Required. Mubsir uses Haiku 5.5: the fastest, cheapest and most reliable fit for this."));
-        KeyRow(KeyKind.FishAudio, T("Fish Audio: السمع وصوت العربي", "Fish Audio: hearing and the Arabic voice"),
-            T("بيحول كلامك لنص وبيتكلم بصوت طبيعي. لو فشل، صوت ويندوز المجاني بيكمل.", "Turns your speech into text and speaks in a natural voice. If it fails, the free Windows voice takes over."));
-        AddCosts();
+        Button first = KeyRow(KeyKind.Gemini, T("Google Gemini: العقل والسمع", "Google Gemini: the brain and hearing"),
+            T("مطلوب ومجاني. جوجل ممكن تستخدم الطلبات المجانية لتحسين خدماتها.", "Required and free. Google may use free requests to improve its products."));
+        KeyRow(KeyKind.FishAudio, T("Fish Audio: صوت العربي", "Fish Audio: the Arabic voice"),
+            T("مجاني دلوقتي، بصوت طبيعي. من غيره صوت ويندوز المجاني بيتكلم عربي.", "Free for now, in a natural voice. Without it, the free Windows voice speaks Arabic."));
 
         var extra = new Expander { Header = T("بدائل", "Other options"), Margin = new Thickness(0, 8, 0, 8), FontFamily = Font };
         var inner = new StackPanel();
         var save = _body;
         extra.Content = inner;
         Add(extra);
-        KeyRow(KeyKind.Gemini, T("Google Gemini: للسمع بدل Fish", "Google Gemini: hearing instead of Fish"),
-            T("اختياري. لو حطيته هيتستخدم للسمع، وFish احتياطي.", "Optional. If you add it, it's used for hearing with Fish as the backup."), inner);
+        KeyRow(KeyKind.Anthropic, T("Claude: عقل مدفوع", "Claude: a paid brain"),
+            T("اختياري. لو حطيته هيتستخدم بدل Gemini، وبتدفع اللي بتستخدمه.", "Optional. If you add it, it's used instead of Gemini and you pay for what you use."), inner);
 
         bool ready = KeySetup.CanStart(_driver.HasKey(KeyKind.Anthropic), _driver.HasKey(KeyKind.FishAudio), _driver.HasKey(KeyKind.Gemini));
         Button next = MainButton(T("التالي", "Continue"), ShowPrivacy);
@@ -214,8 +213,8 @@ public sealed class SetupWindow : Window
         if (speak)
         {
             _driver.Say(T(
-                "أهلا بك في مبصر. محتاج مفتاحين: مفتاح Claude ومفتاح Fish Audio. اضغط إدخال عشان أفتح لك صفحة مفتاح Claude. انشئ مفتاح وانسخه، وأنا هلقطه لوحدي وأجربه.",
-                "Welcome to Mubsir. I need two keys: one from Claude and one from Fish Audio. Press Enter and I'll open the page for your Claude key. Create a key and copy it, and I'll pick it up and test it myself."), _lang);
+                "أهلا بك في مبصر. محتاج مفتاح مجاني من Google Gemini. اضغط إدخال عشان أفتح لك صفحته. انشئ مفتاح وانسخه، وأنا هاخده وأجربه وأقولك النتيجة.",
+                "Welcome to Mubsir. I need one free key from Google Gemini. Press Enter and I'll open its page. Create a key and copy it, and I'll pick it up, test it and tell you the result."), _lang);
         }
     }
 
@@ -352,7 +351,7 @@ public sealed class SetupWindow : Window
         Begin(T("قبل ما نبدأ", "Before we start"));
         string text = T(
             "لما تتكلم، صوتك بيروح لخدمة السمع، وطلبك مع نص الشاشة اللازم بيروح لـ Claude، وردودي بتروح لـ Fish Audio عشان تتحول لصوت. كلمات المرور والبطاقات والأكواد مش بتتبعت، وصفحات البنوك الذكاء الاصطناعي بيقف فيها. قول الوضع الخاص في أي وقت عشان توقف كل إرسال.",
-            "When you talk, your voice goes to the hearing service, your request and the screen text it needs go to Claude, and my Arabic replies go to Fish Audio to become a voice. Passwords, cards and codes aren't sent, and the AI stops on bank pages. Say private mode at any time to stop everything being sent.");
+            "When you talk, your voice goes to the hearing service, your request and the screen text it needs go to Google Gemini or Claude, and my Arabic replies go to Fish Audio to become a voice. Passwords, cards and codes aren't sent, and the AI stops on bank pages. Say private mode at any time to stop everything being sent.");
         Add(Words(text, 15, Ink));
         Button agree = MainButton(T("موافق", "I agree"), () =>
         {
@@ -478,7 +477,7 @@ public sealed class SetupWindow : Window
 
         // Keys
         KeyRow(KeyKind.Anthropic, "Claude", T("العقل", "The brain"));
-        KeyRow(KeyKind.FishAudio, "Fish Audio", T("السمع وصوت العربي", "Hearing and the Arabic voice"));
+        KeyRow(KeyKind.FishAudio, "Fish Audio", T("صوت العربي", "The Arabic voice"));
         KeyRow(KeyKind.Gemini, "Google Gemini", T("اختياري، للسمع", "Optional, for hearing"));
 
         // Talk key

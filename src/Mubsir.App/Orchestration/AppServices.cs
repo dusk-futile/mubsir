@@ -66,7 +66,7 @@ internal sealed class AppServices
 
     public bool HasEars => Ears is { HasAnyKey: true };
 
-    public bool HasBrain => Brain is not null && HasSecret(SecretNames.Anthropic);
+    public bool HasBrain => Brain is not null && (HasSecret(SecretNames.Anthropic) || HasSecret(SecretNames.Gemini));
 
     public bool HasSecret(string name)
     {

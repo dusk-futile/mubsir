@@ -80,17 +80,17 @@ internal static class AppText
         [AppPhrase.ConsentSummary] = (
             "قبل أن أستخدم الذكاء الاصطناعي، هذا ملخص الخصوصية. "
             + "عندما تضغط مفتاح التحدث يذهب صوتك إلى الخدمة التي وضعت مفتاحها، Fish Audio أو Gemini من Google، لتحويله إلى نص. "
-            + "ويذهب طلبك، مع نص الشاشة اللازم، إلى Claude من Anthropic ليجيب أو ينفذ. "
+            + "ويذهب طلبك، مع نص الشاشة اللازم، إلى Gemini من Google، أو Claude لو وضعت مفتاحه، ليجيب أو ينفذ. والطلبات المجانية قد تستخدمها Google وFish Audio لتحسين خدماتهما. "
             + "كلمات المرور وأرقام البطاقات ورموز التحقق لا تخرج من جهازك أبدًا، وفي صفحات البنوك يتوقف الذكاء الاصطناعي. "
             + "ويمكنك أن تقول: الوضع الخاص، فيتوقف كل إرسال إلى الإنترنت. "
-            + "والردود المنطوقة تذهب إلى Fish Audio لتحويلها إلى صوت. "
+            + "والردود العربية المنطوقة تذهب إلى Fish Audio لتحويلها إلى صوت. "
             + "اضغط إدخال للموافقة، أو Escape ليبقى الذكاء الاصطناعي متوقفًا.",
             "Before I use the AI, here is the privacy summary. "
             + "When you hold the talk key, your voice goes to the service you gave a key for, Fish Audio or Google's Gemini, to turn it into text. "
-            + "Your request, with the screen text it needs, goes to Anthropic's Claude to answer or act. "
+            + "Your request, with the screen text it needs, goes to Google's Gemini, or to Claude if you added its key, to answer or act. Google and Fish Audio may use free requests to improve their services. "
             + "Passwords, card numbers and verification codes never leave this computer, and the AI is off on bank pages. "
             + "You can say: private mode, to stop everything going to the internet. "
-            + "Spoken replies go to Fish Audio to become a voice. "
+            + "Spoken Arabic replies go to Fish Audio to become a voice. "
             + "Press Enter to agree, or Escape to keep the AI off."),
         [AppPhrase.ConsentGiven] = ("شكرًا. الذكاء الاصطناعي جاهز.", "Thank you. The AI is ready."),
         [AppPhrase.ConsentDeclined] = (

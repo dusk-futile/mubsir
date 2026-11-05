@@ -38,18 +38,18 @@ public static partial class KeySetup
         return FishShape().IsMatch(text) ? KeyKind.FishAudio : null;
     }
 
-    /// <summary>Keys that are enough to start. Voice falls back to the free Windows voice, ears can use either service.</summary>
-    public static bool CanStart(bool anthropic, bool fish, bool gemini) => anthropic && (fish || gemini);
+    /// <summary>Keys that are enough to start. A free Gemini key alone is enough for hearing and the brain, and voice falls back to free ones.</summary>
+    public static bool CanStart(bool anthropic, bool fish, bool gemini) => gemini || (anthropic && fish);
 
     /// <summary>What to ask for next, or null when nothing is missing.</summary>
     public static KeyKind? NextNeeded(bool anthropic, bool fish, bool gemini)
     {
-        if (!anthropic)
+        if (gemini)
         {
-            return KeyKind.Anthropic;
+            return fish ? null : KeyKind.FishAudio;
         }
 
-        return fish || gemini ? null : KeyKind.FishAudio;
+        return anthropic && fish ? null : KeyKind.Gemini;
     }
 
     [GeneratedRegex("^[0-9a-fA-F]{32}$")]

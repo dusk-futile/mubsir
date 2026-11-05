@@ -7,6 +7,7 @@ public sealed record MubsirSettings
 {
     public const string DefaultBrainModel = "claude-haiku-5-5";
     public const string DefaultEarsModel = "gemini-3.5-flash-lite";
+    public const string DefaultGeminiBrainModel = "gemini-3.5-flash-lite";
     public const string DefaultNvdaLangTagStyle = "VoiceElement";
     public const int DefaultSpeechRate = 50;
     public const decimal DefaultBudgetSoftCapUsd = 20m;
@@ -65,6 +66,9 @@ public sealed record MubsirSettings
 
     /// <summary>Arabic books through the paid voice, about $0.50 for 10 pages. The free Arabic voices are much weaker, so it's on.</summary>
     public bool ReadArabicBooksWithFish { get; set; } = true;
+
+    /// <summary>The Gemini model used as the brain when there's no Claude key.</summary>
+    public string GeminiBrainModel { get; set; } = DefaultGeminiBrainModel;
 
     /// <summary>Send the opening of each book to the AI once, to describe it for searching. The person chooses this.</summary>
     public bool DescribeBooks { get; set; }

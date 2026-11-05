@@ -12,7 +12,7 @@ Mubsir (مُبصِر) is a free voice agent for blind and low-vision people on W
 
 ## Owner decisions (don't re-ask)
 
-- **Decided 2026-11-05, replacing the owner-paid server:** the app is completely free and each user pastes their own keys. The owner is building it for their grandfather and will set up their own keys for him. Claude Haiku 5.5 is the recommended brain. Fish Audio is for hearing and the Arabic voice. Gemini is an optional alternative for hearing. The setup window suggests costs. There is no account, server or relay.
+- **Decided 2026-11-05, replacing the owner-paid server:** the app is completely free and each user pastes their own keys. The owner is building it for their grandfather and will set up their own keys for him. Decided 2026-11-05: it should run free: Gemini is the default brain and hearing, Fish's free model is tried first for Arabic, and Claude is an optional paid brain used when its key is there. Claude Haiku 5.5 is the recommended brain. Fish Audio is for hearing and the Arabic voice. Gemini is an optional alternative for hearing. The setup window suggests costs. There is no account, server or relay.
 - Reliability first. Everything heavy is in the back end, and the interface is clean, simple and light for weak PCs. Everything on screen must have a purpose, including Hudhud.
 - Target: a full app for the Microsoft Store, as well as the zip.
 - Testing happens on the owner's Windows PC, with Antigravity agents doing the checking to save tokens (`docs/WINDOWS-TEST.md`).
@@ -31,7 +31,7 @@ Mubsir (مُبصِر) is a free voice agent for blind and low-vision people on W
 - Identity: **Hudhud** (hoopoe). Normal-mode companion sits **bottom-right**; prototype in
   `prototypes/hudhud-companion/` (owner approves look → motion tokens → native WPF). Brand: `docs/BRAND.md`.
 - The build may restructure or replace old code, keeping the best parts. Never delete the repo.
-- Brain: Claude Haiku 5.5 (`claude-haiku-5-5`) by default, escalate to Sonnet 5.5 (`claude-sonnet-5-5`).
+- Brain: Gemini on its free tier unless a Claude key is added. Claude means Haiku 5.5 (`claude-haiku-5-5`) by default, escalating to Sonnet 5.5 (`claude-sonnet-5-5`).
 - Everything about the project (decisions, progress, next steps) is written into this repo so work can
   continue from any device. **Update `docs/HANDOFF.md` at the end of every session.**
 

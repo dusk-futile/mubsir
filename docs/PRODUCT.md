@@ -34,7 +34,7 @@ They hold **Right Ctrl**, say what they want and let go. Pressing **Ctrl** stops
 
 | | Voice | Cost |
 |---|---|---|
-| **Arabic** | Fish Audio. The Arabic narrator by default, and they can hear and pick from 6 by saying "غير الصوت". | About $0.50 for 10 pages. Audio already heard is saved, so hearing it again is free. |
+| **Arabic** | Fish Audio. The Arabic narrator by default, and they can hear and pick from 6 by saying "غير الصوت". | Free while Fish offers `s2.1-pro-free`, which may end soon. After that about $0.50 for 10 pages on a paid account. Audio already heard is saved. |
 | **English** | Ryan, a free voice that runs on the PC, at 90% of his normal speed. It downloads once in the background (115 MB). | Free |
 | **Backup for both** | The Windows or NVDA voice. | Free |
 
@@ -44,24 +44,17 @@ Fish reads a page one sentence at a time, only as it's reached, and the next sen
 
 ## Keys and cost
 
-The app is free. There's no account or server of ours. Each person pastes their own keys, which are encrypted for their Windows account:
+The app is free. There's no account or server of ours. Keys are encrypted for the Windows account:
 
-- **Claude** (Haiku 5.5): the brain. Required.
-- **Fish Audio**: hearing them and the Arabic voice. Required, unless they add a **Google Gemini** key for hearing.
+- **Google Gemini**: the brain and hearing. Required, and free within Google's limits.
+- **Fish Audio**: the Arabic voice. Optional, and free for now.
+- **Claude** (Haiku 5.5): an optional paid brain, used instead of Gemini when its key is there.
 
-Estimates for 20 spoken requests a day:
-
-| | English user | Arabic user |
-|---|---|---|
-| Requests | About $1.20 a month | About $3.90 a month |
-| 10 book pages a day | Free | About $15 a month |
-| **Total** | **About $1.20** | **About $19** |
-
-An Arabic user who reads books in the free Windows voice pays about $3.90.
+Free requests may be used by Google and Fish to improve their products. If the free limits run out, Mubsir says so. It's not suited to anything private until paid keys are added, and the owner should decide that before daily use.
 
 ## First start
 
-1. Setup talks to them. Enter opens each key page. They copy a key, and it's picked up, tested and they hear whether it works. Creating accounts and adding a card on those sites is the hard part, and many people will need help once.
+1. Setup talks to them. Enter opens the key page. They copy a key, and it's picked up, tested and they hear whether it works. Creating an account on those sites is the hard part, and many people will need help once.
 2. They hear the privacy summary and press Enter.
 3. A short conversation by voice or buttons: language, what they want most, subject, whether to describe books, speech speed, name. If NVDA is running it never asks whether they can see.
 4. Mubsir tells them what to try first.

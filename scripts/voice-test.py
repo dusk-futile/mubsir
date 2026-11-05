@@ -11,7 +11,6 @@ import pathlib
 import urllib.error
 import urllib.request
 
-PRICE_PER_BYTE = 15 / 1_000_000
 PLAIN = "استنتج الباحثون أن المستشرقين لم يستوعبوا خصائص الاشتقاق في اللغة العربية، فالكلمة الواحدة قد تتفرع إلى عشرات الصيغ. وكتب العالم كتبا كثيرة عن الأصوات المهموسة والمجهورة."
 MARKED = "اِسْتَنْتَجَ الباحِثُونَ أَنَّ المُسْتَشْرِقِينَ لَمْ يَسْتَوْعِبُوا خَصائِصَ الاِشْتِقاقِ في اللُّغَةِ العَرَبِيَّةِ، فَالكَلِمَةُ الواحِدَةُ قَدْ تَتَفَرَّعُ إِلى عَشَراتِ الصِّيَغِ. وَكَتَبَ العالِمُ كُتُبًا كَثِيرَةً عَنِ الأَصْواتِ المَهْمُوسَةِ وَالمَجْهُورَةِ."
 VOICES = [
@@ -34,7 +33,7 @@ def speak(key, voice, text):
     request = urllib.request.Request(
         "https://api.fish.audio/v1/tts",
         body,
-        {"Authorization": "Bearer " + key, "Content-Type": "application/json", "model": "s2.1-pro"},
+        {"Authorization": "Bearer " + key, "Content-Type": "application/json", "model": "s2.1-pro-free"},
     )
     with urllib.request.urlopen(request, timeout=90) as response:
         return response.read()

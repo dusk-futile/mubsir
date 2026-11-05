@@ -27,6 +27,10 @@ internal sealed class FishVoice(
     private const string Endpoint = "https://api.fish.audio/v1/tts";
     private const int MaxChars = 2000;
 
+    /// <summary>Fish offers this for free for now. Once it stops, the paid one is used if the account has credit.</summary>
+    private const string FreeModel = "s2.1-pro-free";
+    private const string PaidModel = "s2.1-pro";
+
     /// <summary>What's been heard is kept, so hearing a page again is free. About 16 hours of listening.</summary>
     private const long BookCacheBytes = 500L * 1024 * 1024;
     private static readonly TimeSpan SampleTimeout = TimeSpan.FromSeconds(15);
@@ -36,6 +40,7 @@ internal sealed class FishVoice(
 
     private readonly HttpClient _http = new(handler ?? new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) }) { Timeout = Timeout.InfiniteTimeSpan };
     private ReadySentence? _ready;
+    private bool _freeModelGone;
     private readonly FishVoiceCache _cache = cache ?? new FishVoiceCache(log);
     private readonly FishVoiceCache _bookCache = new(log, AppPaths.VoiceCacheDir + "-books", BookCacheBytes, BookCacheBytes * 9 / 10, MaxChars);
     private readonly object _gate = new();
@@ -213,29 +218,45 @@ internal sealed class FishVoice(
     {
         using var firstAudio = CancellationTokenSource.CreateLinkedTokenSource(stopped);
         firstAudio.CancelAfter(FirstAudioTimeout);
-        using var request = new HttpRequestMessage(HttpMethod.Post, Endpoint);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
-        request.Headers.TryAddWithoutValidation("model", "s2.1-pro");
-        request.Content = new StringContent(Body(text, lang, rate, voice), System.Text.Encoding.UTF8, "application/json");
-        using HttpResponseMessage response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, firstAudio.Token).ConfigureAwait(false);
-        if (!response.IsSuccessStatusCode)
+        bool free = !Volatile.Read(ref _freeModelGone);
+        HttpResponseMessage response = await SendAsync(key, text, lang, rate, voice, free ? FreeModel : PaidModel, firstAudio.Token).ConfigureAwait(false);
+        if (free && !response.IsSuccessStatusCode && response.StatusCode != HttpStatusCode.Unauthorized)
         {
-            Rest(key, response.StatusCode);
+            // The free model may end or be busy. If it's just busy, the next sentence tries it again.
+            if (response.StatusCode != HttpStatusCode.TooManyRequests)
+            {
+                Volatile.Write(ref _freeModelGone, true);
+            }
+
+            log.Fail(LogKind.Speech, "fish_free_" + (int)response.StatusCode);
+            response.Dispose();
+            free = false;
+            response = await SendAsync(key, text, lang, rate, voice, PaidModel, firstAudio.Token).ConfigureAwait(false);
+        }
+
+        using HttpResponseMessage answer = response;
+        if (!answer.IsSuccessStatusCode)
+        {
+            Rest(key, answer.StatusCode);
             return null;
         }
 
         firstAudio.CancelAfter(WholeAudioTimeout);
         using var audio = new MemoryStream();
-        await response.Content.CopyToAsync(audio, firstAudio.Token).ConfigureAwait(false);
+        await answer.Content.CopyToAsync(audio, firstAudio.Token).ConfigureAwait(false);
         if (audio.Length == 0)
         {
             Rest(key, HttpStatusCode.NoContent);
             return null;
         }
 
-        // Count costs for text actually sent over the network
-        ledger?.AddFishVoice(System.Text.Encoding.UTF8.GetByteCount(text));
-        onCostRecorded?.Invoke();
+        // Only the paid model costs anything.
+        if (!free)
+        {
+            ledger?.AddFishVoice(System.Text.Encoding.UTF8.GetByteCount(text));
+            onCostRecorded?.Invoke();
+        }
+
         byte[] bytes = audio.ToArray();
         if (canCache)
         {
@@ -243,6 +264,15 @@ internal sealed class FishVoice(
         }
 
         return bytes;
+    }
+
+    private async Task<HttpResponseMessage> SendAsync(string key, string text, Lang lang, int rate, string voice, string model, CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, Endpoint);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
+        request.Headers.TryAddWithoutValidation("model", model);
+        request.Content = new StringContent(Body(text, lang, rate, voice), System.Text.Encoding.UTF8, "application/json");
+        return await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
     }
 
     private string VoiceFor() => settings.Settings.FishVoiceIdArabic ?? VoiceCatalog.Default.Id;

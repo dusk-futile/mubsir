@@ -2,7 +2,14 @@
 
 Update this file at the end of every session. Newest on top. Older entries are in `docs/archive/HANDOFF-OLD.md`.
 
-# Latest session, 2026-11-05 (fifth part)
+# Latest session, 2026-11-05 (sixth part)
+
+- **The owner has no keys yet and wants it free.** `Brain/GeminiBrain.cs` (with `Core/Agent/GeminiWire.cs`) is a new free brain, and `BrainRouter` uses Claude only if its key exists. A Gemini key alone is enough to start. `FishVoice` tries `s2.1-pro-free` first, then the paid model. Its pages give two end dates, the later being 2026-11-30.
+- **Never run against the real services:** the Gemini brain and the free Fish model. No key was available. The tool format, thought signatures and limits are the risks. Tests B12, B13, D13 and D17 cover them.
+- **Privacy:** Google and Fish may use free requests to improve their products. The setup and consent text say so. The owner should decide on paid keys before daily use by their grandfather.
+- The free use isn't counted in "صرفت كام". Gemini hearing still is, at paid rates, so that command can read slightly high.
+
+# Earlier, 2026-11-05 (fifth part)
 
 - **Only blind and low-vision users now.** The owner is building this for their grandfather and will add their own keys. Sighted, beginner, hands-free, learner and child options are gone from `UserKind`, the first conversation and the prompt. The notch, Hudhud and the rest of the UI are unchanged. Anyone can still ask to be taught.
 - CI failed because restoring the whole solution changed Core's and Overlay's lock files. Only App's lock file should hold the Windows packages.

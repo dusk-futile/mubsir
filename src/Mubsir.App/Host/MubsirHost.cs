@@ -135,7 +135,7 @@ internal sealed class MubsirHost
         fishVoice.KeyRejected += status => app.SayNow(status == 402 ? AppPhrase.FishNoCredit : AppPhrase.FishKeyRejected);
         using var companion = settings.Settings.ShowNotch ? new CompanionBridge(speech, recorder, settings, _log) : null;
         app.Companion = companion;
-        app.Brain = Create<IBrain>("brain", () => new ClaudeBrain(secrets, settings, _log));
+        app.Brain = Create<IBrain>("brain", () => new BrainRouter(new ClaudeBrain(secrets, settings, _log), new GeminiBrain(secrets, settings, _log), secrets));
         if (screen is not null)
         {
             var positions = new ReadingPositions(AppPaths.PositionsFile);

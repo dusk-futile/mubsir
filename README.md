@@ -51,25 +51,19 @@ On first start it asks a few questions, and each answer changes how it behaves. 
 
 ## Getting started
 
-Mubsir is free, and it runs on your own keys, so you pay the AI services only for what you use.
+Mubsir is free. It runs on keys you make yourself, and they can all be free.
 
-**You need:** 64-bit Windows 10 (22H2) or Windows 11, a microphone, and two keys:
+**You need:** 64-bit Windows 10 (22H2) or Windows 11, a microphone, and:
 
 | Key | What it's for | |
 | --- | --- | --- |
-| [Claude](https://console.anthropic.com/settings/keys) | The brain | Required. Mubsir uses Haiku 5.5: the fastest, cheapest and most reliable fit for this. |
-| [Fish Audio](https://fish.audio/app/api-keys) | Hearing you and the Arabic voice | Required for hearing, unless you add a [Google Gemini](https://aistudio.google.com/apikey) key instead. If its voice fails, the free Windows voice takes over. |
+| [Google Gemini](https://aistudio.google.com/apikey) | The brain and hearing you | Required and free, within Google's limits. Google may use free requests to improve its products. |
+| [Fish Audio](https://fish.audio/app/api-keys) | A natural Arabic voice | Optional, and free while Fish offers its free model, which may end soon. Fish may use free requests too. Without it, the free Windows voice speaks Arabic. |
+| [Claude](https://console.anthropic.com/settings/keys) | A paid brain | Optional. If you add it, it's used instead of Gemini. |
 
-English speech is free: Ryan, a natural voice that runs on your PC, downloads once in the background. Arabic speech uses Fish Audio.
+English speech is free and private: Ryan, a natural voice that runs on your PC, downloads once in the background.
 
-**What it might cost a month.** These are estimates for 20 spoken requests a day, not quotes:
-
-| | English | Arabic |
-| --- | --- | --- |
-| Requests | about $1.20 | about $3.90 |
-| 10 book pages a day | free | about $15 |
-
-Opening a book costs nothing. Arabic is only paid for as you listen, about $0.50 for 10 pages, and hearing it again is free. Arabic books can use the free Windows voice instead.
+If Fish's free model ends, Arabic books cost about $0.50 for 10 pages on a paid account, or you can use the free Windows voice.
 
 1. Download the latest zip from [Releases](https://github.com/dusk-futile/mubsir/releases) and extract it.
 2. Right-click `setup.ps1` → **Run with PowerShell**, as administrator. It adds Arabic speech and the Mubsir Bridge add-on for NVDA, and starts Mubsir when you sign in.
@@ -111,7 +105,7 @@ Conversations are saved as plain files you can open, one a day, in `Documents\Mu
 
 ## Privacy
 
-- Mubsir only sends something when you ask for it, and only to the services you gave keys for: your voice to Fish Audio or Google for transcription, your request and the screen text it needs to Anthropic, and the Arabic it speaks to Fish Audio. English speech stays on your PC.
+- Mubsir only sends something when you ask for it, and only to the services you gave keys for: your voice to Google or Fish Audio for transcription, your request and the screen text it needs to Google or Anthropic, and the Arabic it speaks to Fish Audio. English speech stays on your PC.
 - Passwords, card numbers and one-time codes are never sent. Bank and payment pages are handled locally.
 - Say "private mode on" to keep everything on your PC.
 - Logs contain timings and error codes only, never what you said or read.
