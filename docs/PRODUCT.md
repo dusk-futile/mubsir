@@ -46,7 +46,7 @@ Fish reads a page one sentence at a time, only as it's reached, and the next sen
 
 The app is free. There's no account or server of ours. Keys are encrypted for the Windows account:
 
-- **Google Gemini**: the brain and hearing. Required, and free within Google's limits.
+- **Google Gemini**: the brain and hearing. Required, and free within Google's limits. Free Whisper was tested for hearing and got 39% to 72% of Arabic words wrong against Gemini's 7%, so it isn't used.
 - **Fish Audio**: the Arabic voice. Optional, and free for now.
 - **Claude** (Haiku 5.5): an optional paid brain, used instead of Gemini when its key is there.
 
