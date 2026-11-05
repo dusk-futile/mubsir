@@ -166,6 +166,12 @@ internal sealed partial class WindowsToolExecutor
             return Ok($"All {VoiceCatalog.For(voiceLang).Count} samples played. Ask which number they want.");
         }
 
+        if (number == 0 && ToolArgs.Bool(a.Args, "save") == true)
+        {
+            _settings.Update(old => voiceLang == Lang.Arabic ? old with { ReadArabicBooksWithFish = false } : old with { ReadBooksWithFish = false });
+            return Ok($"{voiceLang} books now use the free voice, which costs nothing.");
+        }
+
         if (VoiceCatalog.Get(voiceLang, number) is not { } voice)
         {
             return Error($"there are only {VoiceCatalog.For(voiceLang).Count} voices");
@@ -173,8 +179,11 @@ internal sealed partial class WindowsToolExecutor
 
         if (ToolArgs.Bool(a.Args, "save") == true)
         {
-            _settings.Update(old => voiceLang == Lang.Arabic ? old with { FishVoiceIdArabic = voice.Id } : old with { FishVoiceId = voice.Id });
-            return Ok($"Voice {number} ({voice.Name}) is saved for {voiceLang}.");
+            _settings.Update(old => voiceLang == Lang.Arabic
+                ? old with { FishVoiceIdArabic = voice.Id, ReadArabicBooksWithFish = true }
+                : old with { FishVoiceId = voice.Id, ReadBooksWithFish = true });
+            string cost = voiceLang == Lang.Arabic ? "$0.50" : "$0.30";
+            return Ok($"Voice {number} ({voice.Name}) is saved for {voiceLang}, including books. Reading 10 pages for the first time costs about {cost}. Hearing them again is free. Number 0 is the free voice for books.");
         }
 
         await Voices.PlaySampleAsync(voice.Sample, SampleLength, ct).ConfigureAwait(false);

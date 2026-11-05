@@ -176,10 +176,11 @@ public static class ToolCatalog
             Int("seconds", "From 1 to 30.")),
 
         Tool(ToolNames.ChooseVoice,
-            "Let the user hear and pick the voice. With no number it plays a short sample of each voice with its number, then ask which they want. "
-            + "With a number it plays that voice, and with save true it becomes their voice.",
+            "Let the user hear and pick the voice for Arabic and the voice for English. With no number it plays a short sample of each voice with its number, then ask which they want. "
+            + "With a number it plays that voice, and with save true it becomes their voice, for books too. Number 0 with save true is the free voice for books in that language. "
+            + "When they save, tell them the cost it gives you.",
             Choice("language", "Which voice: the one for Arabic or the one for English.", "arabic", "english"),
-            Int("number", "The voice number, or null to hear them all.", nullable: true),
+            Int("number", "The voice number, 0 for the free voice for books, or null to hear them all.", nullable: true),
             Bool("save", "true when the user chose this voice, otherwise false.", nullable: true)),
     ];
 

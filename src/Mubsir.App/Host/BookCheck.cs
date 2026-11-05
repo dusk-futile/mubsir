@@ -68,8 +68,11 @@ internal static class BookCheck
             "The first page opens the story.", "A traveller reached the old harbour at dawn.", "She carried a small brass key.",
             "The second page follows her through the market.", "Dr. Smith sold maps for 3.50 pounds each.", "Is this the right road?",
             "The fourth page comes after a blank one.", "This is the last sentence of the book."]);
+        bool arabicOcr = Windows.Media.Ocr.OcrEngine.AvailableRecognizerLanguages.Any(l => l.LanguageTag.StartsWith("ar", StringComparison.OrdinalIgnoreCase));
+
+        // Without Arabic OCR the letter this PDF lost can't be filled, so that sentence isn't checked.
         await ReadThrough(documents, temp, "arabic.pdf", Lang.Arabic, 2, [
-            "هذه هي الصفحة الأولى من الكتاب", "ذهب الولد إلى المدرسة في الصباح", "قرأ المعلم الدرس بصوت عال", "computer",
+            "هذه هي الصفحة الأولى من الكتاب", "ذهب الولد إلى المدرسة في الصباح", .. (arabicOcr ? new[] { "قرأ المعلم الدرس بصوت عال" } : []), "computer",
             "هذه هي الصفحة الثانية من الكتاب", "اشترى الولد ثلاثة كتب بخمسين جنيها", "هل تحب القراءة", "هذه آخر جملة في الكتاب"]);
         string[] arabicText = ["هذه هي الصفحة الأولى من الملف", "ذهب الولد إلى المدرسة في الصباح", "هل تحب القراءة", "هذه آخر جملة في الملف"];
         await ReadThrough(documents, temp, "arabic-utf8.txt", Lang.Arabic, 1, arabicText);
@@ -88,7 +91,6 @@ internal static class BookCheck
             Skip("scan.pdf", "no OCR on this PC");
         }
 
-        bool arabicOcr = Windows.Media.Ocr.OcrEngine.AvailableRecognizerLanguages.Any(l => l.LanguageTag.StartsWith("ar", StringComparison.OrdinalIgnoreCase));
         if (arabicOcr)
         {
             await ReadThrough(documents, temp, "scan-ar.pdf", Lang.Arabic, 1, ["هذه الصفحة ممسوحة من كتاب ورقي", "يجري النهر بجانب الطاحونة القديمة"], wrongLetters: 1);

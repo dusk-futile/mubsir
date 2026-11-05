@@ -229,6 +229,11 @@ internal sealed class MubsirHost
             }
         }
 
+        if (settings.Profile.PreferredLanguage == Lang.Arabic && !OcrService.HasArabic)
+        {
+            app.SayNow(AppPhrase.NoArabicOcr);
+        }
+
         if (settings.Profile.PreferredLanguage == Lang.Arabic && !nvda.IsRunning() && speech.ArabicVoiceMissing && !secrets.Has(SecretNames.Fish))
         {
             _ = Task.Run(async () =>

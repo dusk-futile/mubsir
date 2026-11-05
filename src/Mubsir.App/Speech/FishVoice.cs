@@ -35,6 +35,7 @@ internal sealed class FishVoice(
     private static readonly TimeSpan RestAfterFailure = TimeSpan.FromSeconds(60);
 
     private readonly HttpClient _http = new(handler ?? new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) }) { Timeout = Timeout.InfiniteTimeSpan };
+    private ReadySentence? _ready;
     private readonly FishVoiceCache _cache = cache ?? new FishVoiceCache(log);
     private readonly FishVoiceCache _bookCache = new(log, AppPaths.VoiceCacheDir + "-books", BookCacheBytes, BookCacheBytes * 9 / 10, MaxChars);
     private readonly object _gate = new();
@@ -106,7 +107,7 @@ internal sealed class FishVoice(
         }
 
         double speed = Math.Clamp(0.5 + (rate / 100.0), 0.5, 2.0);
-        string voice = (lang == Lang.Arabic ? settings.Settings.FishVoiceIdArabic : settings.Settings.FishVoiceId) ?? VoiceCatalog.Default(lang == Lang.Arabic ? Lang.Arabic : Lang.English).Id;
+        string voice = VoiceFor(lang);
         FishVoiceCache store = isBook ? _bookCache : _cache;
         bool canCache = !settings.Settings.PrivateMode && text.Length <= store.Limit;
 
@@ -130,40 +131,10 @@ internal sealed class FishVoice(
 
         try
         {
-            using var firstAudio = CancellationTokenSource.CreateLinkedTokenSource(stopped);
-            firstAudio.CancelAfter(FirstAudioTimeout);
-            using var request = new HttpRequestMessage(HttpMethod.Post, Endpoint);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
-            request.Headers.TryAddWithoutValidation("model", "s2.1-pro");
-            request.Content = new StringContent(Body(text, lang, rate, voice), System.Text.Encoding.UTF8, "application/json");
-            using HttpResponseMessage response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, firstAudio.Token).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
-            {
-                Rest(key, response.StatusCode);
-                return false;
-            }
-
-            firstAudio.CancelAfter(WholeAudioTimeout);
-            var audio = new MemoryStream();
-            await response.Content.CopyToAsync(audio, firstAudio.Token).ConfigureAwait(false);
-            if (audio.Length == 0)
-            {
-                Rest(key, HttpStatusCode.NoContent);
-                return false;
-            }
-
-            // Count costs for text actually sent over the network
-            int utf8Bytes = System.Text.Encoding.UTF8.GetByteCount(text);
-            ledger?.AddFishVoice(utf8Bytes);
-            onCostRecorded?.Invoke();
-
-            if (canCache)
-            {
-                store.Put(text, voice, speed, audio.ToArray());
-            }
-
-            audio.Position = 0;
-            return await PlayAsync(audio, started, TimeSpan.FromSeconds(30) + TimeSpan.FromMilliseconds(text.Length * 250L), stopped).ConfigureAwait(false);
+            byte[]? audio = await TakeReadyAsync(text, lang, isBook, stopped).ConfigureAwait(false)
+                ?? await FetchAsync(key, text, lang, rate, voice, speed, store, canCache, stopped).ConfigureAwait(false);
+            return audio is not null
+                && await PlayAsync(new MemoryStream(audio), started, TimeSpan.FromSeconds(30) + TimeSpan.FromMilliseconds(text.Length * 250L), stopped).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (stopped.IsCancellationRequested)
         {
@@ -176,6 +147,107 @@ internal sealed class FishVoice(
             return false;
         }
     }
+
+    /// <summary>
+    /// Gets the next sentence's audio while this one plays, so there's less of a pause. Only one is ever ready, so
+    /// stopping costs at most that sentence, and it's saved, so hearing it later is free.
+    /// </summary>
+    public void GetReady(string text, Lang lang, int rate, bool isBook)
+    {
+        string? key = secrets.Get(SecretNames.Fish);
+        if (key is null || string.IsNullOrWhiteSpace(text) || text.Length > MaxChars || !CanSpeak(isBook, lang))
+        {
+            return;
+        }
+
+        double speed = Math.Clamp(0.5 + (rate / 100.0), 0.5, 2.0);
+        string voice = VoiceFor(lang);
+        FishVoiceCache store = isBook ? _bookCache : _cache;
+        bool canCache = text.Length <= store.Limit;
+        if (canCache && store.Has(text, voice, speed))
+        {
+            return;
+        }
+
+        CancellationToken stopped;
+        lock (_gate)
+        {
+            if (_ready is not null && _ready.Text == text && _ready.IsBook == isBook)
+            {
+                return;
+            }
+
+            stopped = _stop.Token;
+            _ready = new ReadySentence(text, lang, isBook, FetchQuietlyAsync(key, text, lang, rate, voice, speed, store, canCache, stopped));
+        }
+    }
+
+    private async Task<byte[]?> FetchQuietlyAsync(string key, string text, Lang lang, int rate, string voice, double speed, FishVoiceCache store, bool canCache, CancellationToken stopped)
+    {
+        try
+        {
+            return await FetchAsync(key, text, lang, rate, voice, speed, store, canCache, stopped).ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is HttpRequestException or OperationCanceledException or IOException)
+        {
+            return null;
+        }
+    }
+
+    private async Task<byte[]?> TakeReadyAsync(string text, Lang lang, bool isBook, CancellationToken stopped)
+    {
+        ReadySentence? ready;
+        lock (_gate)
+        {
+            ready = _ready;
+            _ready = null;
+        }
+
+        return ready is not null && ready.Text == text && ready.Lang == lang && ready.IsBook == isBook
+            ? await ready.Audio.WaitAsync(stopped).ConfigureAwait(false)
+            : null;
+    }
+
+    private async Task<byte[]?> FetchAsync(string key, string text, Lang lang, int rate, string voice, double speed, FishVoiceCache store, bool canCache, CancellationToken stopped)
+    {
+        using var firstAudio = CancellationTokenSource.CreateLinkedTokenSource(stopped);
+        firstAudio.CancelAfter(FirstAudioTimeout);
+        using var request = new HttpRequestMessage(HttpMethod.Post, Endpoint);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
+        request.Headers.TryAddWithoutValidation("model", "s2.1-pro");
+        request.Content = new StringContent(Body(text, lang, rate, voice), System.Text.Encoding.UTF8, "application/json");
+        using HttpResponseMessage response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, firstAudio.Token).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            Rest(key, response.StatusCode);
+            return null;
+        }
+
+        firstAudio.CancelAfter(WholeAudioTimeout);
+        using var audio = new MemoryStream();
+        await response.Content.CopyToAsync(audio, firstAudio.Token).ConfigureAwait(false);
+        if (audio.Length == 0)
+        {
+            Rest(key, HttpStatusCode.NoContent);
+            return null;
+        }
+
+        // Count costs for text actually sent over the network
+        ledger?.AddFishVoice(System.Text.Encoding.UTF8.GetByteCount(text));
+        onCostRecorded?.Invoke();
+        byte[] bytes = audio.ToArray();
+        if (canCache)
+        {
+            store.Put(text, voice, speed, bytes);
+        }
+
+        return bytes;
+    }
+
+    private string VoiceFor(Lang lang) =>
+        (lang == Lang.Arabic ? settings.Settings.FishVoiceIdArabic : settings.Settings.FishVoiceId) ?? VoiceCatalog.Default(lang == Lang.Arabic ? Lang.Arabic : Lang.English).Id;
+
+    private sealed record ReadySentence(string Text, Lang Lang, bool IsBook, Task<byte[]?> Audio);
 
     public void Stop()
     {
@@ -190,6 +262,7 @@ internal sealed class FishVoice(
             _playing = null;
             old = _stop;
             _stop = new CancellationTokenSource();
+            _ready = null;
         }
 
         // Not disposed: a sentence starting right now may still be linking to its token.

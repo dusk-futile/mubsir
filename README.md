@@ -71,7 +71,7 @@ Mubsir is free, and it runs on your own keys, so you pay the AI services only fo
 | Normal, 60 requests a day | about $12 | about $4 |
 | Heavy, 150 requests a day | about $30 | about $9 |
 
-Opening a book costs nothing, and the voice is only paid for as you listen. Arabic books use the Fish voice, about $0.50 for 10 pages, and hearing them again is free. English books use the free voice. You can change both.
+Opening a book costs nothing, and the voice is only paid for as you listen. Arabic books use your chosen Fish voice, about $0.50 for 10 pages, and hearing them again is free. English books use the free Windows voice until you pick a Fish voice for English, about $0.30 for 10 pages. You can change both.
 
 1. Download the latest zip from [Releases](https://github.com/dusk-futile/mubsir/releases) and extract it.
 2. Right-click `setup.ps1` → **Run with PowerShell**, as administrator. It adds Arabic speech and the Mubsir Bridge add-on for NVDA, and starts Mubsir when you sign in.

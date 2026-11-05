@@ -31,6 +31,22 @@ internal sealed class OcrService
 
     public bool IsAvailable => Engine() is not null;
 
+    /// <summary>Without this, an Arabic scan comes out as nonsense from another language's engine.</summary>
+    public static bool HasArabic
+    {
+        get
+        {
+            try
+            {
+                return OcrEngine.AvailableRecognizerLanguages.Any(l => l.LanguageTag.StartsWith("ar", StringComparison.OrdinalIgnoreCase));
+            }
+            catch (Exception e) when (e is not OutOfMemoryException)
+            {
+                return false;
+            }
+        }
+    }
+
     public async Task<string?> RecognizeAsync(SoftwareBitmap bitmap, CancellationToken ct)
     {
         var engine = Engine();

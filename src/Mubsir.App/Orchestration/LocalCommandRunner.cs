@@ -130,11 +130,11 @@ internal sealed class LocalCommandRunner
                 Say(lang == Lang.Arabic ? "تم إيقاف صوت فيش." : "Fish voice turned off.", lang);
                 break;
             case LocalCommand.ReadBooksWithFishOn:
-                _app.Settings.Update(s => s with { ReadBooksWithFish = true });
+                _app.Settings.Update(s => s with { ReadBooksWithFish = true, ReadArabicBooksWithFish = true });
                 Say(lang == Lang.Arabic ? "تم تشغيل قراءة الكتب بصوت فيش." : "Reading books with Fish voice turned on.", lang);
                 break;
             case LocalCommand.ReadBooksWithFishOff:
-                _app.Settings.Update(s => s with { ReadBooksWithFish = false });
+                _app.Settings.Update(s => s with { ReadBooksWithFish = false, ReadArabicBooksWithFish = false });
                 Say(lang == Lang.Arabic ? "تم إيقاف قراءة الكتب بصوت فيش." : "Reading books with Fish voice turned off.", lang);
                 break;
             case LocalCommand.NotchOn:

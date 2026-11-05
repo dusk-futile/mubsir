@@ -590,7 +590,8 @@ public sealed class SetupWindow : Window
         Option("ShowNotch", T("أظهر الشريط اللي فوق الشاشة (بعد إعادة التشغيل)", "Show the notch at the top of the screen (after a restart)"));
         Option("ShowHudhud", T("أظهر الهدهد (بعد إعادة التشغيل)", "Show Hudhud (after a restart)"));
         Option("UseFishVoice", T("اتكلم بصوت Fish Audio", "Talk in the Fish Audio voice"));
-        Option("ReadBooksWithFish", T("اقرأ الكتب بصوت Fish Audio (الكتاب الكبير ممكن يتكلف 18 دولار)", "Read books in the Fish Audio voice (a long book can cost about $18)"));
+        Option("ReadArabicBooksWithFish", T("اقرأ الكتب العربية بالصوت المختار (10 صفحات بحوالي 50 سنت)", "Read Arabic books in the chosen voice (about $0.50 for 10 pages)"));
+        Option("ReadBooksWithFish", T("اقرأ الكتب الإنجليزية بالصوت المختار (10 صفحات بحوالي 30 سنت)", "Read English books in the chosen voice (about $0.30 for 10 pages)"));
         Option("TeachMovesMouse", T("وأنا بعلم، حرك الماوس للمكان الصح", "When teaching, move the mouse to the right place"));
         Option("ReadFullTashkeel", T("اقرأ التشكيل كاملاً (لو مقفول، متروك للصوت)", "Read Arabic diacritics fully (when off, left to the voice)"));
         Option("SaveSessions", T("احفظ المحادثات في فولدر على جهازي", "Save chats in a folder on this PC"));

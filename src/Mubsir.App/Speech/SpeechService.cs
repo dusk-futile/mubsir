@@ -288,6 +288,28 @@ internal sealed class SpeechService : IDisposable
         _signal.Set();
     }
 
+    /// <summary>Runs once a sentence starts playing, so its own ready audio has already been used.</summary>
+    private void GetNextReady(FishVoice fish, Job job)
+    {
+        try
+        {
+            Job? next;
+            lock (_gate)
+            {
+                next = _queue.First?.Value;
+            }
+
+            if (next is not null && next.Generation == job.Generation)
+            {
+                fish.GetReady(next.Sentence.PlainText, next.Lang, _rate, next.IsBook);
+            }
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            _log.Fail(LogKind.Speech, "fish_ready_" + MetaLog.Code(e));
+        }
+    }
+
     private void ClearQueue()
     {
         var waiters = new List<TaskCompletionSource>();
@@ -454,7 +476,13 @@ internal sealed class SpeechService : IDisposable
             try
             {
                 // SpeakAsync has its own limits. This one means a hang can only ever cost one sentence.
-                Task<bool> speaking = fish.SpeakAsync(job.Sentence.PlainText, job.Lang, _rate, () => History.MarkSpoken(job.Sentence.HistoryIndex), isBook: job.IsBook);
+                Task<bool> speaking = fish.SpeakAsync(job.Sentence.PlainText, job.Lang, _rate, 
+                    () =>
+                    {
+                        History.MarkSpoken(job.Sentence.HistoryIndex);
+                        _ = Task.Run(() => GetNextReady(fish, job));
+                    },
+                    isBook: job.IsBook);
                 TimeSpan most = TimeSpan.FromSeconds(75) + TimeSpan.FromMilliseconds(job.Sentence.PlainText.Length * 250L);
                 if (speaking.Wait(most))
                 {

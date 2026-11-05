@@ -73,6 +73,14 @@ internal sealed class FishVoiceCache
         return false;
     }
 
+    public bool Has(string text, string? voice, double speed)
+    {
+        lock (_gate)
+        {
+            return File.Exists(GetFilePath(text, voice, speed));
+        }
+    }
+
     public void Put(string text, string? voice, double speed, byte[] audio)
     {
         if (string.IsNullOrWhiteSpace(text) || text.Length > Limit || audio.Length == 0)

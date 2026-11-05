@@ -231,6 +231,12 @@ public sealed class OnboardingFlow
             _ => kind is UserKind.Beginner or UserKind.ChildLearner ? 42 : MubsirSettings.DefaultSpeechRate,
         };
         (string ar, string en) = FirstSuggestion(goal, _subject);
+        if (noSight)
+        {
+            ar += " وتقدر تقول غير الصوت عشان تختار صوت العربي وصوت الإنجليزي.";
+            en += " You can also say change the voice to pick one for Arabic and one for English.";
+        }
+
         return new PersonalPlan(
             kind,
             _language,

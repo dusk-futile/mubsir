@@ -84,6 +84,19 @@ public class PdfPageTextTests
     }
 
     [Fact]
+    public void A_lost_letter_is_filled_when_ocr_breaks_the_lines_elsewhere()
+    {
+        // The real result from the Windows check on arabic.pdf.
+        string text = "\uFFFDَرَأَ المُعَلمُ الدرْسَ بِصَوْتٍ عَالٍ. ثم سأل الطلاب عن معنى كلمة computer في الدرس.";
+        string ocr = "هذه هي الصفحة الأولى من الكتاب. ذهب الولد إلى المدرسة في الصباح.\nقرأ المعلم الد\nرس بصوت عال. ثم سأل الطلاب عن معنى\nكلمة computer في الدرس.";
+        Assert.StartsWith("قرأ المُعَلمُ", OcrRepair.FillLostLetters(text, ocr), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_short_word_with_a_lost_letter_needs_a_matching_neighbour() =>
+        Assert.Equal("رأ كلام", OcrRepair.FillLostLetters("\uFFFDرأ كلام", "قرأ المعلم"));
+
+    [Fact]
     public void A_lost_letter_is_filled_even_when_ocr_drops_the_hamza() =>
         Assert.Equal("قرا المعلم", OcrRepair.FillLostLetters("\uFFFDَرَأَ المعلم", "قرا المعلم"));
 

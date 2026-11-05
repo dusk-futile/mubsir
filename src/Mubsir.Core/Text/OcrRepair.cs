@@ -4,7 +4,6 @@ namespace Mubsir.Core.Text;
 public static class OcrRepair
 {
     private const double SameBox = 0.5;
-    private const double SameLine = 0.5;
 
     public static bool HasLatin(IReadOnlyList<IReadOnlyList<OcrWordBox>> lines) => lines.Any(l => l.Any(IsLatin));
 
@@ -54,13 +53,14 @@ public static class OcrRepair
             return text;
         }
 
-        string[] ocrLines = (ocr ?? string.Empty).Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        // OCR and the PDF break lines in different places, so this looks across the whole page.
+        string[] page = (ocr ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
         string[] lines = text.Split('\n');
         for (int i = 0; i < lines.Length; i++)
         {
             if (lines[i].Contains(PdfPageText.Unknown, StringComparison.Ordinal))
             {
-                lines[i] = FillLine(lines[i], ocrLines);
+                lines[i] = FillLine(lines[i], page);
             }
         }
 
@@ -93,29 +93,8 @@ public static class OcrRepair
         return row[b.Length];
     }
 
-    private static string FillLine(string line, string[] ocrLines)
+    private static string FillLine(string line, string[] page)
     {
-        string flat = Letters(line);
-        string? match = null;
-        double best = SameLine;
-        foreach (string candidate in ocrLines)
-        {
-            string other = Letters(candidate);
-            int longest = Math.Max(flat.Length, other.Length);
-            double likeness = longest == 0 ? 0 : 1 - ((double)Distance(flat, other) / longest);
-            if (likeness >= best)
-            {
-                best = likeness;
-                match = candidate;
-            }
-        }
-
-        if (match is null)
-        {
-            return line;
-        }
-
-        string[] options = match.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         string[] words = line.Split(' ');
         for (int w = 0; w < words.Length; w++)
         {
@@ -126,10 +105,15 @@ public static class OcrRepair
             }
 
             string key = Letters(words[w]);
-            string? chosen = options
-                .Where(o => Letters(o).Length >= key.Length + lost - 1 && Distance(key, Letters(o)) <= lost)
-                .OrderBy(o => Distance(key, Letters(o)))
-                .ThenBy(o => Math.Abs(((double)Array.IndexOf(options, o) / options.Length) - ((double)w / words.Length)))
+            string before = w > 0 ? Letters(words[w - 1]) : string.Empty;
+            string after = w + 1 < words.Length ? Letters(words[w + 1]) : string.Empty;
+
+            // A neighbouring word has to match too, because short words look alike.
+            string? chosen = Enumerable.Range(0, page.Length)
+                .Where(i => Letters(page[i]).Length >= key.Length + lost - 1 && Distance(key, Letters(page[i])) <= lost)
+                .Where(i => (before.Length > 0 && i > 0 && Letters(page[i - 1]) == before) || (after.Length > 0 && i + 1 < page.Length && Letters(page[i + 1]) == after))
+                .OrderBy(i => Distance(key, Letters(page[i])))
+                .Select(i => page[i])
                 .FirstOrDefault();
             if (chosen is not null)
             {
