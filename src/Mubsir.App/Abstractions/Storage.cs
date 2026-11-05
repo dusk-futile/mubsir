@@ -23,6 +23,8 @@ public static class AppPaths
 
     public static string LibraryFile => Path.Combine(DataDir, "library.json");
 
+    public static string RemindersFile => Path.Combine(DataDir, "reminders.json");
+
     public static string PageRepairsFile => Path.Combine(DataDir, "page-repairs.json");
 
     public static string UndoJournalFile => Path.Combine(DataDir, "undo.jsonl");

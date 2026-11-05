@@ -90,6 +90,7 @@ internal sealed class MubsirHost
         }
 
         using var fishVoice = new FishVoice(secrets, settings, _log, ledger, OnCostChanged);
+        var reminders = new Mubsir.Core.Reminders.ReminderBook(AppPaths.RemindersFile);
         using var localVoice = new LocalVoice(_log);
         using var speech = new SpeechService(nvda, oneCore, settings, _log, _clock, fishVoice, quiet, localVoice);
         using var recorder = new WaveInRecorder(_log);
@@ -166,7 +167,7 @@ internal sealed class MubsirHost
                 input.SetReading, _log);
             app.Books = books;
             app.Executor = Create<IToolExecutor>("executor", () => new WindowsToolExecutor(
-                screen, documents, positions, books, app.Brain, speech, settings, memory, prompter, usage, _log) { Voices = fishVoice });
+                screen, documents, positions, books, app.Brain, speech, settings, memory, prompter, usage, _log) { Voices = fishVoice, Reminders = reminders });
             scanner = new LibraryScanner(library, documents, _log) { Describe = app.Executor is WindowsToolExecutor hands ? hands.DescribeBookAsync : null };
         }
 
@@ -186,6 +187,7 @@ internal sealed class MubsirHost
         using var scanStopping = new CancellationTokenSource();
         scanner?.Start(scanStopping.Token);
         _ = Task.Run(() => localVoice.InstallAsync(scanStopping.Token));
+        _ = Task.Run(() => SayRemindersAsync(reminders, speech, settings, _log, scanStopping.Token));
         using var foreground = new ForegroundWatcher(app, mubsir.Tasks, hook);
         foreground.Start();
         using var session = new SessionWatcher(app, mubsir.Tasks, hook);
@@ -287,6 +289,38 @@ internal sealed class MubsirHost
         {
             _log.Failure(what + "_create", e);
             return null;
+        }
+    }
+
+    /// <summary>Says each reminder when it's due. One that was missed while the PC was off is said as missed.</summary>
+    private static async Task SayRemindersAsync(Mubsir.Core.Reminders.ReminderBook reminders, SpeechService speech, SettingsProvider settings, IEventLog log, CancellationToken stopping)
+    {
+        using var tick = new PeriodicTimer(TimeSpan.FromSeconds(20));
+        try
+        {
+            do
+            {
+                try
+                {
+                    DateTime now = DateTime.Now;
+                    foreach (Mubsir.Core.Reminders.Reminder due in reminders.TakeDue(now))
+                    {
+                        bool arabic = settings.Profile.PreferredLanguage == Lang.Arabic;
+                        bool missed = now - due.At > TimeSpan.FromMinutes(10);
+                        string start = missed ? (arabic ? "فاتك تذكير: " : "You missed a reminder: ") : (arabic ? "تذكير: " : "Reminder: ");
+                        speech.PlayEarcon(Earcon.Error);
+                        speech.Speak(start + due.Text, UtteranceKind.System, settings.Profile.PreferredLanguage);
+                    }
+                }
+                catch (Exception e) when (e is not OutOfMemoryException)
+                {
+                    log.Failure("reminders", e);
+                }
+            }
+            while (await tick.WaitForNextTickAsync(stopping).ConfigureAwait(false));
+        }
+        catch (OperationCanceledException)
+        {
         }
     }
 

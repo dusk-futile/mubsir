@@ -21,7 +21,7 @@ When the owner says **run tests**: run `pwsh scripts/run-tests.ps1` as administr
 3. Plug in a microphone and speakers.
 4. Open a new session on Windows in a clone of this repo, on branch `feat/reading-direct`, and paste this:
 
-> Read AGENTS.md, docs/PRODUCT.md, docs/HANDOFF.md and docs/WINDOWS-TEST.md. Run tests 1 to 84 in docs/WINDOWS-TEST.md, in order. My grandfather is blind, so errors, error messages and troubleshooting matter most: he must always hear what happened and what to do next. Fix what fails, re-test it, and commit as the authorship rule in AGENTS.md says. Keep a results table in docs/RESULTS.md. Stop and ask me whenever a step needs me.
+> Read AGENTS.md, docs/PRODUCT.md, docs/HANDOFF.md and docs/WINDOWS-TEST.md. Run tests 1 to 90 in docs/WINDOWS-TEST.md, in order. My grandfather is blind, so errors, error messages and troubleshooting matter most: he must always hear what happened and what to do next. Fix what fails, re-test it, and commit as the authorship rule in AGENTS.md says. Keep a results table in docs/RESULTS.md. Stop and ask me whenever a step needs me.
 
 ## How to test by voice and by ear
 
@@ -45,7 +45,7 @@ Remove-NetFirewallRule -DisplayName MubsirBlock
 
 ## Recording results
 
-Tests are numbered 1 to 84 in order, with their section letter beside the number. Each test is **Pass**, **Fail** or **Not tested**, and a test that wasn't proved stays Not tested. For a failure, record what was said, what should have been said, the log code, and the fix. **Severity:** 1 means silence, a hang, a crash, data lost or money spent wrongly. 2 means a wrong or confusing message. 3 is small. Fix all severity 1 and 2 before moving on.
+Tests are numbered 1 to 90 in order, with their section letter beside the number. Each test is **Pass**, **Fail** or **Not tested**, and a test that wasn't proved stays Not tested. For a failure, record what was said, what should have been said, the log code, and the fix. **Severity:** 1 means silence, a hang, a crash, data lost or money spent wrongly. 2 means a wrong or confusing message. 3 is small. Fix all severity 1 and 2 before moving on.
 
 The rule behind every test below: **the person always hears what happened and what to do next. Silence is a severity 1 bug.**
 
@@ -174,6 +174,17 @@ For each, try while idle, during a request and during reading.
 | 82. H3 | Leave it running for 8 hours with some use | No memory growth, and it still answers |
 | 83. H4 | Full disk, read-only data folder | Says saves failed, no crash |
 | 84. H5 | Different display scales, two screens, Arabic Windows, right-to-left | Clicks land in the right place. `click_on` is the one to check |
+
+## I. Everyday life
+
+| # | Test | Passes when |
+|---|---|---|
+| 85. I1 | Reminders: in 2 minutes, at a clock time, tomorrow, weekly, by a weekday name, list, cancel. Restart before one is due, and leave the PC off past one | Said at the right time and only once. A missed one says missed. An unclear time gets a question |
+| 86. I2 | Spotify: "شغل سورة البقرة", pause, next, "حطها في المفضلة". Not installed, not signed in, no internet | Plays, shows in Liked Songs, and each failure says why. **By ear:** is it hearing the right surah? |
+| 87. I3 | WhatsApp: "ابعت رسالة لأحمد" to someone who exists, a name with two matches, and nobody. Use a test contact the owner approves | Says who, asks what to send, reads it back, asks before sending. Numbers for two matches, and "not found" for nobody |
+| 88. I4 | Photos: a family photo, a document photo, a broken file, and a photo inside WhatsApp, in Arabic and English | Useful description, says it seems, doesn't name people from their faces, and a clear error for the bad file |
+| 89. I5 | Notifications in the zip build and the Store build, with permission on and off | Reads them, or says exactly what to allow. Codes are hidden. **It may not work in the zip build** |
+| 90. I6 | "النهاردة إيه", "الساعة كام", "what day is it" | Right at once, with no AI use |
 
 ## Finish
 

@@ -8,11 +8,12 @@ public static class AppRecipes
     public const string Gmail = "Gmail";
     public const string Outlook = "Outlook";
     public const string YouTube = "YouTube";
+    public const string Spotify = "Spotify";
     public const string Word = "Microsoft Word";
     public const string FileExplorer = "File Explorer";
     public const string Browser = "Chrome and Edge";
 
-    public static IReadOnlyList<string> Order { get; } = [Browser, WhatsApp, Gmail, Outlook, YouTube, Word, FileExplorer];
+    public static IReadOnlyList<string> Order { get; } = [Browser, WhatsApp, Spotify, Gmail, Outlook, YouTube, Word, FileExplorer];
 
     public static IReadOnlyDictionary<string, string> All { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
     {
@@ -28,7 +29,13 @@ public static class AppRecipes
             + "Search chats with the search box at the top of the chat list (Ctrl+F in the Desktop app). Unread chats show an unread count in their name; "
             + "the Unread filter above the list shows only those. Open a chat by invoking it, then read the last messages with read_screen. "
             + "A voice note has a Play button inside the message; invoke it to play. To reply, set_text in the message box, then invoke the Send button "
-            + "or press Enter; the app asks the user before sending. New chat: Ctrl+N in the Desktop app.",
+            + "or press Enter; the app asks the user before sending. New chat: Ctrl+N in the Desktop app. "
+            + "To send to someone: search for the name. If no contact matches, say so. If several match, say them with numbers and ask which. Say the contact you found, and if they haven't said the message yet, call ask_user with what message they want to send. Then type it and send.",
+
+        [Spotify] =
+            "Spotify: for music or Quran, such as \"شغل سورة البقرة\", open it with open_app, or open_url https://open.spotify.com/search/ with the words. Then read_screen, say the top results with numbers if it's unclear, and invoke Play on the chosen one. "
+            + "To add what's playing to his likes, invoke the button named \"Add to Liked Songs\" (Alt+Shift+B in the desktop app), then read the screen to confirm it's saved. "
+            + "The media tool controls play, pause, next and previous. If Spotify isn't installed or signed in, say so and offer YouTube.",
 
         [Gmail] =
             "Gmail in the browser: the search box is named \"Search mail\". The inbox is a list of rows; invoke a row to open the email. "

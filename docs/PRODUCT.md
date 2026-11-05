@@ -27,6 +27,14 @@ They hold **Right Ctrl**, say what they want and let go. Pressing **Ctrl** stops
 - It can undo a file move, rename or copy.
 - Settings can be changed by voice, including speed and the Arabic voice. "صرفت كام" says the month's spending.
 
+**Everyday life**
+- "النهاردة إيه" and "الساعة كام" answer at once.
+- Spotify by voice, including Quran: "شغل سورة البقرة", and "حطها في المفضلة" adds it to his likes.
+- WhatsApp: "ابعت رسالة لأحمد". It finds the contact, says who, asks what to say, and asks before sending.
+- Reminders in Mubsir itself: "فكرني بالدوا الساعة 8", once, daily or weekly. They survive a restart, and one missed while the PC was off is said as missed.
+- Photos: "إيه اللي في الصورة دي", from a file or on screen. It's a guess, and it says so.
+- "إيه الجديد" reads Windows notifications, with codes and card numbers hidden.
+
 **Ask his own AI chat**
 - If he's signed in to ChatGPT or Gemini in his browser, plain questions like "يعني ايه cat" go there and the answer is read aloud, with no API cost beyond hearing him. He can also name it: "اسأل جيميني ...".
 - Anything about the screen, a file or an action stays with the brain. If the chat can't be reached or he isn't signed in, he's told and the brain answers.

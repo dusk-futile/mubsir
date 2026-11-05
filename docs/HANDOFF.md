@@ -2,7 +2,11 @@
 
 Update this file at the end of every session. Newest on top. Older entries are in `docs/archive/HANDOFF-OLD.md`.
 
-# Latest session, 2026-11-05 (seventh part)
+# Latest session, 2026-11-05 (eighth part)
+
+- **Built, never run on Windows:** reminders (`Core/Reminders`, spoken from `MubsirHost`), `describe_photo`, `read_notifications` (`WindowsToolExecutor.Daily.cs`), Spotify and WhatsApp steps in `AppRecipes`. Notifications may need the Store build's identity. The owner doesn't want external or remote help features.
+
+# Earlier, 2026-11-05 (seventh part)
 
 - **Teaching removed:** Mubsir only does what's said. The overlay's pointer code stays for the demo, and nothing else uses it.
 - **Asking his AI chat is new and has never run on Windows or against the real sites:** `Core/Chat/ChatRouting.cs` picks plain questions, and `WindowsToolExecutor.Chat.cs` types them into ChatGPT or Gemini and reads the reply. Reading the answer off a real page is the main risk.

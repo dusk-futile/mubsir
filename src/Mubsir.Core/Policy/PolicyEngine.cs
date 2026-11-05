@@ -48,7 +48,7 @@ public sealed class PolicyEngine
         var t = (tool ?? "").Trim().ToLowerInvariant();
         return t switch
         {
-            ToolNames.ReadDocument or ToolNames.ListFolder or ToolNames.FindFiles or ToolNames.ReadClipboard or ToolNames.BrowseSearch => true,
+            ToolNames.ReadDocument or ToolNames.ListFolder or ToolNames.FindFiles or ToolNames.ReadClipboard or ToolNames.BrowseSearch or ToolNames.ReadNotifications or ToolNames.DescribePhoto => true,
             ToolNames.ReadScreen or ToolNames.OcrWindow or ToolNames.DescribeScreen => PolicyRules.IsUntrustedSource(screen),
             _ => false,
         };
@@ -112,7 +112,7 @@ public sealed class PolicyEngine
             return Block(ReasonCodes.AccountSecurity);
         }
 
-        if (tool is ToolNames.DescribeScreen or ToolNames.ClickOn && task.PrivateMode)
+        if (tool is ToolNames.DescribeScreen or ToolNames.ClickOn or ToolNames.DescribePhoto && task.PrivateMode)
         {
             return Block(ReasonCodes.PrivateNoScreenshot);
         }
@@ -360,7 +360,7 @@ public sealed class PolicyEngine
             case ToolNames.SetText or ToolNames.TypeText:
                 return Block(ReasonCodes.BankNoTyping);
 
-            case ToolNames.DescribeScreen or ToolNames.ClickOn or ToolNames.ReadClipboard:
+            case ToolNames.DescribeScreen or ToolNames.ClickOn or ToolNames.ReadClipboard or ToolNames.DescribePhoto or ToolNames.ReadNotifications:
                 return Block(ReasonCodes.BankNoScreenshot);
 
             case ToolNames.Invoke:

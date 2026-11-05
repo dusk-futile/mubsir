@@ -273,7 +273,7 @@ internal sealed partial class WindowsToolExecutor : IToolExecutor
     private static readonly HashSet<string> FileTools =
     [
         ToolNames.ReadDocument, ToolNames.ListFolder, ToolNames.FindFiles, ToolNames.MoveFile,
-        ToolNames.CopyFile, ToolNames.RenameFile, ToolNames.Recycle, ToolNames.OpenFile, ToolNames.CreateFolder,
+        ToolNames.CopyFile, ToolNames.RenameFile, ToolNames.Recycle, ToolNames.OpenFile, ToolNames.CreateFolder, ToolNames.DescribePhoto,
     ];
 
     private Task<(string Content, bool IsError)> RunToolAsync(string tool, AgentAction a, ExecutorState s, CancellationToken ct) =>
@@ -314,6 +314,11 @@ internal sealed partial class WindowsToolExecutor : IToolExecutor
         ToolNames.Remember => Task.FromResult(Remember(a)),
         ToolNames.AskUser => AskUserAsync(a, ct),
         ToolNames.ChooseChat => Task.FromResult(ChooseChat(a)),
+        ToolNames.SetReminder => Task.FromResult(SetReminder(a)),
+        ToolNames.ListReminders => Task.FromResult(ListReminders()),
+        ToolNames.CancelReminder => Task.FromResult(CancelReminder(a)),
+        ToolNames.DescribePhoto => DescribePhotoAsync(a, s, ct),
+        ToolNames.ReadNotifications => ReadNotificationsAsync(ct),
         ToolNames.ClickOn => ClickOnAsync(a, s, ct),
         ToolNames.OpenFile => OpenFileAsync(a, ct),
         ToolNames.CreateFolder => Task.Run(() => CreateFolder(a), ct),
@@ -397,6 +402,7 @@ internal sealed partial class WindowsToolExecutor : IToolExecutor
             case ToolNames.ListFolder:
             case ToolNames.ReadDocument:
             case ToolNames.OpenFile:
+            case ToolNames.DescribePhoto:
             case ToolNames.CreateFolder:
                 return ToolArgs.Str(args, "path") is { } p ? ([Resolve(p)], null) : ([], null);
             case ToolNames.FindFiles:
