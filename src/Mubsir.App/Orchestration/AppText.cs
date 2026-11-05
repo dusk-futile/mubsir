@@ -12,6 +12,12 @@ internal enum AppPhrase
     FeatureUnavailable,
     NvdaSpeedHint,
     ConsentSummary,
+    FishNoCredit,
+    ClaudeNoCredit,
+    KeysNotWorking,
+    NoArabicVoice,
+    FishKeyRejected,
+    NoEarsYet,
     ConsentGiven,
     ConsentDeclined,
     ConsentPressEnter,
@@ -59,18 +65,26 @@ internal static class AppText
         [AppPhrase.NvdaSpeedHint] = (
             "لتغيير سرعة NVDA نفسه اضغط NVDA مع Control مع السهم لأعلى أو لأسفل.",
             "To change NVDA's own speed, press NVDA+Control+Up or Down arrow."),
+        [AppPhrase.ClaudeNoCredit] = ("رصيد حساب Claude خلص. اشحنه من موقع Anthropic وأنا هكمل.", "Your Claude account is out of credit. Top it up on the Anthropic site and I'll carry on."),
+        [AppPhrase.KeysNotWorking] = ("المفاتيح مش شغالة دلوقتي، فمش هحس بالـ Control. اقفل مبصر وافتحه تاني.", "Keyboard keys aren't reaching me, so I can't feel Ctrl. Please close Mubsir and open it again."),
+        [AppPhrase.NoArabicVoice] = ("Arabic speech isn't installed on this PC, so I can't speak Arabic yet. Open Windows Settings, Time and language, Speech, and add Arabic.", "Arabic speech isn't installed on this PC, so I can't speak Arabic yet. Open Windows Settings, Time and language, Speech, and add Arabic."),
+        [AppPhrase.FishNoCredit] = ("رصيد Fish Audio خلص، فهتكلم بصوت ويندوز المجاني لحد ما تشحنه.", "Your Fish Audio credit has run out, so I'll use the free Windows voice until you top it up."),
+        [AppPhrase.FishKeyRejected] = ("مفتاح Fish Audio مش شغال، فهتكلم بصوت ويندوز المجاني. افتح الإعدادات من أيقونة مبصر عشان تغيره.", "Your Fish Audio key isn't working, so I'll use the free Windows voice. Open settings from Mubsir's tray icon to change it."),
+        [AppPhrase.NoEarsYet] = ("لسه محتاج مفتاح عشان أسمعك. افتح الإعداد من أيقونة مبصر.", "I still need a key to hear you. Open setup from Mubsir's tray icon."),
         [AppPhrase.ConsentSummary] = (
             "قبل أن أستخدم الذكاء الاصطناعي، هذا ملخص الخصوصية. "
-            + "عندما تضغط مفتاح التحدث يذهب صوتك، مع اسم البرنامج واسم العنصر المحدد، إلى خدمة Gemini من Google لتحويله إلى نص. "
+            + "عندما تضغط مفتاح التحدث يذهب صوتك إلى الخدمة التي وضعت مفتاحها، Fish Audio أو Gemini من Google، لتحويله إلى نص. "
             + "ويذهب طلبك، مع نص الشاشة اللازم، إلى Claude من Anthropic ليجيب أو ينفذ. "
             + "كلمات المرور وأرقام البطاقات ورموز التحقق لا تخرج من جهازك أبدًا، وفي صفحات البنوك يتوقف الذكاء الاصطناعي. "
             + "ويمكنك أن تقول: الوضع الخاص، فيتوقف كل إرسال إلى الإنترنت. "
+            + "والردود المنطوقة تذهب إلى Fish Audio لتحويلها إلى صوت. "
             + "اضغط إدخال للموافقة، أو Escape ليبقى الذكاء الاصطناعي متوقفًا.",
             "Before I use the AI, here is the privacy summary. "
-            + "When you hold the talk key, your voice, with the app name and the focused item's name, goes to Google's Gemini to turn it into text. "
+            + "When you hold the talk key, your voice goes to the service you gave a key for, Fish Audio or Google's Gemini, to turn it into text. "
             + "Your request, with the screen text it needs, goes to Anthropic's Claude to answer or act. "
             + "Passwords, card numbers and verification codes never leave this computer, and the AI is off on bank pages. "
             + "You can say: private mode, to stop everything going to the internet. "
+            + "Spoken replies go to Fish Audio to become a voice. "
             + "Press Enter to agree, or Escape to keep the AI off."),
         [AppPhrase.ConsentGiven] = ("شكرًا. الذكاء الاصطناعي جاهز.", "Thank you. The AI is ready."),
         [AppPhrase.ConsentDeclined] = (

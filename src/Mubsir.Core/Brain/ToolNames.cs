@@ -35,12 +35,13 @@ public static class ToolNames
     public const string RestartPc = "restart_pc";
     public const string Remember = "remember";
     public const string AskUser = "ask_user";
+    public const string PointAt = "point_at";
 
     public static IReadOnlySet<string> All { get; } = new[]
     {
         ReadScreen, Invoke, SetText, TypeText, PressKeys, Scroll, Focus, ListWindows, SwitchTo, OpenApp, OpenUrl,
         BrowseSearch, DescribeScreen, OcrWindow, ReadDocument, FindBook, Media, ListFolder, FindFiles, MoveFile, CopyFile,
-        RenameFile, Recycle, SystemStatus, SetVolume, OpenSettings, WindowsUpdateStatus, RestartPc, Remember, AskUser,
+        RenameFile, Recycle, SystemStatus, SetVolume, OpenSettings, WindowsUpdateStatus, RestartPc, Remember, AskUser, PointAt,
     }.ToFrozenSet(StringComparer.Ordinal);
 
     public static IReadOnlySet<string> FileTools { get; } = new[]

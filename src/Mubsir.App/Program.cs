@@ -24,6 +24,8 @@ internal static class Program
                 return Supervisor.Run(cmd.ChildArgs ?? []);
             case RunMode.OverlayDemo:
                 return OverlayDemo.Run();
+            case RunMode.SetupDemo:
+                return SetupDemo.Run(cmd.KeyName ?? "keys");
             case RunMode.BookCheck:
                 ConsoleIo.Attach();
                 return BookCheck.Run(cmd.KeyName!, cmd.KeyValue!);

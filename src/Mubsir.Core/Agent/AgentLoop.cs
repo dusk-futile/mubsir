@@ -261,7 +261,7 @@ public sealed class AgentLoop(
 
                     narrator.Play(Earcon.NeedsConfirmation);
                     var facts = decision.Facts ?? new ConfirmationFacts { ToolName = prepared.Action.Tool };
-                    var answer = await ConfirmAsync(ConfirmationBuilder.Build(facts, lang), ct).ConfigureAwait(false);
+                    var answer = await ConfirmAsync(ConfirmationBuilder.Build(facts, lang), NeedsKeyPress(facts.Kind), ct).ConfigureAwait(false);
                     if (answer == ConfirmOutcome.Accepted)
                     {
                         result = await ExecuteAsync(prepared, call, task, ct).ConfigureAwait(false);
@@ -306,11 +306,14 @@ public sealed class AgentLoop(
         return (result, stop);
     }
 
-    private async Task<ConfirmOutcome> ConfirmAsync(string prompt, CancellationToken ct)
+    private static bool NeedsKeyPress(ConfirmKind kind) =>
+        kind is ConfirmKind.Delete or ConfirmKind.Pay or ConfirmKind.Buy or ConfirmKind.Transfer or ConfirmKind.Install or ConfirmKind.Restart or ConfirmKind.SignOut;
+
+    private async Task<ConfirmOutcome> ConfirmAsync(string prompt, bool byKey, CancellationToken ct)
     {
         try
         {
-            return await confirmer.ConfirmAsync(prompt, ct).ConfigureAwait(false);
+            return await (byKey ? confirmer.ConfirmByKeyAsync(prompt, ct) : confirmer.ConfirmAsync(prompt, ct)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {

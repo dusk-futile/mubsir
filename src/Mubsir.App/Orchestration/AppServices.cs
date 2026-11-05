@@ -1,3 +1,4 @@
+using Mubsir.Core.Sessions;
 using Mubsir.App.Speech;
 using Mubsir.Core.Agent;
 using Mubsir.Core.Common;
@@ -47,7 +48,13 @@ internal sealed class AppServices
 
     public BookAloud? Books { get; set; }
 
-    public GeminiEars? Ears { get; set; }
+    public EarsRouter? Ears { get; set; }
+
+    /// <summary>The notch and Hudhud. Null when they're turned off or couldn't start; nothing depends on them.</summary>
+    public CompanionBridge? Companion { get; set; }
+
+    /// <summary>Saved chats. Private mode and the setting keep it from writing.</summary>
+    public SessionArchive? Sessions { get; set; }
 
     public IBrain? Brain { get; set; }
 
@@ -55,7 +62,7 @@ internal sealed class AppServices
 
     public Lang UiLang => Settings.Profile.PreferredLanguage;
 
-    public bool HasEars => Ears is not null && HasSecret(SecretNames.Gemini);
+    public bool HasEars => Ears is { HasAnyKey: true };
 
     public bool HasBrain => Brain is not null && HasSecret(SecretNames.Anthropic);
 
@@ -103,6 +110,9 @@ internal sealed class AppServices
         {
             case BrainErrorKind.Network:
                 SayFailure(FailureState.Offline);
+                break;
+            case BrainErrorKind.NoCredit:
+                SayNow(AppPhrase.ClaudeNoCredit);
                 break;
             case BrainErrorKind.Auth or BrainErrorKind.NoApiKey:
                 SayFailure(FailureState.NoApiKey);

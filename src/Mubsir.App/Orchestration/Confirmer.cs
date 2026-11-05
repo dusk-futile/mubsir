@@ -42,6 +42,9 @@ internal sealed class Confirmer : IConfirmer
     public Task<ConfirmOutcome> ConfirmAsync(string prompt, CancellationToken ct) =>
         ConfirmAsync(prompt, DefaultTimeout, allowVoice: true, sayTimedOut: true, ct);
 
+    public Task<ConfirmOutcome> ConfirmByKeyAsync(string prompt, CancellationToken ct) =>
+        ConfirmAsync(prompt + " " + AppText.Get(AppPhrase.ConsentPressEnter, ScriptSegmenter.DominantLanguage(prompt, _app.UiLang)), DefaultTimeout, allowVoice: false, sayTimedOut: true, ct);
+
     public async Task<ConfirmOutcome> ConfirmAsync(string prompt, TimeSpan timeout, bool allowVoice, bool sayTimedOut, CancellationToken ct)
     {
         await _one.WaitAsync(ct).ConfigureAwait(false);

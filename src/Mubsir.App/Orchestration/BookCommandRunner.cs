@@ -11,7 +11,7 @@ namespace Mubsir.App.Orchestration;
 /// so "next page" on a website still reaches the AI when no book is in hand.</summary>
 internal sealed class BookCommandRunner(AppServices app)
 {
-    private static readonly TimeSpan ChoiceLasts = TimeSpan.FromMinutes(3);
+    private static readonly TimeSpan ChoiceLasts = TimeSpan.FromMinutes(1);
 
     private IReadOnlyList<LibraryCard> _choices = [];
     private DateTimeOffset _choicesAt;
@@ -38,14 +38,18 @@ internal sealed class BookCommandRunner(AppServices app)
             return false;
         }
 
+        if (command.Kind != BookCommandKind.Pick)
+        {
+            _choices = [];
+        }
+
         switch (command.Kind)
         {
             case BookCommandKind.Pick:
                 await PickAsync(books, command.Number ?? 0, lang).ConfigureAwait(false);
                 return true;
             case BookCommandKind.FindBook:
-                await FindAsync(books, command.Text ?? string.Empty, lang).ConfigureAwait(false);
-                return true;
+                return await FindAsync(books, command.Text ?? string.Empty, lang).ConfigureAwait(false);
             case BookCommandKind.ReadingJournal:
                 Say(ReadingJournal.Summary(books.Journal(3), app.Clock.UtcNow, lang), lang);
                 return true;
@@ -103,7 +107,8 @@ internal sealed class BookCommandRunner(AppServices app)
             return true;
         }
 
-        if (books.LastPlace() is not { Path: { } path })
+        // "Continue" with a task on hold means the task, not yesterday's book.
+        if (app.Input.AgentRunning || books.LastPlace() is not { Path: { } path })
         {
             return false;
         }
@@ -112,28 +117,26 @@ internal sealed class BookCommandRunner(AppServices app)
         return true;
     }
 
-    private async Task FindAsync(BookAloud books, string query, Lang lang)
+    /// <summary>False when no book matched, so the AI can try: it may be a question about books, or something online.</summary>
+    private async Task<bool> FindAsync(BookAloud books, string query, Lang lang)
     {
         app.Speech.PlayEarcon(Earcon.Thinking);
         IReadOnlyList<LibraryCard> found = await books.FindBooksAsync(query, lang, CancellationToken.None).ConfigureAwait(false);
         if (found.Count == 0)
         {
-            int count = books.Library.Count;
-            Say(lang == Lang.Arabic
-                ? $"ملقتش كتاب عن {query}. دورت في {count} كتاب لحد دلوقتي."
-                : $"I didn't find a book on {query}. I've looked through {count} books so far.", lang);
-            return;
+            return false;
         }
 
         if (found.Count == 1)
         {
             await OpenCardAsync(books, found[0], lang).ConfigureAwait(false);
-            return;
+            return true;
         }
 
         _choices = found;
         _choicesAt = app.Clock.UtcNow;
         Say(BookListText.List(found, lang), lang);
+        return true;
     }
 
     private async Task PickAsync(BookAloud books, int number, Lang lang)

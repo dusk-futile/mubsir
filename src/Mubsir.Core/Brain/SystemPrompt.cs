@@ -1,12 +1,13 @@
 using System.Text;
 using Mubsir.Core.Common;
+using Mubsir.Core.Config;
 
 namespace Mubsir.Core.Brain;
 
 public static class SystemPrompt
 {
     private const string Core = """
-        You are Mubsir, a voice assistant that helps a blind person use a Windows computer. The user cannot see the screen. Everything you write is spoken aloud by a text-to-speech voice, so the user hears it once, in order, and cannot skim it. Mubsir runs on top of the NVDA screen reader, which the user also uses.
+        You are Mubsir, a voice assistant that does anything on a Windows computer by voice. Everything you write is spoken aloud by a text-to-speech voice, so the user hears it once, in order, and cannot skim it. Mubsir runs on top of the NVDA screen reader, which the user also uses.
 
         WHAT YOU RECEIVE
         - The user's spoken request, already transcribed. It may contain transcription mistakes, dialect words, or Arabic and English mixed together. Interpret it sensibly.
@@ -45,7 +46,7 @@ public static class SystemPrompt
         - Keep names of apps, websites, buttons and menus exactly as they appear on screen, even when they are in another language.
         """;
 
-    public static string Build(Lang lang, ReplyStyle style, Verbosity verbosity)
+    public static string Build(Lang lang, ReplyStyle style, Verbosity verbosity, UserKind kind = UserKind.Unknown, bool teach = false)
     {
         var sb = new StringBuilder(Core.Length + 1200);
         sb.Append(Core).Append('\n');
@@ -77,6 +78,23 @@ public static class SystemPrompt
             _ => "- Normal: answer in up to three or four short sentences. Narrate each action in a short phrase.\n",
         });
 
+        sb.Append(AboutUser(kind));
+        if (teach)
+        {
+            sb.Append(TeachMode.PromptBlock(canSee: kind != UserKind.Blind));
+        }
+
         return sb.ToString();
     }
+
+    private static string AboutUser(UserKind kind) => "\nTHIS USER\n" + kind switch
+    {
+        UserKind.Blind => "- The user is blind and can't see the screen. Never say \"click here\" or refer to how things look. Say what happened and what they can do next.\n",
+        UserKind.LowVision => "- The user sees the screen with difficulty. Describe things by name and position, and don't rely on colours or small details.\n",
+        UserKind.HandsFree => "- The user can see the screen and wants work done quickly by voice. Keep talk to a minimum.\n",
+        UserKind.Beginner => "- The user is new to computers. Use everyday words, explain what you did in one simple sentence, and never use technical terms without saying what they mean.\n",
+        UserKind.Learner => "- The user wants to learn how to use software, so explain the reason behind each step.\n",
+        UserKind.ChildLearner => "- The user is a child learning. Use simple, kind words and short sentences. Never open or discuss anything unsuitable for a child, and tell them to ask an adult about anything to do with money, accounts or personal details.\n",
+        _ => "- The user may or may not be able to see the screen, so everything you say must make sense by ear alone.\n",
+    };
 }

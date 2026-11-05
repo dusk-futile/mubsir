@@ -1,3 +1,4 @@
+using Mubsir.App.Native;
 using Mubsir.App.Screen.Documents;
 using Mubsir.Core.Library;
 using Mubsir.Core.Logging;
@@ -30,6 +31,8 @@ internal sealed class LibraryScanner(BookLibrary library, DocumentReader documen
     {
         try
         {
+            // Lowers this thread's disk and memory priority too, so the scan can't slow anything a person is doing.
+            Kernel32.SetThreadPriority(Kernel32.GetCurrentThread(), Kernel32.ThreadModeBackgroundBegin);
             stopping.WaitHandle.WaitOne(FirstWait);
             while (!stopping.IsCancellationRequested)
             {

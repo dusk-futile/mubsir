@@ -4,7 +4,8 @@ public static class BankDomainDefaults
 {
     public static IReadOnlyList<string> All { get; } =
     [
-
+        "chase.com", "bankofamerica.com", "wellsfargo.com", "citi.com", "capitalone.com", "usbank.com", "barclays.co.uk", "hsbc.com", "lloydsbank.com",
+        "natwest.com", "santander.com", "revolut.com", "n26.com", "wise.com", "klarna.com", "adyen.com", "checkout.shopify.com",
         "nbe.com.eg", "banquemisr.com", "cibeg.com", "qnbalahli.com", "qnb.com.eg", "alexbank.com", "aaib.com",
         "banqueducaire.com", "hsbc.com.eg", "faisalbank.com.eg", "adib.eg", "fawry.com", "instapay.eg", "ipn.eg",
         "paymob.com", "digital.gov.eg",

@@ -79,9 +79,11 @@ internal sealed class UiaThread : IDisposable
             return;
         }
 
+        // Every worker is stuck on a hung app. Leave them to finish whenever they can, or the PC would lose its
+        // screen reading until Mubsir restarted.
         if (_workers.Count >= MaxWorkers)
         {
-            return;
+            _workers.Clear();
         }
 
         var worker = new Worker(this, $"{_name}-{_workers.Count + 1}");

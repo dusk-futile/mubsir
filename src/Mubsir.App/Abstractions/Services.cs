@@ -46,5 +46,6 @@ public static class SecretNames
 {
     public const string Anthropic = "anthropic";
     public const string Gemini = "gemini";
+    public const string Fish = "fish";
 }
 

@@ -8,6 +8,7 @@ internal enum RunMode
     ClearKey,
     Version,
     OverlayDemo,
+    SetupDemo,
     BookCheck,
     Invalid,
 }
@@ -23,7 +24,7 @@ internal sealed record CommandLine(
     public const string WatchFlag = "--watch";
     public const string RecoveredFlag = "--recovered";
 
-    public static readonly IReadOnlySet<string> KeyNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "anthropic", "gemini" };
+    public static readonly IReadOnlySet<string> KeyNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "anthropic", "gemini", "fish" };
 
     public static CommandLine Parse(IReadOnlyList<string> args)
     {
@@ -36,6 +37,12 @@ internal sealed record CommandLine(
         if (args.Any(a => Is(a, "--overlay-demo")))
         {
             return new CommandLine(RunMode.OverlayDemo);
+        }
+
+        int demo = IndexOf(args, "--setup-demo");
+        if (demo >= 0)
+        {
+            return new CommandLine(RunMode.SetupDemo, KeyName: demo + 1 < args.Count ? args[demo + 1] : "keys");
         }
 
         int check = IndexOf(args, "--book-check");
@@ -58,7 +65,7 @@ internal sealed record CommandLine(
             string? name = set + 1 < args.Count ? args[set + 1] : null;
             if (name is null || !KeyNames.Contains(name))
             {
-                return new CommandLine(RunMode.Invalid, Error: "usage: --set-key <anthropic|gemini> [value]");
+                return new CommandLine(RunMode.Invalid, Error: "usage: --set-key <anthropic|fish|gemini> [value]");
             }
 
             string? value = set + 2 < args.Count && !args[set + 2].StartsWith("--", StringComparison.Ordinal) ? args[set + 2] : null;
@@ -71,7 +78,7 @@ internal sealed record CommandLine(
             string? name = clear + 1 < args.Count ? args[clear + 1] : null;
             if (name is null || !KeyNames.Contains(name))
             {
-                return new CommandLine(RunMode.Invalid, Error: "usage: --clear-key <anthropic|gemini>");
+                return new CommandLine(RunMode.Invalid, Error: "usage: --clear-key <anthropic|fish|gemini>");
             }
 
             return new CommandLine(RunMode.ClearKey, KeyName: name.ToLowerInvariant());

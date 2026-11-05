@@ -143,6 +143,7 @@ internal sealed class MubsirApp : IDisposable
             case TalkStarted:
                 _app.Speech.Stop();
                 _app.Speech.PlayEarcon(Earcon.ListeningStart);
+                _app.Companion?.Listening();
                 break;
             case TalkEnded:
                 _flow.OnTalkEnded();
@@ -339,6 +340,12 @@ internal sealed class MubsirApp : IDisposable
             if (settings.MubsirPaused)
             {
                 _app.Say(StringKey.Paused);
+                return;
+            }
+
+            // Until setup has finished, the setup window does the talking.
+            if (!settings.OnboardingDone)
+            {
                 return;
             }
 

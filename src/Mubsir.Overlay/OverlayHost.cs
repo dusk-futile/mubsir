@@ -49,9 +49,9 @@ public sealed class OverlayHost : IDisposable
     public long FramesDrawn => _companion?.Frames ?? 0;
 
     /// <summary>Shows the windows and returns when they are up.</summary>
-    public static OverlayHost Start()
+    public static OverlayHost Start(bool withHudhud = true)
     {
-        var host = new OverlayHost();
+        var host = new OverlayHost { _withHudhud = withHudhud };
         host._thread.Start();
         host._ready.Wait();
         if (host._startFailure is { } failure)
@@ -106,6 +106,8 @@ public sealed class OverlayHost : IDisposable
         _ready.Dispose();
     }
 
+    private bool _withHudhud = true;
+
     private void Post(Action<Companion> action)
     {
         Dispatcher? dispatcher = _dispatcher;
@@ -129,7 +131,7 @@ public sealed class OverlayHost : IDisposable
         {
             _dispatcher = Dispatcher.CurrentDispatcher;
             _dispatcher.UnhandledException += OnUnhandled;
-            var companion = new Companion(OverlayAssets.Load());
+            var companion = new Companion(OverlayAssets.Load(), _withHudhud);
             companion.Notch.Clicked += () => NotchClicked?.Invoke();
             companion.Notch.StopClicked += () => StopRequested?.Invoke();
             companion.Notch.TapClicked += () => ConfirmTapRequested?.Invoke();
@@ -166,11 +168,14 @@ public sealed class OverlayHost : IDisposable
         private readonly FrameLoop _loop = new();
         private readonly DispatcherTimer _fullScreen = new() { Interval = TimeSpan.FromSeconds(2) };
         private CompanionState _state = CompanionState.Idle;
+        private readonly DispatcherTimer _rest = new() { Interval = TimeSpan.FromSeconds(20) };
+        private readonly bool _withHudhud;
         private bool _started;
         private bool _hidden;
 
-        public Companion(OverlayAssets assets)
+        public Companion(OverlayAssets assets, bool withHudhud)
         {
+            _withHudhud = withHudhud;
             // Respects Windows' "Show animations" setting: values jump instead of moving.
             bool reduceMotion = !SystemParameters.ClientAreaAnimation;
             Notch = new NotchWindow(assets, _loop, reduceMotion);
@@ -179,8 +184,12 @@ public sealed class OverlayHost : IDisposable
             Pointer = new PointerWindow(assets, _loop, reduceMotion);
             assets.ReleaseImages();
             _loop.Add(Notch);
-            _loop.Add(Hudhud);
-            _loop.Add(Panel);
+            if (withHudhud)
+            {
+                _loop.Add(Hudhud);
+                _loop.Add(Panel);
+            }
+
             _loop.Add(Pointer);
             Hudhud.Clicked += Panel.Toggle;
             Panel.OpenChanged += Hudhud.Hold;
@@ -189,6 +198,13 @@ public sealed class OverlayHost : IDisposable
             Notch.Hovered += Hudhud.Peek;
             Hudhud.VoiceSource = () => Notch.VoiceValue;
             Hudhud.AsleepChanged += Notch.SetAsleep;
+
+            // With no bird to fall asleep, the notch rests on its own timer.
+            _rest.Tick += (_, _) =>
+            {
+                _rest.Stop();
+                Notch.SetAsleep(true);
+            };
         }
 
         public NotchWindow Notch { get; }
@@ -204,8 +220,12 @@ public sealed class OverlayHost : IDisposable
         public void Open()
         {
             Notch.Show();
-            Hudhud.Show();
-            Panel.Show();
+            if (_withHudhud)
+            {
+                Hudhud.Show();
+                Panel.Show();
+            }
+
             _loop.Wake();
 
             // The notch comes out of the top edge, then Hudhud hops in.
@@ -213,7 +233,11 @@ public sealed class OverlayHost : IDisposable
             start.Tick += (_, _) =>
             {
                 start.Stop();
-                Hudhud.Enter();
+                if (_withHudhud)
+                {
+                    Hudhud.Enter();
+                }
+
                 if (!_started)
                 {
                     Notch.Go(CompanionState.Idle, null);
@@ -239,7 +263,19 @@ public sealed class OverlayHost : IDisposable
             }
 
             Notch.Go(state, content);
-            Hudhud.Go(state);
+            if (_withHudhud)
+            {
+                Hudhud.Go(state);
+            }
+            else if (state == CompanionState.Idle)
+            {
+                _rest.Start();
+            }
+            else
+            {
+                _rest.Stop();
+                Notch.SetAsleep(false);
+            }
         }
 
         /// <summary>Stays out of the way of a movie, a game or a slideshow while there is nothing to show,
@@ -257,7 +293,7 @@ public sealed class OverlayHost : IDisposable
             }
 
             _hidden = hidden;
-            foreach (Window window in new Window[] { Notch, Hudhud, Panel })
+            foreach (Window window in _withHudhud ? new Window[] { Notch, Hudhud, Panel } : [Notch])
             {
                 if (hidden)
                 {

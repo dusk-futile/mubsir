@@ -26,6 +26,9 @@ public enum ConfirmOutcome
 public interface IConfirmer
 {
     Task<ConfirmOutcome> ConfirmAsync(string prompt, CancellationToken ct);
+
+    /// <summary>For what can't be taken back: only a real key press counts, so sound from the speakers can't agree.</summary>
+    Task<ConfirmOutcome> ConfirmByKeyAsync(string prompt, CancellationToken ct) => ConfirmAsync(prompt, ct);
 }
 
 public enum NarrationKind

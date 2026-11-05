@@ -1,5 +1,4 @@
 using Mubsir.Core.Library;
-using System.Diagnostics;
 using System.Threading.Channels;
 using Mubsir.App.Actions;
 using Mubsir.App.Screen.Documents;
@@ -14,6 +13,7 @@ using Mubsir.Core.Input;
 using Mubsir.Core.Logging;
 using Mubsir.Core.Policy;
 using Mubsir.Core.Reading;
+using Mubsir.Core.Sessions;
 
 namespace Mubsir.App.Host;
 
@@ -73,7 +73,8 @@ internal sealed class MubsirHost
 
         var nvda = new NvdaController();
         using var oneCore = new OneCoreSpeech(_log);
-        using var speech = new SpeechService(nvda, oneCore, settings, _log, _clock);
+        using var fishVoice = new FishVoice(secrets, settings, _log);
+        using var speech = new SpeechService(nvda, oneCore, settings, _log, _clock, fishVoice);
         using var recorder = new WaveInRecorder(_log);
         var input = new InputStateMachine(InputSettingsFrom(settings.Settings), _clock);
         var actions = Channel.CreateUnbounded<InputAction>(new UnboundedChannelOptions { SingleReader = true });
@@ -111,7 +112,11 @@ internal sealed class MubsirHost
         LibraryScanner? scanner = null;
         UiaScreenReader? screen = Create("screen", () => new UiaScreenReader(_log));
         app.Screen = screen;
-        app.Ears = Create("ears", () => new GeminiEars(secrets, settings, _log));
+        app.Ears = Create("ears", () => new EarsRouter(new GeminiEars(secrets, settings, _log), new FishEars(secrets, _log), secrets, settings, _log));
+        app.Sessions = new SessionArchive(settings.Settings.SessionsFolder ?? AppPaths.DefaultChatsDir, () => _clock.UtcNow.ToLocalTime());
+        fishVoice.KeyRejected += status => app.SayNow(status == 402 ? AppPhrase.FishNoCredit : AppPhrase.FishKeyRejected);
+        using var companion = settings.Settings.ShowNotch ? new CompanionBridge(speech, settings, _log) : null;
+        app.Companion = companion;
         app.Brain = Create<IBrain>("brain", () => new ClaudeBrain(secrets, settings, _log));
         if (screen is not null)
         {
@@ -124,7 +129,7 @@ internal sealed class MubsirHost
                 input.SetReading, _log);
             app.Books = books;
             app.Executor = Create<IToolExecutor>("executor", () => new WindowsToolExecutor(
-                screen, documents, positions, books, app.Brain, speech, settings, memory, prompter, usage, _log));
+                screen, documents, positions, books, app.Brain, speech, settings, memory, prompter, usage, _log) { Companion = () => app.Companion });
             scanner = new LibraryScanner(library, documents, _log);
         }
 
@@ -151,11 +156,12 @@ internal sealed class MubsirHost
         using var nvdaWatcher = new NvdaWatcher(app, hook);
         nvdaWatcher.Start();
 
+        using var setup = new SetupCoordinator(app, secrets, prompter);
         using var tray = new TrayIcon(
             new TrayActions(
                 () => mubsir.IsPaused,
                 mubsir.SetPaused,
-                () => OpenSettingsFile(),
+                () => setup.Open(),
                 mubsir.SaveReport,
                 () => User32.PostQuitMessage(0),
                 () => User32.PostQuitMessage(0)),
@@ -167,6 +173,7 @@ internal sealed class MubsirHost
         if (!hook.Start())
         {
             _log.Error("hook_start_failed", LogKind.Hotkey);
+            app.SayNow(AppPhrase.KeysNotWorking);
         }
 
         Console.CancelKeyPress += (_, e) =>
@@ -176,6 +183,23 @@ internal sealed class MubsirHost
         };
 
         mubsir.Start(_clock.NowMs - processStartMs, _cmd.Recovered);
+        companion?.Start();
+        Microsoft.Win32.SystemEvents.PowerModeChanged += OnPower;
+        void OnPower(object? _, Microsoft.Win32.PowerModeChangedEventArgs e)
+        {
+            // Windows can drop the keyboard hook during sleep. Waking up shouldn't need the 30-second check.
+            if (e.Mode == Microsoft.Win32.PowerModes.Resume)
+            {
+                hook.RequestReinstall(HookReinstallReason.Periodic);
+            }
+        }
+
+        if (settings.Profile.PreferredLanguage == Lang.Arabic && !nvda.IsRunning() && speech.ArabicVoiceMissing && !secrets.Has(SecretNames.Fish))
+        {
+            app.Speech.Speak(AppText.Get(AppPhrase.NoArabicVoice, Lang.English), Mubsir.Core.Speech.UtteranceKind.System, Lang.English);
+        }
+
+        setup.OpenIfNeeded();
         int code = NativeWindow.RunMessageLoop();
 
         _log.Event(LogKind.Shutdown, code == 0 ? LogOutcome.Ok : LogOutcome.Failed);
@@ -209,20 +233,6 @@ internal sealed class MubsirHost
         catch (ArgumentException)
         {
             return InputSettings.Default;
-        }
-    }
-
-    private void OpenSettingsFile()
-    {
-        try
-        {
-            var psi = new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "notepad.exe")) { UseShellExecute = false };
-            psi.ArgumentList.Add(AppPaths.SettingsFile);
-            using Process? _ = Process.Start(psi);
-        }
-        catch (Exception e) when (e is System.ComponentModel.Win32Exception or InvalidOperationException or IOException)
-        {
-            _log.Failure("open_settings", e);
         }
     }
 

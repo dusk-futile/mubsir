@@ -6,9 +6,9 @@
 
 ### Your PC, by voice.
 
-**A professional AI agent that lives on your Windows PC.**<br>
+**A free assistive voice agent for Windows.**<br>
 Hold one key and say what you want, in Arabic, in English, or both in one sentence.<br>
-Mubsir reads it, explains it and gets it done, and tells you exactly what it did.
+Mubsir reads it, explains it, does it, or teaches you how.
 
 [![Release](https://img.shields.io/github/v/release/dusk-futile/mubsir?include_prereleases&label=release)](https://github.com/dusk-futile/mubsir/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -19,51 +19,61 @@ Mubsir reads it, explains it and gets it done, and tells you exactly what it did
 
 ---
 
-Most AI assistants live in a chat box and tell you what to click. **Mubsir does the clicking.** It sees what's on your screen, works your apps, reads your documents and answers out loud. You never have to look away from what you're doing. You don't have to look at all.
+Most AI assistants live in a chat box and tell you what to click. **Mubsir does the clicking**, or shows you where to click if you'd rather learn. It sees what's on your screen, works your apps, reads your documents and answers out loud.
 
 > ```
 > "افتح جوجل وابحث عن مواعيد الصلاة"
-> "الكتاب ده بيتكلم عن إيه؟"
+> "هات the book on النحو واقرأ من آخر مكان"
+> "علمني أقص فيديو خطوة بخطوة"
 > "open a new window with the same page"
-> "مين بعتلي على واتساب؟"
 > ```
 
-## Why it's different
+## Who it's for
 
-- **It acts, it doesn't just advise.** Opens apps and sites, searches, scrolls, fills in fields, plays YouTube, manages files.
-- **It reads what's really there.** Web pages, Word, PDFs and scanned Arabic books, plus apps that other tools struggle with.
-- **It speaks your language, properly.** Egyptian, Gulf, Levantine, Libyan, Maghrebi and MSA, with English mixed in mid-sentence. It switches voice as it goes, and handles math, symbols, emoji and Arabizi (`7abibi`).
-- **It works with your eyes closed.** Everything it does is spoken, with no window you need to look at. It runs alongside the [NVDA](https://www.nvaccess.org/) screen reader.
+- **If you can't see the screen.** Everything works by voice and Right Ctrl, with sounds and speech, next to the [NVDA](https://www.nvaccess.org/) screen reader. It reads books and scanned Arabic pages, and picks up where you stopped.
+- **If you see it with difficulty.** It tells you what's on screen and where things are.
+- **If you're learning.** In teaching mode it can't click anything. The pointer and the mouse go to the right place, you do the step, and it checks your work. A child stays in this mode.
+- **If you're new to computers.** It explains things in plain words as it goes.
+- **If you want your hands free.** Say it once and it gets done.
+
+On first start it asks a few questions, and each answer changes how it behaves. If you use a screen reader, it already knows and skips that question.
+
+## What it does
+
+- **It acts.** Opens apps and sites, searches, scrolls, fills in fields, plays YouTube, manages files.
+- **It reads what's really there.** Web pages, Word, PDFs and scanned Arabic books.
+- **It speaks your language.** Egyptian, Gulf, Levantine, Libyan, Maghrebi and MSA, with English mixed in mid-sentence.
 - **You stay in control.** One key stops anything, instantly. Sending, paying and deleting need your OK. On bank pages the AI switches off, and you press Pay yourself.
-- **Your screen stays yours.** Nothing leaves your PC until you ask. Passwords, card numbers and one-time codes never do.
+- **It's light.** Everything on screen has a job and can be turned off. It's built for 4 GB PCs.
 
-## What's coming
+<img src="assets/brand/readme-preview.jpg" alt="A black notch at the top of a Windows desktop shows a checklist, with finished steps ticked, while a paper-cut hoopoe stands in the bottom-right corner.">
 
-<img src="assets/brand/readme-preview.jpg" alt="Preview: a black notch at the top of a Windows desktop shows a checklist, with finished steps ticked, while a paper-cut hoopoe stands in the bottom-right corner.">
-
-*A preview of what's in development: a notch at the top of your screen that shows what Mubsir is doing, and Hudhud, the hoopoe who keeps you company in the corner.*
-
-- **The notch and Hudhud**, with a live checklist and a pointer that flies to the exact button.
-- **Your whole library by voice.** "Give me the book on phonology", even if the file has no name, and pick up tomorrow on the exact line you stopped at. Being tested now.
-- **No keys and no accounts.** Download it and start talking.
+*The notch shows anyone looking at the screen what Mubsir is doing. You never need to look at it.*
 
 ## Getting started
 
-**Requirements:** 64-bit Windows 10 (22H2) or Windows 11, a microphone, and two API keys: [Anthropic](https://console.anthropic.com/) for the assistant and [Google AI Studio](https://aistudio.google.com/apikey) for speech recognition. Typical use costs a few dollars a month.
+Mubsir is free, and it runs on your own keys, so you pay the AI services only for what you use.
+
+**You need:** 64-bit Windows 10 (22H2) or Windows 11, a microphone, and two keys:
+
+| Key | What it's for | |
+| --- | --- | --- |
+| [Claude](https://console.anthropic.com/settings/keys) | The brain | Required. Mubsir uses Haiku 5.5: the fastest, cheapest and most reliable fit for this. |
+| [Fish Audio](https://fish.audio/app/api-keys) | Hearing you and a natural voice | Required for hearing, unless you add a [Google Gemini](https://aistudio.google.com/apikey) key instead. If its voice fails, the free Windows voice takes over. |
+
+**What it might cost a month.** These are estimates from today's prices, not quotes:
+
+| Use | With the Fish voice | With the free Windows voice |
+| --- | --- | --- |
+| Light, 20 requests a day | about $4 | about $1 |
+| Normal, 60 requests a day | about $12 | about $4 |
+| Heavy, 150 requests a day | about $30 | about $9 |
+
+Books use the free voice unless you turn that on, because a 300-page Arabic book costs about $18 in the Fish voice.
 
 1. Download the latest zip from [Releases](https://github.com/dusk-futile/mubsir/releases) and extract it.
-2. Right-click `setup.ps1` → **Run with PowerShell**, as administrator. It installs NVDA if needed, adds the Mubsir Bridge add-on and Arabic speech, and starts Mubsir when you sign in.
-3. Add your keys. They are stored encrypted for your Windows account only:
-
-   ```powershell
-   $mubsir = "$env:LOCALAPPDATA\Mubsir\current\Mubsir.exe"
-   & $mubsir --set-key anthropic YOUR_ANTHROPIC_KEY
-   & $mubsir --set-key gemini YOUR_GEMINI_KEY
-   ```
-
-4. Sign out and back in. You'll hear "Mubsir is ready."
-
-Without keys, Mubsir still reads the screen and runs OCR locally.
+2. Right-click `setup.ps1` → **Run with PowerShell**, as administrator. It adds Arabic speech and the Mubsir Bridge add-on for NVDA, and starts Mubsir when you sign in.
+3. Mubsir opens its setup window and talks you through it. Copy a key on the website and it's picked up, tested and stored by itself, encrypted for your Windows account.
 
 ## Using it
 
@@ -81,6 +91,8 @@ Without keys, Mubsir still reads the screen and runs OCR locally.
 | **Right Ctrl** or **Esc** during a task | Stop it |
 | **Win + Shift + Esc** | Stop everything, from anywhere |
 
+Settings are in the tray icon's menu.
+
 Things you can say:
 
 ```
@@ -90,11 +102,16 @@ Things you can say:
 الكتاب ده بيتكلم عن إيه؟
 scroll down and read the next part
 open a new window with the same page
+علمني Excel
 ```
+
+## Your chats
+
+Conversations are saved as plain files you can open, one a day, in `Documents\Mubsir\Chats`. Card numbers and codes are hidden first. You can turn this off in settings, and private mode saves nothing.
 
 ## Privacy
 
-- Mubsir only sends something to the cloud when you ask for it: your spoken request plus the name of the app you are in (to Google for transcription) and the text on screen that the request needs (to Anthropic).
+- Mubsir only sends something when you ask for it, and only to the services you gave keys for: your voice to Fish Audio or Google for transcription, your request and the screen text it needs to Anthropic, and the replies it speaks to Fish Audio.
 - Passwords, card numbers and one-time codes are never sent. Bank and payment pages are handled locally.
 - Say "private mode on" to keep everything on your PC.
 - Logs contain timings and error codes only, never what you said or read.

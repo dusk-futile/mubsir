@@ -27,6 +27,7 @@ internal sealed class Narrator : INarrator
 
     public void BeginTask(Lang lang)
     {
+        _app.Companion?.BeginTask();
         lock (_gate)
         {
             _lang = lang;
@@ -56,6 +57,7 @@ internal sealed class Narrator : INarrator
 
     public void Narrate(string text, NarrationKind kind)
     {
+        _app.Companion?.Step(text);
         if (string.IsNullOrWhiteSpace(text))
         {
             return;

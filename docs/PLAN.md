@@ -1,3 +1,5 @@
+> **2026-11-05:** the owner replaced the owner-paid relay with own keys, and the relay was removed. Anything below about a server, device registration, usage limits or the owner paying is history. `AGENTS.md` has the current decisions.
+
 # Mubsir 2.0 — Product and Build Plan
 
 > One voice agent for Windows that can do anything your mouse and keyboard can do.

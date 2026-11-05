@@ -148,6 +148,11 @@ public static class ToolCatalog
         Tool(ToolNames.AskUser,
             "Ask the user one short question and wait for the spoken answer. Use when the request is ambiguous or you are stuck.",
             Str("question", "The question, short, in the user's language.")),
+
+        Tool(ToolNames.PointAt,
+            "Show the user where something is on the screen. A pointer flies to the element and stays there. It never clicks. Use it to teach, or when the user asks where something is.",
+            Int("id", IdHint),
+            Str("label", "A few words saying what it is, in the user's language.")),
     ];
 
     private static readonly Dictionary<string, ToolSchema> ByName = All.ToDictionary(t => t.Name, StringComparer.Ordinal);

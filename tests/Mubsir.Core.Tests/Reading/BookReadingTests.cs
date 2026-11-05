@@ -67,6 +67,16 @@ public class BookReadingTests
     private const string PageThree = "Sixth sentence here.";
 
     [Fact]
+    public async Task Stopping_while_a_page_is_on_its_way_keeps_it_stopped()
+    {
+        var h = new Harness(PageOne, PageTwo);
+        await h.Reading.StartAsync(1, 0);
+        h.Voice.Generation++;
+        h.Hear("First");
+        Assert.False(h.Voice.Queued("Fourth"));
+    }
+
+    [Fact]
     public async Task The_end_of_the_book_is_said_once_however_many_sentences_the_last_page_has()
     {
         var h = new Harness(PageOne);

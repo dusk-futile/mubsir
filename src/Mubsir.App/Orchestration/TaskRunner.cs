@@ -157,6 +157,27 @@ internal sealed class TaskRunner
         }
     }
 
+    /// <summary>A child stays in teaching. Anyone else can ask for it, or leave it, in their own words.</summary>
+    private bool TeachingFor(string text)
+    {
+        var settings = _app.Settings.Settings;
+        if (settings.UserKind == Mubsir.Core.Config.UserKind.ChildLearner)
+        {
+            return true;
+        }
+
+        return !TeachMode.IsEnd(text) && (settings.StartInTeachMode || TeachMode.IsRequest(text));
+    }
+
+    private void SaveChat(string who, string? text)
+    {
+        var settings = _app.Settings.Settings;
+        if (settings.SaveSessions && !settings.PrivateMode && text is not null)
+        {
+            _app.Sessions?.Add(who, text);
+        }
+    }
+
     private string? WithBookHint(string? context) =>
         _app.Books?.Session.ContextHint() is { } hint ? (context is null ? hint : hint + "\n" + context) : context;
 
@@ -167,7 +188,9 @@ internal sealed class TaskRunner
         MubsirSettingsSnapshot s = Snapshot();
 
         (ScreenContext Screen, BuiltContext Built)? captured = await AwaitContextAsync(context, ct).ConfigureAwait(false);
-        TaskContext task = TaskContexts.Create(text, lang, _app.Settings.Settings);
+        bool teach = TeachingFor(text);
+        TaskContext task = TaskContexts.Create(text, lang, _app.Settings.Settings, teach);
+        SaveChat(lang == Lang.Arabic ? "أنت" : "You", text);
         ScreenContext? screen = captured?.Screen;
         if (screen is not null && SensitiveDetector.Evaluate(screen, task.BankDomains).Sensitive)
         {
@@ -187,7 +210,7 @@ internal sealed class TaskRunner
             return;
         }
 
-        BrainMode mode = RequestModeClassifier.Classify(text);
+        BrainMode mode = teach ? BrainMode.Agent : RequestModeClassifier.Classify(text);
         if (mode == BrainMode.Agent && _app.Executor is null)
         {
             mode = BrainMode.QuickAnswer;
@@ -200,9 +223,9 @@ internal sealed class TaskRunner
 
         var options = new BrainSessionOptions(
             mode,
-            SystemPrompt.Build(lang, s.ReplyStyle, s.Verbosity),
+            SystemPrompt.Build(lang, s.ReplyStyle, s.Verbosity, _app.Settings.Settings.UserKind, teach),
             ProfileBlock.Build(ProfileFields.From(_app.Settings.Profile), SafeMemory(), _app.Settings.Profile.Apps ?? []),
-            mode == BrainMode.Agent ? ToolCatalog.All : [],
+            teach ? TeachMode.Tools : mode == BrainMode.Agent ? ToolCatalog.All : [],
             AllowWebSearch: true,
             lang);
         var request = new AgentRequest(
@@ -211,8 +234,8 @@ internal sealed class TaskRunner
             InitialImage: null,
             task,
             options,
-            MaxSteps: Math.Max(1, s.MaxSteps),
-            MaxSeconds: Math.Max(10, s.MaxSeconds));
+            MaxSteps: teach ? TeachMode.MaxSteps : Math.Max(1, s.MaxSteps),
+            MaxSeconds: teach ? TeachMode.MaxSeconds : Math.Max(10, s.MaxSeconds));
 
         long started = _app.Clock.NowMs;
         AgentOutcome outcome = await RunLoopAsync(request, running, lang, ct).ConfigureAwait(false);
@@ -225,6 +248,7 @@ internal sealed class TaskRunner
             ErrorCode: outcome.Error?.ToString().ToLowerInvariant() ?? outcome.End.ToString().ToLowerInvariant(),
             Metric: "steps",
             Value: outcome.Steps));
+        SaveChat("Mubsir", outcome.FinalText);
         Report(outcome, lang);
     }
 
@@ -268,6 +292,7 @@ internal sealed class TaskRunner
                 }
             }
 
+            _app.Companion?.TaskEnded();
             if (owner)
             {
                 _app.Input.SetAgentRunning(false);

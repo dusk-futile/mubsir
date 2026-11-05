@@ -93,6 +93,9 @@ public static class SettingsSerializer
             NvdaLangTagStyle = string.IsNullOrWhiteSpace(s.NvdaLangTagStyle) ? MubsirSettings.DefaultNvdaLangTagStyle : s.NvdaLangTagStyle.Trim(),
             AgentMaxSteps = s.AgentMaxSteps > 0 ? s.AgentMaxSteps : MubsirSettings.DefaultAgentMaxSteps,
             AgentMaxSeconds = s.AgentMaxSeconds > 0 ? s.AgentMaxSeconds : MubsirSettings.DefaultAgentMaxSeconds,
+            UserKind = Enum.IsDefined(s.UserKind) ? s.UserKind : UserKind.Unknown,
+            FishVoiceId = string.IsNullOrWhiteSpace(s.FishVoiceId) ? null : s.FishVoiceId.Trim(),
+            SessionsFolder = string.IsNullOrWhiteSpace(s.SessionsFolder) ? null : s.SessionsFolder.Trim(),
         };
     }
 

@@ -11,6 +11,9 @@ internal static class DocumentFormats
 
     public const int ScannedPageLetterThreshold = 20;
 
+    /// <summary>A real book's XML is far smaller. This stops a small zip that unpacks into gigabytes.</summary>
+    private const long MaxDocxXmlBytes = 200L * 1024 * 1024;
+
     private static readonly Lazy<Encoding> Arabic1256 = new(() =>
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -48,6 +51,11 @@ internal static class DocumentFormats
     {
         using var zip = new ZipArchive(docx, ZipArchiveMode.Read, leaveOpen: true);
         var entry = zip.GetEntry("word/document.xml") ?? throw new InvalidDataException("docx_no_body");
+        if (entry.Length > MaxDocxXmlBytes)
+        {
+            throw new InvalidDataException("docx_too_large");
+        }
+
         using var xml = entry.Open();
         var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, IgnoreComments = true };
         using var reader = XmlReader.Create(xml, settings);
@@ -75,7 +83,7 @@ internal static class DocumentFormats
         }
 
         bool advance = true;
-        while (total < maxChars)
+        while (total + paragraph.Length < maxChars)
         {
             if (advance && !reader.Read())
             {

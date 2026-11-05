@@ -3,6 +3,17 @@
 Measured numbers for each phase (`docs/EXECUTION.md` → "Tests and the numbers to report").
 Every row: date, commit, sample size, value, target, pass or fail.
 
+## Own-keys app, setup, teaching and audit fixes
+
+Measured 2026-11-05 on macOS, SDK 10.0.401, on branch `feat/reading-direct`. Nothing below has run on Windows or by ear. `docs/WINDOWS-TEST.md` lists what proves each part.
+
+| Test | Sample | Value | Target | Result |
+| --- | --- | --- | --- | --- |
+| Core unit tests, all | 236 tests | 236 pass | all pass | Pass |
+| Teaching blocks action tools | 7 tools | all blocked by the policy | all | Pass |
+| A first conversation with answers it can't understand | 30 tries | finishes on safe defaults | can't get stuck | Pass |
+| Release build of the solution | Core, Overlay, App, tests | 0 errors | 0 | Pass |
+
 ## First real book check on Windows, and its fixes
 
 Run 42005451328, commit `0836a33`, windows-2025, `--book-check`. Arabic OCR was installed; the Arabic voice was not. This run read the fixtures through the real code on Windows for the first time. 6 of its checks failed:

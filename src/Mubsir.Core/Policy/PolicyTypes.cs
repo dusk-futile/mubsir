@@ -56,6 +56,9 @@ public sealed class TaskContext
         set => _untrustedContentSeen = value;
     }
 
+    /// <summary>Teaching: only tools that look, point or talk can run, whatever the AI asks for.</summary>
+    public bool TeachMode { get; init; }
+
     public bool SensitiveMode
     {
         get => _sensitiveMode;
@@ -121,6 +124,9 @@ public static class ReasonCodes
     public const string AllowUserNamedUpdate = "allow.user_named_update";
 
     public const string UnknownTool = "blocked.unknown_tool";
+    public const string TeachOnly = "blocked.teach_only";
+    public const string ConfirmUntrustedFile = "confirm.untrusted_file";
+    public const string ConfirmUnknownTarget = "confirm.unknown_target";
     public const string Elevated = "blocked.elevated";
     public const string Shell = "blocked.shell";
     public const string RunDialog = "blocked.run_dialog";

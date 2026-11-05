@@ -31,6 +31,7 @@ public sealed record ToolResult(string ToolCallId, string Content, bool IsError 
 
 public enum BrainErrorKind
 {
+    NoCredit,
     Network,
     RateLimited,
     Overloaded,

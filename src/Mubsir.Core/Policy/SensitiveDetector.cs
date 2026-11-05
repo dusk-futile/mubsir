@@ -4,6 +4,20 @@ namespace Mubsir.Core.Policy;
 
 public static class SensitiveDetector
 {
+    private static readonly string[] SecretNames = ["password", "passwd", "passcode", "cvv", "cvc", "otp", "secret", "كلمه السر", "كلمه المرور", "الرقم السري", "رمز التحقق"];
+
+    /// <summary>A field called "password" that doesn't say it's one, such as after "show password". Its text stays on this PC.</summary>
+    public static bool NameLooksSecret(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return false;
+        }
+
+        string folded = Mubsir.Core.Text.ArabicFolding.Fold(name);
+        return SecretNames.Any(s => folded.Contains(Mubsir.Core.Text.ArabicFolding.Fold(s), StringComparison.Ordinal));
+    }
+
     public const string ReasonBankDomain = "bank-domain";
     public const string ReasonCardField = "card-field";
     public const string ReasonCvvField = "cvv-field";

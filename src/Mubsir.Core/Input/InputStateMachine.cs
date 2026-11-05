@@ -449,7 +449,7 @@ public sealed class InputStateMachine
 
         if (_agentRunning)
         {
-            return HandleAgent(e, id, modifier, isTalk, isLayerKey, now, a);
+            return HandleAgent(e, id, modifier, isTalk, isCtrl, isLayerKey, now, a);
         }
 
         if (_layerOpen)
@@ -507,11 +507,18 @@ public sealed class InputStateMachine
         return isTalk && BeginTalkPress(id, modifier, isLayerKey, tapEligible: true, now, a);
     }
 
-    private bool HandleAgent(in KeyEvent e, int id, bool modifier, bool isTalk, bool isLayerKey, long now, List<InputAction> a)
+    private bool HandleAgent(in KeyEvent e, int id, bool modifier, bool isTalk, bool isCtrl, bool isLayerKey, long now, List<InputAction> a)
     {
         if (isTalk)
         {
             return BeginTalkPress(id, modifier, isLayerKey, tapEligible: true, now, a);
+        }
+
+        // Ctrl is the emergency stop: it stops the task as well as the speech, and the key still reaches the app.
+        if (isCtrl)
+        {
+            StopTask(a);
+            return false;
         }
 
         if (IsEsc(e))

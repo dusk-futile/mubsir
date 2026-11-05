@@ -18,15 +18,27 @@ public sealed class PolicyEngine
             return Block(ReasonCodes.UnknownTool);
         }
 
+        if (task.TeachMode && !TeachMode.AllowedTools.Contains(tool))
+        {
+            return Block(ReasonCodes.TeachOnly);
+        }
+
         var chords = tool == ToolNames.PressKeys ? KeyChords.Parse(action.KeyChord ?? Arg(action, "keys")) : [];
         return CheckBlock(tool, action, task, chords)
             ?? CheckBank(tool, action, task, chords)
             ?? CheckUpdateExemption(tool, action, task)
             ?? CheckConfirm(tool, action, task, chords)
+            ?? CheckFilesAfterUntrusted(tool, task)
             ?? new PolicyDecision(ActionTier.Allow, tool is ToolNames.MoveFile or ToolNames.CopyFile or ToolNames.RenameFile
                 ? ReasonCodes.AllowNoOverwrite
                 : ReasonCodes.Allow);
     }
+
+    /// <summary>A file's name or a page can carry instructions. After reading those, moving files needs a yes.</summary>
+    private static PolicyDecision? CheckFilesAfterUntrusted(string tool, TaskContext task) =>
+        task.UntrustedContentSeen && tool is ToolNames.MoveFile or ToolNames.CopyFile or ToolNames.RenameFile
+            ? Confirm(ReasonCodes.ConfirmUntrustedFile, new ConfirmationFacts { Kind = ConfirmKind.Generic, ToolName = tool, SuggestedByPage = true })
+            : null;
 
     public bool AllowCloud(TaskContext task, ScreenContext? screen)
     {
@@ -41,7 +53,7 @@ public sealed class PolicyEngine
         var t = (tool ?? "").Trim().ToLowerInvariant();
         return t switch
         {
-            ToolNames.ReadDocument => true,
+            ToolNames.ReadDocument or ToolNames.ListFolder or ToolNames.FindFiles => true,
             ToolNames.ReadScreen or ToolNames.OcrWindow or ToolNames.DescribeScreen => PolicyRules.IsUntrustedSource(screen),
             _ => false,
         };
@@ -575,6 +587,12 @@ public sealed class PolicyEngine
                 ToolName = ToolNames.PressKeys,
                 KeyChord = "delete",
             });
+        }
+
+        // Space with nothing known to be focused could press any button, such as a dialog's default.
+        if (t is null && chords.Contains("space"))
+        {
+            return Confirm(ReasonCodes.ConfirmUnknownTarget, new ConfirmationFacts { Kind = ConfirmKind.Generic, ToolName = ToolNames.PressKeys, KeyChord = "space" });
         }
 
         var submit = chords.FirstOrDefault(KeyChords.IsSubmit);

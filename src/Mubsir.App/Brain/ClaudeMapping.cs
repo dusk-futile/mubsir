@@ -71,6 +71,7 @@ internal static class ClaudeMapping
         AnthropicUnauthorizedException => new BrainFailed(BrainErrorKind.Auth, "http_401"),
         AnthropicForbiddenException => new BrainFailed(BrainErrorKind.Auth, "http_403"),
         AnthropicRateLimitException => new BrainFailed(BrainErrorKind.RateLimited, "http_429"),
+        AnthropicBadRequestException x when x.Message.Contains("credit", StringComparison.OrdinalIgnoreCase) => new BrainFailed(BrainErrorKind.NoCredit, "no_credit"),
         AnthropicBadRequestException => new BrainFailed(BrainErrorKind.BadRequest, "http_400"),
         AnthropicNotFoundException => new BrainFailed(BrainErrorKind.BadRequest, "http_404"),
         AnthropicUnprocessableEntityException => new BrainFailed(BrainErrorKind.BadRequest, "http_422"),

@@ -11,6 +11,9 @@ public interface IBookVoice
 
     /// <summary>Queues text after whatever is playing. Returns its sentences, or nothing if speech is off.</summary>
     IReadOnlyList<SpokenSentence> Say(string text, Lang lang);
+
+    /// <summary>The same, but says nothing if speech has been stopped since <paramref name="generation"/>.</summary>
+    IReadOnlyList<SpokenSentence> Say(string text, Lang lang, long generation) => Generation == generation ? Say(text, lang) : [];
 }
 
 public interface IBookPages
@@ -203,12 +206,12 @@ public sealed class BookReading(IBookVoice voice, IBookPages pages, Action<int, 
             else
             {
                 string header = firstHeader ? BookText.FirstHeader(page, pages.Count, lang) : BookText.Header(page, lang);
-                foreach (SpokenSentence s in voice.Say(header, lang))
+                foreach (SpokenSentence s in voice.Say(header, lang, _generation))
                 {
                     _places[s.Index] = (page, offset);
                 }
 
-                IReadOnlyList<SpokenSentence> sentences = voice.Say(text[offset..], lang);
+                IReadOnlyList<SpokenSentence> sentences = voice.Say(text[offset..], lang, _generation);
                 int[] offsets = SentenceLocator.Locate(text, sentences.Select(s => s.Text).ToArray(), offset);
                 for (int i = 0; i < offsets.Length; i++)
                 {
@@ -243,7 +246,7 @@ public sealed class BookReading(IBookVoice voice, IBookPages pages, Action<int, 
                 return;
             }
 
-            sentences = voice.Say(BookText.End(lang), lang);
+            sentences = voice.Say(BookText.End(lang), lang, _generation);
             if (sentences.Count > 0)
             {
                 _endIndex = sentences[^1].Index;

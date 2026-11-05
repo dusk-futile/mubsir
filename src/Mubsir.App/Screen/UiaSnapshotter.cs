@@ -495,7 +495,7 @@ internal static class UiaSnapshotter
                 Id = d.Id,
                 Role = role,
                 Name = d.Name,
-                Value = d.IsPassword ? null : d.Value,
+                Value = d.IsPassword || Mubsir.Core.Policy.SensitiveDetector.NameLooksSecret(d.Name) || Mubsir.Core.Policy.SensitiveDetector.NameLooksSecret(d.AutomationId) ? null : d.Value,
                 AutomationId = d.AutomationId,
                 ClassName = d.ClassName,
                 HelpText = d.HelpText,

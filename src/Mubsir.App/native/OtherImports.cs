@@ -23,6 +23,15 @@ internal static partial class Kernel32
     [LibraryImport(Dll)]
     public static partial uint GetCurrentThreadId();
 
+    public const int ThreadModeBackgroundBegin = 0x00010000;
+
+    [LibraryImport(Dll)]
+    public static partial nint GetCurrentThread();
+
+    [LibraryImport(Dll)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool SetThreadPriority(nint hThread, int nPriority);
+
     [LibraryImport(Dll, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool GetSystemPowerStatus(out SYSTEM_POWER_STATUS lpSystemPowerStatus);

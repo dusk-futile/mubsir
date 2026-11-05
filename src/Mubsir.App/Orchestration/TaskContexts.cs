@@ -6,9 +6,10 @@ namespace Mubsir.App.Orchestration;
 
 internal static class TaskContexts
 {
-    public static TaskContext Create(string utterance, Lang lang, MubsirSettings settings) => new()
+    public static TaskContext Create(string utterance, Lang lang, MubsirSettings settings, bool teach = false) => new()
     {
         UserUtterance = utterance,
+        TeachMode = teach,
         Lang = lang,
         UserNamedDomains = RequestDomains.Extract(utterance),
         LibraryRoots = LibraryFolders.Roots,

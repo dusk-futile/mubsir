@@ -31,6 +31,7 @@ internal sealed class DocumentReader(UiaScreenReader screen, IEventLog log)
 {
     public const long MaxFileBytes = 300L * 1024 * 1024;
     public const int MaxTextChars = 5_000_000;
+    private const long MaxPlainBytes = 40L * 1024 * 1024;
 
     private const double OcrRenderScale = 3.0;
     private const int CardPages = 3;
@@ -85,6 +86,13 @@ internal sealed class DocumentReader(UiaScreenReader screen, IEventLog log)
         catch (IOException)
         {
             throw new DocumentReadException("io_error");
+        }
+        catch (OutOfMemoryException)
+        {
+            // A book too big for this PC ends one request, and the app carries on.
+            log.Fail(LogKind.Error, "document.out_of_memory");
+            GC.Collect();
+            throw new DocumentReadException("too_large");
         }
         catch (Exception e) when (e is not OutOfMemoryException)
         {
@@ -209,7 +217,9 @@ internal sealed class DocumentReader(UiaScreenReader screen, IEventLog log)
 
     private static async Task<DocumentText> ReadPlainAsync(string path, CancellationToken ct)
     {
-        var bytes = await File.ReadAllBytesAsync(path, ct).ConfigureAwait(false);
+        await using var file = File.OpenRead(path);
+        var bytes = new byte[Math.Min(file.Length, MaxPlainBytes)];
+        await file.ReadExactlyAsync(bytes, ct).ConfigureAwait(false);
         var text = DocumentFormats.DecodeText(bytes);
         if (text.Length > MaxTextChars)
         {

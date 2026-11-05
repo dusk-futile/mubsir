@@ -6,3 +6,4 @@ global using Mubsir.App.Speech;
 global using Mubsir.App.Storage;
 global using Mubsir.App.Orchestration;
 global using Mubsir.App.Diagnostics;
+global using Mubsir.App.Host;

@@ -237,9 +237,20 @@ internal static class UiaClassifier
         }
 
         var text = raw.Trim();
-        if (text.Contains(' ', StringComparison.Ordinal) || text.Length > 2048)
+        if (text.Length > 2048)
         {
             return (null, null);
+        }
+
+        // Some browsers show "bank.com / transfer". A search has no dot in its first word, so it still isn't a site.
+        int space = text.IndexOf(' ', StringComparison.Ordinal);
+        if (space >= 0)
+        {
+            text = text[..space];
+            if (!text.Contains('.', StringComparison.Ordinal))
+            {
+                return (null, null);
+            }
         }
 
         if (!text.Contains("://", StringComparison.Ordinal))

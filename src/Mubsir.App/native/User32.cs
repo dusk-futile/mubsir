@@ -99,6 +99,10 @@ internal static unsafe partial class User32
 
     [LibraryImport(Dll, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool SetCursorPos(int x, int y);
+
+    [LibraryImport(Dll, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool AllowSetForegroundWindow(uint dwProcessId);
 
     [LibraryImport(Dll, SetLastError = true)]

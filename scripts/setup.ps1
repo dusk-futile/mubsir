@@ -631,7 +631,7 @@ $steps += @($script:Manual)
 $steps += ('Microphone: Settings > Privacy > Microphone: turn on "Allow apps to access your microphone" and "Allow desktop apps to access your microphone" (desktop apps now: {0}).' -f $micState)
 $steps += 'Sign out and in again: NVDA should speak Arabic at the sign-in screen and start after sign-in. Ctrl+Alt+N also starts NVDA.'
 $steps += 'Windows 10 only: enrol in Extended Security Updates (Settings > Update & Security > Windows Update > Enroll now).'
-$steps += 'Later, when Mubsir is installed: add the API keys with "mubsir --set-key anthropic" and "mubsir --set-key gemini".'
+$steps += 'Later, when Mubsir starts: its setup window asks for your keys and talks you through it.'
 $n = 1
 foreach ($s in $steps) { Write-Host ('  {0}. {1}' -f $n, $s); $n++ }
 

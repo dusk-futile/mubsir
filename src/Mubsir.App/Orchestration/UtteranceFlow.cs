@@ -76,6 +76,7 @@ internal sealed class UtteranceFlow
         }
 
         _app.Speech.PlayEarcon(Earcon.ListeningEnd);
+        _app.Companion?.Thinking();
         _ = Guard(HandleAudioAsync(audio), "utterance_audio");
     }
 

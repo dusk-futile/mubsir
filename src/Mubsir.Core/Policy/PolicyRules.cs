@@ -304,7 +304,7 @@ internal static class PolicyRules
     private static readonly FrozenSet<string> UntrustedProcesses = new[]
     {
         "chrome", "msedge", "firefox", "opera", "brave", "vivaldi", "iexplore", "arc", "msedgewebview2",
-        "outlook", "olk", "hxoutlook", "thunderbird", "whatsapp", "whatsapp.root", "telegram", "signal", "discord",
+        "explorer", "outlook", "olk", "hxoutlook", "thunderbird", "whatsapp", "whatsapp.root", "telegram", "signal", "discord",
         "slack", "teams", "ms-teams", "skype", "acrobat", "acrord32", "foxitpdfreader", "foxitreader",
         "foxitphantompdf", "sumatrapdf", "pdfxedit", "pdfxcview", "winword", "wordpad", "notepad", "notepad++",
         "soffice", "soffice.bin", "swriter", "excel", "powerpnt", "mspub", "onenote", "kindle", "ebook-viewer",

@@ -74,10 +74,14 @@ internal sealed class BookAloud : IBookVoice
         return BookSearch.FindAsync(Library, query, ask);
     }
 
-    public IReadOnlyList<SpokenSentence> Say(string text, Lang lang)
+    public IReadOnlyList<SpokenSentence> Say(string text, Lang lang) => Say(text, lang, null);
+
+    public IReadOnlyList<SpokenSentence> Say(string text, Lang lang, long generation) => Say(text, lang, (long?)generation);
+
+    private IReadOnlyList<SpokenSentence> Say(string text, Lang lang, long? generation)
     {
         IReadOnlyList<int> indices = _speech.Enqueue(
-            text, UtteranceKind.Reading, ScriptSegmenter.DominantLanguage(text, lang), interrupt: false, VerbalizeMode.Normal, done: null);
+            text, UtteranceKind.Reading, ScriptSegmenter.DominantLanguage(text, lang), interrupt: false, VerbalizeMode.Normal, done: null, generation);
         if (indices.Count == 0)
         {
             return [];

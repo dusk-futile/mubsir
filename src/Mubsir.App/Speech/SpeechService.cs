@@ -19,6 +19,7 @@ internal sealed class SpeechService : IDisposable
     private readonly AutoResetEvent _signal = new(false);
     private readonly NvdaController _nvda;
     private readonly OneCoreSpeech _oneCore;
+    private readonly FishVoice? _fish;
     private readonly SettingsProvider _settings;
     private readonly IEventLog _log;
     private readonly IClock _clock;
@@ -42,10 +43,11 @@ internal sealed class SpeechService : IDisposable
     private long _nvdaCallStartedAt;
     private long _nvdaCallBudgetMs;
 
-    public SpeechService(NvdaController nvda, OneCoreSpeech oneCore, SettingsProvider settings, IEventLog log, IClock clock)
+    public SpeechService(NvdaController nvda, OneCoreSpeech oneCore, SettingsProvider settings, IEventLog log, IClock clock, FishVoice? fish = null)
     {
         _nvda = nvda;
         _oneCore = oneCore;
+        _fish = fish;
         _settings = settings;
         _log = log;
         _clock = clock;
@@ -92,6 +94,8 @@ internal sealed class SpeechService : IDisposable
 
     public bool NvdaActive => UseNvdaNow();
 
+    public bool ArabicVoiceMissing => _oneCore.IsAvailable && !_oneCore.HasArabicVoice;
+
     public void Speak(string text, UtteranceKind kind, Lang lang, bool interrupt = false, VerbalizeMode mode = VerbalizeMode.Normal) =>
         Enqueue(text, kind, lang, interrupt, mode, done: null);
 
@@ -112,7 +116,7 @@ internal sealed class SpeechService : IDisposable
         return WaitAsync(done, ct);
     }
 
-    public IReadOnlyList<int> Enqueue(string text, UtteranceKind kind, Lang lang, bool interrupt, VerbalizeMode mode, TaskCompletionSource? done)
+    public IReadOnlyList<int> Enqueue(string text, UtteranceKind kind, Lang lang, bool interrupt, VerbalizeMode mode, TaskCompletionSource? done, long? onlyIfGeneration = null)
     {
         if (string.IsNullOrWhiteSpace(text) || _suspended || _disposed)
         {
@@ -132,7 +136,7 @@ internal sealed class SpeechService : IDisposable
             return [];
         }
 
-        AddJobs(sentences, lang, interrupt, done);
+        AddJobs(sentences, lang, interrupt, done, kind == UtteranceKind.Reading, onlyIfGeneration);
         return sentences.Select(s => s.HistoryIndex).ToArray();
     }
 
@@ -247,7 +251,7 @@ internal sealed class SpeechService : IDisposable
         AddJobs(sentences, lang, interrupt, done);
     }
 
-    private void AddJobs(IReadOnlyList<ComposedSentence> sentences, Lang lang, bool interrupt, TaskCompletionSource? done)
+    private void AddJobs(IReadOnlyList<ComposedSentence> sentences, Lang lang, bool interrupt, TaskCompletionSource? done, bool isBook = false, long? onlyIfGeneration = null)
     {
         if (interrupt)
         {
@@ -263,9 +267,17 @@ internal sealed class SpeechService : IDisposable
         lock (_gate)
         {
             long generation = Interlocked.Read(ref _generation);
+
+            // The user stopped speech while this was on its way: it stays stopped.
+            if (onlyIfGeneration is { } expected && expected != generation)
+            {
+                done?.TrySetResult();
+                return;
+            }
+
             for (int i = 0; i < sentences.Count; i++)
             {
-                _queue.AddLast(new Job(sentences[i], lang, generation, i == sentences.Count - 1 ? done : null));
+                _queue.AddLast(new Job(sentences[i], lang, generation, i == sentences.Count - 1 ? done : null, isBook));
             }
         }
 
@@ -313,6 +325,7 @@ internal sealed class SpeechService : IDisposable
         }
 
         _oneCore.Stop();
+        _fish?.Stop();
     }
 
     private LangTagStyle TagStyle() =>
@@ -409,6 +422,24 @@ internal sealed class SpeechService : IDisposable
         if (_suspended || job.Generation != Interlocked.Read(ref _generation))
         {
             return;
+        }
+
+        if (_fish is { } fish && fish.CanSpeak(job.IsBook))
+        {
+            bool heard = false;
+            try
+            {
+                heard = fish.SpeakAsync(job.Sentence.PlainText, job.Lang, _rate, () => History.MarkSpoken(job.Sentence.HistoryIndex)).GetAwaiter().GetResult();
+            }
+            catch (Exception e) when (e is not OutOfMemoryException)
+            {
+                _log.Failure("fish_sentence", e);
+            }
+
+            if (heard || myId != _workerId || job.Generation != Interlocked.Read(ref _generation))
+            {
+                return;
+            }
         }
 
         if (UseNvdaNow())
@@ -545,5 +576,5 @@ internal sealed class SpeechService : IDisposable
         }
     }
 
-    private sealed record Job(ComposedSentence Sentence, Lang Lang, long Generation, TaskCompletionSource? Done);
+    private sealed record Job(ComposedSentence Sentence, Lang Lang, long Generation, TaskCompletionSource? Done, bool IsBook = false);
 }
