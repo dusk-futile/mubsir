@@ -21,7 +21,7 @@ Local voices, one 10 to 15 second passage each, on an Intel i3-8100 (4 cores, 3.
 | Kokoro multi-lang v1.0, int8 | 182 MB | 4 | 0.3x | 333 MB | Too slow to read live |
 | Piper Amy, English, medium | 79 MB | 2 | 9.2x | 294 MB | Fast enough |
 | Piper Ryan, English, medium | 78 MB | 2 | 12.1x | 232 MB | Fast enough |
-| Piper Kareem, Arabic, medium | 78 MB | 2 | 10.9x | 308 MB | Fast enough |
+| Piper Kareem, Arabic, medium | 78 MB | 2 | 7.9x | 315 MB | Fast enough |
 
 Sherpa-onnx 2.0 could not phonemize Kokoro v0.19 or Piper here, so Piper ran on 1.12.40. Piper needs espeak-ng, which is GPL: check the licence before shipping it. No local voice is in the app yet.
 
