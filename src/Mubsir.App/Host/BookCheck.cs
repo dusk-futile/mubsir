@@ -98,6 +98,8 @@ internal static class BookCheck
             Skip("scan-ar.pdf", "Arabic OCR isn't installed on this PC");
         }
 
+        // Shows why a letter the PDF lost did or didn't get filled. These are test files, so printing their text is fine.
+        Line("  OCR of arabic.pdf page 1: " + await documents.OcrPageAsync(Path.Combine(temp, "arabic.pdf"), 1, CancellationToken.None));
         await Library(documents, temp);
         await RealVoice(documents, temp);
     }
