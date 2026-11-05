@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mubsir brand sheet</title>
+<!-- Source of brand-sheet.png (1600x1000). Render: Chrome headless, see docs/BRAND.md. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600&display=block">
+<style>
+  :root { --night:#080D3F; --amber:#F3C343; --cream:#FFF4DE; --crest:#E2703A; --paper:#FBF7EE; --ink:#16182B; --muted:#6A6B7E; --line:#E7E0D1 }
+  * { box-sizing:border-box; margin:0 }
+  body { width:1600px; height:1000px; display:grid; grid-template-columns:600px 1fr; font-family:"Readex Pro",system-ui,sans-serif; color:var(--ink); background:var(--paper) }
+  .hero { background:var(--night); color:var(--cream); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:26px; padding:56px }
+  .hero img { width:300px; height:300px; filter:drop-shadow(0 18px 40px rgba(0,0,0,.45)) }
+  .name { text-align:center; line-height:1.1 }
+  .name .en { font-size:60px; font-weight:500; letter-spacing:-.01em }
+  .name .ar { font-size:66px; font-weight:500; color:var(--amber); margin-top:8px; direction:rtl }
+  .tag { font-size:20px; font-weight:300; opacity:.78; text-align:center; max-width:480px; line-height:1.45; hyphens:none }
+  .side { padding:54px 64px; display:grid; grid-template-rows:auto auto auto auto; gap:34px; align-content:start }
+  h2 { font-size:13px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-bottom:14px }
+  .meaning { display:grid; grid-template-columns:repeat(3,1fr); gap:18px }
+  .meaning div { border-top:3px solid var(--amber); padding-top:12px; font-size:17px; line-height:1.45 }
+  .meaning b { display:block; font-weight:600; font-size:19px; margin-bottom:2px }
+  .sizes { display:flex; align-items:flex-end; gap:30px }
+  .sizes figure { display:grid; justify-items:center; gap:8px; font-size:13px; color:var(--muted) }
+  .sizes img { image-rendering:auto }
+  .bars { display:grid; gap:10px }
+  .bar { height:52px; border-radius:10px; display:flex; align-items:center; gap:22px; padding:0 20px; font-size:13px }
+  .bar.dark { background:#202020; color:#BDBDBD }
+  .bar.light { background:#F3F3F3; color:#5B5B5B; border:1px solid #E2E2E2 }
+  .bar .slot { display:flex; align-items:center; gap:8px }
+  .bar .dot { width:16px; height:16px; border-radius:4px; background:currentColor; opacity:.35 }
+  .swatches { display:grid; grid-template-columns:repeat(4,1fr); gap:16px }
+  .sw { border-radius:14px; overflow:hidden; border:1px solid var(--line); background:#fff }
+  .sw .chip { height:84px }
+  .sw .meta { padding:10px 14px 12px; font-size:14px; line-height:1.4 }
+  .sw .meta b { font-weight:600; font-size:16px; display:block }
+  .sw .meta span { color:var(--muted) }
+</style>
+</head>
+<body>
+  <section class="hero">
+    <img src="mubsir-icon.svg" alt="">
+    <div class="name"><div class="en">Mubsir</div><div class="ar">مُبصِر</div></div>
+    <p class="tag">An AI screen assistant for blind and low&#8209;vision Windows users, in Arabic and English.</p>
+  </section>
+  <section class="side">
+    <div>
+      <h2>The mark</h2>
+      <div class="meaning">
+        <div><b>An eye</b>Mubsir sees the screen for you.</div>
+        <div><b>Sound rings</b>Its iris is a voice: it listens and speaks.</div>
+        <div><b>The tail of م</b>The lower lid becomes the first letter of مُبصِر.</div>
+      </div>
+    </div>
+    <div>
+      <h2>Every size, drawn for its size</h2>
+      <div class="sizes">
+        <figure><img src="png/mubsir-16.png" width="16" height="16" alt="">16</figure>
+        <figure><img src="png/mubsir-20.png" width="20" height="20" alt="">20</figure>
+        <figure><img src="png/mubsir-24.png" width="24" height="24" alt="">24</figure>
+        <figure><img src="png/mubsir-32.png" width="32" height="32" alt="">32</figure>
+        <figure><img src="png/mubsir-48.png" width="48" height="48" alt="">48</figure>
+        <figure><img src="png/mubsir-64.png" width="64" height="64" alt="">64</figure>
+        <figure><img src="png/mubsir-128.png" width="128" height="128" alt="">128 px</figure>
+      </div>
+    </div>
+    <div>
+      <h2>In the Windows tray (100 % and 150 % scaling)</h2>
+      <div class="bars">
+        <div class="bar dark"><span class="slot"><i class="dot"></i><i class="dot"></i><img src="png/mubsir-16.png" width="16" height="16" alt=""><i class="dot"></i></span><span class="slot"><img src="png/mubsir-24.png" width="24" height="24" alt=""></span><span>Dark taskbar</span></div>
+        <div class="bar light"><span class="slot"><i class="dot"></i><i class="dot"></i><img src="png/mubsir-16.png" width="16" height="16" alt=""><i class="dot"></i></span><span class="slot"><img src="png/mubsir-24.png" width="24" height="24" alt=""></span><span>Light taskbar</span></div>
+      </div>
+    </div>
+    <div>
+      <h2>Colours</h2>
+      <div class="swatches">
+        <div class="sw"><div class="chip" style="background:#080D3F"></div><div class="meta"><b>Night</b>#080D3F<br><span>Tile, dark surfaces</span></div></div>
+        <div class="sw"><div class="chip" style="background:#F3C343"></div><div class="meta"><b>Amber</b>#F3C343<br><span>Mark · 11.1 : 1 on Night</span></div></div>
+        <div class="sw"><div class="chip" style="background:#FFF4DE"></div><div class="meta"><b>Cream</b>#FFF4DE<br><span>Text · 16.9 : 1 on Night</span></div></div>
+        <div class="sw"><div class="chip" style="background:#E2703A"></div><div class="meta"><b>Crest</b>#E2703A<br><span>Hudhud's crest only</span></div></div>
+      </div>
+    </div>
+  </section>
+</body>
+</html>

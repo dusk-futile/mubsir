@@ -1,0 +1,318 @@
+using System.Text.Json;
+using Mubsir.Core.Reading;
+using Mubsir.Core.Text;
+
+namespace Mubsir.Core.Library;
+
+/// <summary>What Mubsir knows about one book on this PC, read locally from its first pages.</summary>
+public sealed record LibraryCard(string Path, string? Print, string Title, string? Author, int Pages, string Opening, long Length, DateTime Written, bool Locked = false, string? About = null, string? Keywords = null);
+
+public static class BookTitle
+{
+    private static readonly string[] Useless = ["untitled", "microsoft word", "document", "scan", "adobe", "print", "powerpoint"];
+
+    /// <summary>The file's own title, then the first real line of the book, then the file name.</summary>
+    public static string Guess(string fileName, string? metadataTitle, string? opening)
+    {
+        string name = System.IO.Path.GetFileNameWithoutExtension(fileName);
+        if (!string.IsNullOrWhiteSpace(metadataTitle) && metadataTitle.Trim().Length >= 3
+            && !Useless.Any(u => metadataTitle.Contains(u, StringComparison.OrdinalIgnoreCase))
+            && metadataTitle.Any(char.IsLetter)
+            && !LooksLikeFileName(metadataTitle.Trim()))
+        {
+            return metadataTitle.Trim();
+        }
+
+        bool poorName = name.Count(char.IsLetter) < 4 || Useless.Any(u => name.Contains(u, StringComparison.OrdinalIgnoreCase));
+        if (poorName && opening is not null)
+        {
+            foreach (string line in opening.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                if (line.Length is >= 4 and <= 120 && line.Count(char.IsLetter) >= 4)
+                {
+                    return line;
+                }
+            }
+        }
+
+        return name;
+    }
+
+    /// <summary>Many programs store the file they printed as the title, such as "chapter3.html".</summary>
+    private static bool LooksLikeFileName(string title)
+    {
+        string extension = System.IO.Path.GetExtension(title);
+        return extension.Length is >= 3 and <= 6 && !title.EndsWith(' ') && extension.Skip(1).All(char.IsAsciiLetterOrDigit) && extension.Skip(1).Any(char.IsAsciiLetter);
+    }
+}
+
+/// <summary>Every book found on this PC. Stays on this PC. Searching it needs no AI and no internet.</summary>
+public sealed class BookLibrary(string file)
+{
+    public const int OpeningChars = 1500;
+    private const int MaxCards = 5000;
+
+    private readonly object _gate = new();
+    private Dictionary<string, LibraryCard>? _cards;
+
+    public int Count
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return Cards().Count;
+            }
+        }
+    }
+
+    public bool IsCurrent(string path, long length, DateTime written)
+    {
+        lock (_gate)
+        {
+            return Cards().TryGetValue(Key(path), out LibraryCard? card) && card.Length == length && card.Written == written;
+        }
+    }
+
+    /// <summary>Books that may be described and aren't yet.</summary>
+    public IReadOnlyList<LibraryCard> Undescribed(int count)
+    {
+        lock (_gate)
+        {
+            return Cards().Values.Where(BookDescriber.Worth).Take(count).ToArray();
+        }
+    }
+
+    public void Put(LibraryCard card)
+    {
+        lock (_gate)
+        {
+            Dictionary<string, LibraryCard> cards = Cards();
+            if (cards.Count < MaxCards || cards.ContainsKey(Key(card.Path)))
+            {
+                cards[Key(card.Path)] = card with { Opening = card.Opening.Length <= OpeningChars ? card.Opening : card.Opening[..OpeningChars] };
+            }
+        }
+    }
+
+    public void Forget(Func<string, bool> stillThere)
+    {
+        lock (_gate)
+        {
+            Dictionary<string, LibraryCard> cards = Cards();
+            foreach (string key in cards.Where(kv => !stillThere(kv.Value.Path)).Select(kv => kv.Key).ToArray())
+            {
+                cards.Remove(key);
+            }
+        }
+    }
+
+    public LibraryCard? ByPrint(string print)
+    {
+        lock (_gate)
+        {
+            return Cards().Values.FirstOrDefault(c => c.Print == print);
+        }
+    }
+
+    public LibraryCard? ByPath(string path)
+    {
+        lock (_gate)
+        {
+            return Cards().GetValueOrDefault(Key(path));
+        }
+    }
+
+    public void Save()
+    {
+        lock (_gate)
+        {
+            Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(file))!);
+            string temp = file + ".tmp";
+            File.WriteAllText(temp, JsonSerializer.Serialize(Cards().Values.ToList(), ReadingJson.Default.ListLibraryCard));
+            File.Move(temp, file, overwrite: true);
+        }
+    }
+
+    /// <summary>Best matches first. The title counts most, then the file name, then the opening pages.</summary>
+    public IReadOnlyList<LibraryCard> Search(string query, int count = 5)
+    {
+        string[] terms = ArabicFolding.Fold(query).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (terms.Length == 0)
+        {
+            return [];
+        }
+
+        lock (_gate)
+        {
+            var scored = new List<(LibraryCard Card, double Score)>();
+            foreach (LibraryCard card in Cards().Values)
+            {
+                string title = ArabicFolding.Fold(card.Title);
+                string name = ArabicFolding.Fold(System.IO.Path.GetFileNameWithoutExtension(card.Path));
+                string opening = ArabicFolding.Fold(card.Opening);
+                string author = ArabicFolding.Fold(card.Author ?? string.Empty);
+                string about = ArabicFolding.Fold((card.About ?? string.Empty) + " " + (card.Keywords ?? string.Empty));
+                double score = 0;
+                int hit = 0;
+                foreach (string term in terms)
+                {
+                    double best = title.Contains(term, StringComparison.Ordinal) ? 5
+                        : name.Contains(term, StringComparison.Ordinal) ? 3
+                        : author.Contains(term, StringComparison.Ordinal) ? 3
+                        : about.Contains(term, StringComparison.Ordinal) ? 2
+                        : opening.Contains(term, StringComparison.Ordinal) ? 1 : 0;
+                    score += best;
+                    hit += best > 0 ? 1 : 0;
+                }
+
+                if (hit * 2 >= terms.Length && hit > 0)
+                {
+                    scored.Add((card, score));
+                }
+            }
+
+            return scored.OrderByDescending(s => s.Score).ThenByDescending(s => s.Card.Written).Take(count).Select(s => s.Card).ToArray();
+        }
+    }
+
+    private static string Key(string path) => ReadingPositions.Key(path);
+
+    private Dictionary<string, LibraryCard> Cards()
+    {
+        if (_cards is not null)
+        {
+            return _cards;
+        }
+
+        _cards = new Dictionary<string, LibraryCard>(StringComparer.Ordinal);
+        try
+        {
+            if (File.Exists(file) && JsonSerializer.Deserialize(File.ReadAllText(file), ReadingJson.Default.ListLibraryCard) is { } saved)
+            {
+                foreach (LibraryCard card in saved)
+                {
+                    _cards[Key(card.Path)] = card;
+                }
+            }
+        }
+        catch (Exception e) when (e is IOException or JsonException or UnauthorizedAccessException)
+        {
+        }
+
+        return _cards;
+    }
+}
+
+/// <summary>
+/// Finds a book from however it was asked for. The words as said are searched first. If that isn't a clear match,
+/// or the sentence mixes languages, the AI gives keywords in both languages, and a failure there never loses
+/// what was already found.
+/// </summary>
+public static class BookSearch
+{
+    public const string KeywordPrompt = "A person is looking for a book or a topic in a text, and may mix Arabic and English. "
+        + "List search keywords that would appear in its title or its text: the subject in both English and Arabic, common synonyms, transliterations, and likely authors or titles. "
+        + "One per line, up to 10, with no numbering and no other words. The request: ";
+
+    private const int MaxKeywords = 10;
+
+    public static async Task<IReadOnlyList<LibraryCard>> FindAsync(BookLibrary library, string query, Func<string, Task<string?>>? askAi, int count = 5)
+    {
+        IReadOnlyList<LibraryCard> direct = library.Search(query, count);
+        if (askAi is null || (IsClear(direct, query) && !IsMixed(query)))
+        {
+            return direct;
+        }
+
+        string? answer = null;
+        try
+        {
+            answer = await askAi(KeywordPrompt + query).ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is not OutOfMemoryException and not OperationCanceledException)
+        {
+        }
+
+        string[] keywords = ParseKeywords(answer);
+        if (keywords.Length == 0)
+        {
+            return direct;
+        }
+
+        // A book found by many keywords, or by the words as said, comes first.
+        var votes = new Dictionary<string, (LibraryCard Card, int Votes)>(StringComparer.Ordinal);
+        void Count(IEnumerable<LibraryCard> cards, int weight)
+        {
+            foreach (LibraryCard card in cards)
+            {
+                votes[card.Path] = (card, votes.GetValueOrDefault(card.Path).Votes + weight);
+            }
+        }
+
+        Count(direct, 2);
+        foreach (string keyword in keywords)
+        {
+            Count(library.Search(keyword, count * 2), 1);
+        }
+
+        return votes.Values.OrderByDescending(v => v.Votes).Take(count).Select(v => v.Card).ToArray();
+    }
+
+    public static string[] ParseKeywords(string? answer) => answer is null
+        ? []
+        : answer.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line => line.TrimStart('-', '*', '•', ' ', '.', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ')').Trim(' ', '"', '«', '»', '،', ','))
+            .Where(line => line.Length is >= 2 and <= 60)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(MaxKeywords)
+            .ToArray();
+
+    public static bool IsMixed(string text) =>
+        text.Any(c => c is >= '\u0600' and <= '\u06FF') && text.Any(char.IsAsciiLetter);
+
+    /// <summary>The search found something, and the title itself holds every word asked for.</summary>
+    private static bool IsClear(IReadOnlyList<LibraryCard> found, string query)
+    {
+        if (found.Count == 0)
+        {
+            return false;
+        }
+
+        string title = ArabicFolding.Fold(found[0].Title);
+        return ArabicFolding.Fold(query).Split(' ', StringSplitOptions.RemoveEmptyEntries).All(t => title.Contains(t, StringComparison.Ordinal));
+    }
+}
+
+/// <summary>A numbered list that works by ear. Same-named books say where each one is.</summary>
+public static class BookListText
+{
+    public static string List(IReadOnlyList<LibraryCard> cards, Common.Lang lang)
+    {
+        bool ar = lang == Common.Lang.Arabic;
+        var lines = new List<string> { ar ? $"لقيت {cards.Count}." : $"I found {cards.Count}." };
+        for (int i = 0; i < cards.Count; i++)
+        {
+            LibraryCard c = cards[i];
+            string pages = c.Pages > 0 ? (ar ? $"، {c.Pages} صفحة" : $", {c.Pages} pages") : string.Empty;
+            bool twin = cards.Count(o => string.Equals(o.Title, c.Title, StringComparison.OrdinalIgnoreCase)) > 1;
+            string where = twin ? (ar ? "، في " : ", in ") + System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(c.Path)) : string.Empty;
+            string about = FirstSentence(c.About) is { } first ? " " + first : string.Empty;
+            lines.Add($"{i + 1}: {c.Title}{pages}{where}.{about}");
+        }
+
+        lines.Add(ar ? "قول الرقم." : "Say the number.");
+        return string.Join(' ', lines);
+    }
+
+    private static string? FirstSentence(string? about)
+    {
+        if (string.IsNullOrWhiteSpace(about))
+        {
+            return null;
+        }
+
+        int end = about.IndexOfAny(['.', '؟', '?', '!', '\n']);
+        return end > 0 ? about[..(end + 1)].Trim() : about.Trim();
+    }
+}
