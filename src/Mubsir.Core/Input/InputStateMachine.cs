@@ -38,6 +38,7 @@ public sealed class InputStateMachine
     private TalkPhase _talkPhase;
     private int _talkId;
     private long _talkDownAt;
+    private int? _ctrlStopId;
     private bool _talkTapEligible;
     private bool _talkIsLayerKey;
     private bool _talkLayerCandidate;
@@ -412,6 +413,11 @@ public sealed class InputStateMachine
         bool isLayerKey = _settings.LayerKey.Matches(e);
 
         InterruptPressesBy(id, a);
+        if (!isCtrl)
+        {
+            _ctrlStopId = null;
+        }
+
         if (!isLayerKey)
         {
             _lastTapUpAt = null;
@@ -514,10 +520,10 @@ public sealed class InputStateMachine
             return BeginTalkPress(id, modifier, isLayerKey, tapEligible: true, now, a);
         }
 
-        // Ctrl is the emergency stop: it stops the task as well as the speech, and the key still reaches the app.
+        // Ctrl on its own is the emergency stop, on release, so Ctrl+C in another app doesn't end the task.
         if (isCtrl)
         {
-            StopTask(a);
+            _ctrlStopId = id;
             return false;
         }
 
@@ -640,6 +646,14 @@ public sealed class InputStateMachine
     {
         bool swallow = _swallowed.Remove(id);
         _pressed.Remove(id);
+        if (_ctrlStopId == id)
+        {
+            _ctrlStopId = null;
+            if (_agentRunning)
+            {
+                StopTask(a);
+            }
+        }
 
         if (_talkPhase != TalkPhase.Idle && id == _talkId)
         {

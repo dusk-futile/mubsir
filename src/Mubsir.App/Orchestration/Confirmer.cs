@@ -127,6 +127,13 @@ internal sealed class Confirmer : IConfirmer
             return false;
         }
 
+        // Something that can't be undone takes a real key press. A spoken yes doesn't count, wherever it came from.
+        if (!pending.AllowVoice)
+        {
+            _app.SayNow(AppPhrase.ConsentPressEnter);
+            return true;
+        }
+
         switch (YesNoMatcher.Match(text))
         {
             case SpokenAnswer.Yes:

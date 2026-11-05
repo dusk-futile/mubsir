@@ -83,6 +83,10 @@ public class PdfPageTextTests
         Assert.Equal("قرأ المعلم الدرس computer\nسطر سليم", OcrRepair.FillLostLetters(text, ocr));
     }
 
+    [Fact]
+    public void A_lost_letter_is_filled_even_when_ocr_drops_the_hamza() =>
+        Assert.Equal("قرا المعلم", OcrRepair.FillLostLetters("\uFFFDَرَأَ المعلم", "قرا المعلم"));
+
     [Theory]
     [InlineData("")]
     [InlineData(null)]

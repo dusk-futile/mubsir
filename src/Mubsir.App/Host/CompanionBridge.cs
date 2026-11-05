@@ -16,6 +16,7 @@ internal sealed class CompanionBridge(SpeechService speech, SettingsProvider set
     private readonly List<string> _steps = [];
     private OverlayHost? _overlay;
     private bool _busy;
+    private bool _disposed;
 
     public void Start()
     {
@@ -26,7 +27,16 @@ internal sealed class CompanionBridge(SpeechService speech, SettingsProvider set
             {
                 OverlayHost overlay = OverlayHost.Start(settings.Settings.ShowHudhud);
                 overlay.Failed += e => log.Failure("overlay", e);
-                _overlay = overlay;
+                lock (_gate)
+                {
+                    if (_disposed)
+                    {
+                        overlay.Dispose();
+                        return;
+                    }
+
+                    _overlay = overlay;
+                }
             }
             catch (InvalidOperationException e)
             {
@@ -93,7 +103,11 @@ internal sealed class CompanionBridge(SpeechService speech, SettingsProvider set
     public void Dispose()
     {
         speech.SpeakingChanged -= OnSpeaking;
-        _overlay?.Dispose();
+        lock (_gate)
+        {
+            _disposed = true;
+            _overlay?.Dispose();
+        }
     }
 
     private CompanionStep[] Lines(StepState last) =>
@@ -105,9 +119,9 @@ internal sealed class CompanionBridge(SpeechService speech, SettingsProvider set
         {
             _overlay?.Show(CompanionState.Speaking);
         }
-        else if (!_busy)
+        else
         {
-            _overlay?.Show(CompanionState.Idle);
+            _overlay?.Show(_busy ? CompanionState.Thinking : CompanionState.Idle);
         }
     }
 }

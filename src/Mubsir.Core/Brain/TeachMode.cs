@@ -21,7 +21,7 @@ public static class TeachMode
     public static IReadOnlySet<string> AllowedTools { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
         ToolNames.ReadScreen, ToolNames.DescribeScreen, ToolNames.OcrWindow, ToolNames.ListWindows, ToolNames.SystemStatus,
-        ToolNames.PointAt, ToolNames.AskUser, ToolNames.Remember, ToolNames.ReadDocument, ToolNames.FindBook,
+        ToolNames.PointAt, ToolNames.AskUser, ToolNames.ReadDocument, ToolNames.FindBook,
     };
 
     public static IReadOnlyList<ToolSchema> Tools { get; } = ToolCatalog.All.Where(t => AllowedTools.Contains(t.Name)).ToArray();

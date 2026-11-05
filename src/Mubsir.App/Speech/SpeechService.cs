@@ -429,7 +429,18 @@ internal sealed class SpeechService : IDisposable
             bool heard = false;
             try
             {
-                heard = fish.SpeakAsync(job.Sentence.PlainText, job.Lang, _rate, () => History.MarkSpoken(job.Sentence.HistoryIndex)).GetAwaiter().GetResult();
+                // SpeakAsync has its own limits. This one means a hang can only ever cost one sentence.
+                Task<bool> speaking = fish.SpeakAsync(job.Sentence.PlainText, job.Lang, _rate, () => History.MarkSpoken(job.Sentence.HistoryIndex));
+                TimeSpan most = TimeSpan.FromSeconds(75) + TimeSpan.FromMilliseconds(job.Sentence.PlainText.Length * 250L);
+                if (speaking.Wait(most))
+                {
+                    heard = speaking.Result;
+                }
+                else
+                {
+                    _log.Error("fish_sentence_timeout", LogKind.Speech, LogOutcome.TimedOut);
+                    fish.Stop();
+                }
             }
             catch (Exception e) when (e is not OutOfMemoryException)
             {

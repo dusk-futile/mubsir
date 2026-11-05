@@ -18,6 +18,7 @@ internal sealed class FishVoice(SecretStore secrets, SettingsProvider settings, 
     private const string Endpoint = "https://api.fish.audio/v1/tts";
     private const int MaxChars = 2000;
     private static readonly TimeSpan FirstAudioTimeout = TimeSpan.FromSeconds(8);
+    private static readonly TimeSpan WholeAudioTimeout = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan RestAfterFailure = TimeSpan.FromSeconds(60);
 
     private readonly HttpClient _http = new(handler ?? new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) }) { Timeout = Timeout.InfiniteTimeSpan };
@@ -73,6 +74,7 @@ internal sealed class FishVoice(SecretStore secrets, SettingsProvider settings, 
                 return false;
             }
 
+            firstAudio.CancelAfter(WholeAudioTimeout);
             var audio = new MemoryStream();
             await response.Content.CopyToAsync(audio, firstAudio.Token).ConfigureAwait(false);
             if (audio.Length == 0)
@@ -111,8 +113,8 @@ internal sealed class FishVoice(SecretStore secrets, SettingsProvider settings, 
             _stop = new CancellationTokenSource();
         }
 
+        // Not disposed: a sentence starting right now may still be linking to its token.
         old.Cancel();
-        old.Dispose();
         playing?.TrySetResult(true);
         try
         {
@@ -178,7 +180,8 @@ internal sealed class FishVoice(SecretStore secrets, SettingsProvider settings, 
         var done = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var player = new MediaPlayer { AutoPlay = false, AudioCategory = MediaPlayerAudioCategory.Speech };
         using (audio)
-        using (var source = MediaSource.CreateFromStream(audio.AsRandomAccessStream(), "audio/mpeg"))
+        using (var stream = audio.AsRandomAccessStream())
+        using (var source = MediaSource.CreateFromStream(stream, "audio/mpeg"))
         {
             player.MediaEnded += (_, _) => done.TrySetResult(true);
             player.MediaFailed += (_, args) =>
@@ -196,24 +199,25 @@ internal sealed class FishVoice(SecretStore secrets, SettingsProvider settings, 
 
                 _player = player;
                 _playing = done;
+
+                // Under the lock, so Stop can't dispose the player between these lines.
+                player.Source = source;
+                started();
+                player.Play();
             }
 
-            player.Source = source;
-            started();
-            player.Play();
-            Task finished = await Task.WhenAny(done.Task, Task.Delay(limit, stopped)).ConfigureAwait(false);
-            bool heard = finished != done.Task || await done.Task.ConfigureAwait(false);
+            Task finished = await Task.WhenAny(done.Task, Task.Delay(limit)).ConfigureAwait(false);
+            bool heard = finished == done.Task && await done.Task.ConfigureAwait(false);
             lock (_gate)
             {
-                if (ReferenceEquals(_player, player))
-                {
-                    _player = null;
-                    _playing = null;
-                }
-                else
+                // Stop already took the player and disposed it, and the user meant it.
+                if (!ReferenceEquals(_player, player))
                 {
                     return true;
                 }
+
+                _player = null;
+                _playing = null;
             }
 
             player.Dispose();

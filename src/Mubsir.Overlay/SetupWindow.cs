@@ -58,6 +58,7 @@ public sealed class SetupWindow : Window
     private OnboardingFlow? _flow;
     private Lang _lang;
     private string? _lastClipboard;
+    private string? _notice;
     private CancellationTokenSource? _listening;
 
     /// <summary>Opens straight on the first question. Only the demo that takes the pictures uses this.</summary>
@@ -116,6 +117,13 @@ public sealed class SetupWindow : Window
         top.Children.Add(other);
         top.Children.Add(Words(heading, 22, Ink, FontWeights.SemiBold));
         _body.Children.Add(top);
+        if (_notice is not null)
+        {
+            TextBlock notice = Words(_notice, 14, Accent, FontWeights.SemiBold);
+            AutomationProperties.SetLiveSetting(notice, AutomationLiveSetting.Polite);
+            _body.Children.Add(notice);
+            _notice = null;
+        }
     }
 
     private void SwitchLanguage()
@@ -205,13 +213,14 @@ public sealed class SetupWindow : Window
 
             status.Text = T("بجرب المفتاح...", "Testing the key...");
             string key = box.Password;
-            box.Clear();
             var (saved, message) = await _driver.SaveKeyAsync(kind, key);
             status.Text = message;
             _driver.Say(message, _lang);
             if (saved)
             {
-                _ = Dispatcher.BeginInvoke(() => ShowKeys(speak: false));
+                box.Clear();
+                _notice = message;
+                Refresh();
             }
         });
         buttons.Children.Add(open);
@@ -255,9 +264,20 @@ public sealed class SetupWindow : Window
 
     private async Task SaveFromClipboardAsync(KeyKind kind, string text)
     {
+        // A Fish key is just 32 hex characters, so other copied text can look like one. Only fill an empty slot.
+        if (kind == KeyKind.FishAudio && _driver.HasKey(kind))
+        {
+            return;
+        }
+
         var (saved, message) = await _driver.SaveKeyAsync(kind, text);
         _driver.Say(message, _lang);
-        if (saved)
+        if (!saved)
+        {
+            // Copying it again after fixing the problem should work.
+            _lastClipboard = null;
+        }
+        else
         {
             try
             {
@@ -267,14 +287,20 @@ public sealed class SetupWindow : Window
             {
             }
 
-            if (_settingsOnly)
-            {
-                ShowSettings();
-            }
-            else
-            {
-                ShowKeys(speak: false);
-            }
+            _notice = message;
+            Refresh();
+        }
+    }
+
+    private void Refresh()
+    {
+        if (_settingsOnly)
+        {
+            ShowSettings();
+        }
+        else
+        {
+            ShowKeys(speak: false);
         }
     }
 
@@ -291,6 +317,7 @@ public sealed class SetupWindow : Window
             StartQuestions();
         });
         Add(agree);
+        Add(SmallButton(T("مش دلوقتي", "Not now"), Close));
         agree.Focus();
         _driver.Say(text + " " + T("اضغط إدخال للموافقة.", "Press Enter to agree."), _lang);
     }
@@ -337,6 +364,12 @@ public sealed class SetupWindow : Window
         }
 
         _lang = _flow.Language;
+        if (!_flow.LastAnswerUnderstood)
+        {
+            _notice = T("مش متأكد فهمت. جرب تاني أو اختار من هنا.", "I didn't quite catch that. Try again, or pick one here.");
+        }
+
+        string? notice = _notice;
         Begin(T("نعرفك الأول", "Let's get to know you"));
         Add(Words(Arabic ? step.Arabic : step.English, 18, Ink));
         Control? first = null;
@@ -375,7 +408,7 @@ public sealed class SetupWindow : Window
         }
 
         first?.Focus();
-        _driver.Say(step.Text(_lang), _lang);
+        _driver.Say((notice is null ? string.Empty : notice + " ") + step.Text(_lang), _lang);
         _listening = new CancellationTokenSource();
         _ = ListenForAnswerAsync(_listening.Token);
     }

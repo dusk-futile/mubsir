@@ -140,7 +140,8 @@ public static class OcrRepair
         return string.Join(' ', words);
     }
 
-    private static string Letters(string text) => new(text.Where(char.IsLetterOrDigit).ToArray());
+    /// <summary>Hamza and tashkeel don't count: OCR often reads قرأ as قرا.</summary>
+    private static string Letters(string text) => new(ArabicFolding.Fold(text).Where(char.IsLetterOrDigit).ToArray());
 
     private static bool IsLatin(OcrWordBox word)
     {

@@ -190,7 +190,6 @@ internal sealed class TaskRunner
         (ScreenContext Screen, BuiltContext Built)? captured = await AwaitContextAsync(context, ct).ConfigureAwait(false);
         bool teach = TeachingFor(text);
         TaskContext task = TaskContexts.Create(text, lang, _app.Settings.Settings, teach);
-        SaveChat(lang == Lang.Arabic ? "أنت" : "You", text);
         ScreenContext? screen = captured?.Screen;
         if (screen is not null && SensitiveDetector.Evaluate(screen, task.BankDomains).Sensitive)
         {
@@ -205,6 +204,7 @@ internal sealed class TaskRunner
             return;
         }
 
+        SaveChat(lang == Lang.Arabic ? "أنت" : "You", text);
         if (!await BudgetAllowsAsync(lang, ct).ConfigureAwait(false))
         {
             return;

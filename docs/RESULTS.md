@@ -9,10 +9,20 @@ Measured 2026-11-05 on macOS, SDK 10.0.401, on branch `feat/reading-direct`. Not
 
 | Test | Sample | Value | Target | Result |
 | --- | --- | --- | --- | --- |
-| Core unit tests, all | 236 tests | 236 pass | all pass | Pass |
+| Core unit tests, all | 240 tests | 240 pass | all pass | Pass |
 | Teaching blocks action tools | 7 tools | all blocked by the policy | all | Pass |
 | A first conversation with answers it can't understand | 30 tries | finishes on safe defaults | can't get stuck | Pass |
 | Release build of the solution | Core, Overlay, App, tests | 0 errors | 0 | Pass |
+
+Windows, CI run 42031100660, commit `126d812`, windows-2025 (no real user):
+
+| Test | Value | Result |
+| --- | --- | --- |
+| Book check | 11 of 12 checks pass. Arabic letters, English scans, resume, search and one end-of-book line all right. Lost letter `قرأ` not filled; fix pushed after this run. | 1 fail |
+| Arabic OCR misread | `ورفي` for `ورقي`, 1 letter of 2 phrases | Allowed by the check, not fixed |
+| Setup window | Opens in all 6 demo stages, in English and right-to-left Arabic | Pass, by picture |
+| Store package | `Mubsir.msix` built, 88 MB, never installed | Built |
+| Overlay at rest | 121 MB working set, 5 % of one core asleep, 13.1 % awake | Above the 0 % target, on a machine with no real GPU |
 
 ## First real book check on Windows, and its fixes
 

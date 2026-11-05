@@ -30,6 +30,11 @@ internal static class KeyTester
         {
             return KeyTest.CouldNotCheck;
         }
+        catch (FormatException)
+        {
+            // Text that can't even be a header isn't a key. The exception would carry it, so it stops here.
+            return KeyTest.Wrong;
+        }
     }
 
     private static HttpRequestMessage Build(KeyKind kind, string key)
