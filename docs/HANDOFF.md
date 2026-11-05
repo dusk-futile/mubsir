@@ -4,6 +4,13 @@ Update this file at the end of every session. Newest entry on top.
 
 ---
 
+## 2026-11-05 (later) — blind user journey, new shake, edge light, README
+
+- **`docs/USER-JOURNEY.md` is new. Read it before building reading.** It walks the owner's scenario (find an unnamed book, numbered choices, rename, read, resume), and lists real code gaps, image-cost locks, token options, the Clicky comparison and a build order. Nothing in it is built yet; the owner picks what's first.
+- **The shake is now a bird's rouse** (`HudhudPoser` in Core, `drawHud` in the prototype, same numbers): crouch with feathers up, eyes shut, a burst travelling from head to tail with the feet planted at 8 slowing to 5.5 beats a second, then a nod and a tail wag. Waking no longer hops first. Dust leaves from the outline.
+- **Prototype only, waiting for approval (version 6):** the rainbow rim is replaced by an ember edge light whose movement means something: flowing in = listening, out = speaking, one spark = thinking, a growing line = doing (shrinks on undo), a quarter per Ctrl press = payment, green = paid. Not in the native overlay yet; port it after approval.
+- **README rewritten** to present Mubsir as a voice agent for your PC. The GitHub "About" text still says blind and low-vision; the owner hasn't asked to change it yet.
+
 ## 2026-11-05 — native notch and Hudhud started (PR #14)
 
 The owner approved prototype version 5 (smaller bird, paper-layer shadows) and asked to start the real

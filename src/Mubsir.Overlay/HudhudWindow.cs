@@ -49,6 +49,7 @@ internal sealed class HudhudWindow : Window, IAnimated
     private readonly MatrixTransform _crestGroup = new();
     private readonly MatrixTransform _wingPart = new();
     private readonly MatrixTransform _tailPart = new();
+    private readonly MatrixTransform _torsoPart = new();
     private readonly List<MatrixTransform> _primaries = [];
     private readonly List<MatrixTransform> _feathers = [];
     private readonly Image _faceOpen;
@@ -153,6 +154,7 @@ internal sealed class HudhudWindow : Window, IAnimated
             {
                 "hWing" => _wingPart,
                 "hTail" => _tailPart,
+                "hTorso" => _torsoPart,
                 _ when part.Id.StartsWith("hP", StringComparison.Ordinal) => AddTo(_primaries),
                 _ => new MatrixTransform(),
             };
@@ -313,7 +315,7 @@ internal sealed class HudhudWindow : Window, IAnimated
         SetPose(_state.Key());
         _blinkAt = _loop.Now + 0.15;
         _blinkTwice = true;
-        _wakeShakeAt = _loop.Now + 0.38;
+        _wakeShakeAt = _loop.Now + 0.62;
         AsleepChanged?.Invoke(false);
         ScheduleLife();
         _loop.Wake();
@@ -456,6 +458,14 @@ internal sealed class HudhudWindow : Window, IAnimated
         return m;
     }
 
+    private static Matrix Fluffed(double degrees, double wider, double taller)
+    {
+        var m = Matrix.Identity;
+        m.Scale(1 + wider, 1 + taller);
+        m.Rotate(degrees);
+        return m;
+    }
+
     private static Image Picture(HudhudArt.Piece piece, BitmapSource source)
     {
         var image = new Image { Source = source, Stretch = Stretch.Fill, Width = piece.Width, Height = piece.Height };
@@ -538,14 +548,15 @@ internal sealed class HudhudWindow : Window, IAnimated
             _feathers[i].Matrix = m;
         }
 
-        _wingPart.Matrix = Rotation(f.WingAngle);
+        _wingPart.Matrix = Fluffed(f.WingAngle, 0.03 * f.Fluff, 0.03 * f.Fluff);
+        _torsoPart.Matrix = Fluffed(f.TorsoAngle, 0.055 * f.Fluff, 0.025 * f.Fluff);
         _tailPart.Matrix = Rotation(f.TailAngle);
         for (int i = 0; i < _primaries.Count; i++)
         {
             _primaries[i].Matrix = Rotation(f.PrimaryAngle[i]);
         }
 
-        bool closed = _asleep || Blink(now);
+        bool closed = _asleep || f.EyesShut || Blink(now);
         _faceClosed.Visibility = closed ? Visibility.Visible : Visibility.Hidden;
         _faceOpen.Visibility = closed ? Visibility.Hidden : Visibility.Visible;
 
@@ -597,8 +608,7 @@ internal sealed class HudhudWindow : Window, IAnimated
         }
 
         _shakeStart = _loop.Now;
-        _puffAt = _loop.Now + 0.06;
-        _crest.Kick(3);
+        _puffAt = _loop.Now + 0.22;
         _loop.Wake();
     }
 
@@ -615,7 +625,6 @@ internal sealed class HudhudWindow : Window, IAnimated
             _wakeShakeAt = double.PositiveInfinity;
             if (!_asleep)
             {
-                _bodyY.Kick(-500);
                 Shake();
             }
         }
@@ -651,12 +660,13 @@ internal sealed class HudhudWindow : Window, IAnimated
             int side = _random.NextDouble() < 0.5 ? -1 : 1;
             _dust.Add(new Dust
             {
-                X = 470 + (_random.NextDouble() * 140),
-                Y = 470 + (_random.NextDouble() * 220),
-                VelocityX = side * (180 + (_random.NextDouble() * 360)),
-                VelocityY = -(220 + (_random.NextDouble() * 420)),
-                MaxLife = 0.7 + (_random.NextDouble() * 0.45),
-                Radius = 13 + (_random.NextDouble() * 12),
+                // Dust leaves from the bird's outline (chest or back), not from the middle of its body.
+                X = side > 0 ? 660 + (_random.NextDouble() * 40) : 320 + (_random.NextDouble() * 50),
+                Y = 450 + (_random.NextDouble() * 260),
+                VelocityX = side * (160 + (_random.NextDouble() * 320)),
+                VelocityY = -(160 + (_random.NextDouble() * 360)),
+                MaxLife = 0.6 + (_random.NextDouble() * 0.4),
+                Radius = 9 + (_random.NextDouble() * 10),
                 Fill = Palette.Solid(colors[i % colors.Length]),
             });
         }

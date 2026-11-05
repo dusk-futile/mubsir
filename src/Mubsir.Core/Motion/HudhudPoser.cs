@@ -97,8 +97,17 @@ public sealed class HudhudFrame
     /// <summary>The slow breath, −1…1, for the glow behind the bird.</summary>
     public double Breath { get; set; }
 
-    /// <summary>0…1 strength of an ongoing shake (for the dust).</summary>
+    /// <summary>0…1 strength of an ongoing shake.</summary>
     public double Shake { get; set; }
+
+    /// <summary>The body's own turn around its middle, while the feet stay planted.</summary>
+    public double TorsoAngle { get; set; }
+
+    /// <summary>0…1 how far the feathers stand up, which makes the body and wing a little rounder.</summary>
+    public double Fluff { get; set; }
+
+    /// <summary>Birds shut their eyes while they shake.</summary>
+    public bool EyesShut { get; set; }
 }
 
 /// <summary>
@@ -125,7 +134,61 @@ public sealed class HudhudPoser
     public HudhudFrame NewFrame() => new(_rig.Crest.Count, _primaries.Length);
 
     /// <summary>How long a shake lasts, in seconds.</summary>
-    public const double ShakeSeconds = 1.05;
+    public const double ShakeSeconds = 1.25;
+
+    private const double CrouchSeconds = 0.14;
+    private const double BurstSeconds = 0.6;
+
+    /// <summary>
+    /// How strong the shake is, at a moment of its burst. It builds fast and dies away slowly, instead of
+    /// starting at full strength, which is what made the old one look like an earthquake.
+    /// </summary>
+    public static double RouseStrength(double seconds)
+    {
+        double u = (seconds - CrouchSeconds) / BurstSeconds;
+        if (u <= 0 || u >= 1)
+        {
+            return 0;
+        }
+
+        double rise = Math.Min(1, u / 0.18);
+        return rise * rise * (3 - (2 * rise)) * Math.Pow(1 - u, 1.2);
+    }
+
+    /// <summary>
+    /// A bird's rouse: the shake starts at the head and travels down the body, so each part passes
+    /// <paramref name="delay"/> seconds later. It slows from 8 to about 5.5 beats a second, slow enough
+    /// to see each beat at 60 frames a second.
+    /// </summary>
+    public static double RouseWave(double seconds, double delay)
+    {
+        double x = seconds - delay;
+        double u = (x - CrouchSeconds) / BurstSeconds;
+        if (u <= 0 || u >= 1)
+        {
+            return 0;
+        }
+
+        return RouseStrength(x) * Math.Sin(Tau * BurstSeconds * ((8 * u) - (1.25 * u * u)));
+    }
+
+    /// <summary>The feathers stand up before the shake and lie flat again after it.</summary>
+    public static double RouseFluff(double seconds)
+    {
+        if (seconds <= 0 || seconds >= 1.15)
+        {
+            return 0;
+        }
+
+        if (seconds < CrouchSeconds)
+        {
+            return Smooth(seconds / CrouchSeconds);
+        }
+
+        return seconds < 0.7 ? 1 : 1 - Smooth((seconds - 0.7) / 0.45);
+    }
+
+    private static double Smooth(double k) => k * k * (3 - (2 * k));
 
     public void Pose(in HudhudInput input, HudhudFrame frame)
     {
@@ -135,20 +198,24 @@ public sealed class HudhudPoser
         double t = input.Time;
         double breath = Math.Sin(t * Tau / (3.6 + (1.8 * sl))) * a;
 
-        double ds = input.ShakeAge;
-        double shake = ds >= 0 && ds < ShakeSeconds ? Math.Exp(-3.2 * ds) * a : 0;
-        if (shake == 0)
-        {
-            ds = 0;
-        }
+        // The rouse: a small crouch with the feathers standing up, a burst that travels from the head to
+        // the tail with the feet planted, then everything settles with a nod and a wag.
+        double ds = input.ShakeAge >= 0 && input.ShakeAge < ShakeSeconds ? input.ShakeAge : -1;
+        double Wave(double delay) => ds >= 0 ? RouseWave(ds, delay) * a : 0;
+        double fluff = ds >= 0 ? RouseFluff(ds) * a : 0;
+        double crouch = ds < 0 ? 0 : (ds < CrouchSeconds ? Smooth(ds / CrouchSeconds) : ds < 0.34 ? 1 - Smooth((ds - CrouchSeconds) / 0.2) : 0) * a;
+        double settle = ds >= 0.7 ? (ds - 0.7) / (ShakeSeconds - 0.7) : -1;
 
         double dp = input.PreenAge;
         bool scratching = dp > 0.35 && dp < 1.3;
 
         // Body: breathing, a slow weight shift, squash and stretch on hops, and the shake.
         double stretch = Math.Clamp(-input.BodyVelocity * 0.00013, -0.07, 0.09) * a;
-        frame.BodyY = input.BodyY + (breath * (9 + (8 * sl)));
-        frame.BodySway = (Math.Sin(t * Tau / 5.2) * 0.7 * a * (1 - sl)) + (Math.Sin(ds * Tau * 11) * 6 * shake);
+        frame.BodyY = input.BodyY + (breath * (9 + (8 * sl))) + (crouch * 14);
+        frame.BodySway = (Math.Sin(t * Tau / 5.2) * 0.7 * a * (1 - sl)) + Wave(0.03);
+        frame.TorsoAngle = Wave(0.035) * 2.6;
+        frame.Fluff = fluff;
+        frame.EyesShut = ds > 0.16 && ds < 0.66 && a > 0;
         frame.BodyScaleX = 1 - (stretch * 0.6);
         frame.BodyScaleY = 1 + stretch;
 
@@ -166,13 +233,19 @@ public sealed class HudhudPoser
             up += Math.Sin(dp * Tau * 9) * 5;
         }
 
-        up -= Math.Sin(ds * Tau * 11) * 4 * shake;
-        frame.HeadY = (sl * 26) + (breath * 4);
+        up += Wave(0) * 7;
+        if (settle is > 0.27 and < 1)
+        {
+            // A small, satisfied nod at the end.
+            up += Math.Sin(Math.PI * (settle - 0.27) / 0.73) * 5 * a;
+        }
+
+        frame.HeadY = (sl * 26) + (breath * 4) + (crouch * 10);
         frame.HeadAngle = -up;
         frame.Flip = input.Flip;
 
         // Crest: folds back and fans up; ripples while awake; shivers in the shake.
-        double c = input.Crest + (input.Activity == HudhudActivity.Speaking ? input.Voice * 0.22 : 0);
+        double c = input.Crest + (input.Activity == HudhudActivity.Speaking ? input.Voice * 0.22 : 0) + (fluff * 0.28);
         double cp = Math.Clamp(c, -0.15, 1.15);
         double len = Math.Clamp(c, 0, 1.04);
         for (int i = 0; i < _rig.Crest.Count; i++)
@@ -180,7 +253,7 @@ public sealed class HudhudPoser
             RigFeather f = _rig.Crest[i];
             frame.FeatherAngle[i] = f.ClosedAngle + ((f.OpenAngle - f.ClosedAngle) * c)
                 + (Math.Sin((t * 2.2) + (i * 0.8)) * (0.8 + (1.6 * Math.Max(0, c))) * a * (1 - sl))
-                + (Math.Sin((ds * Tau * 12) + (i * 1.3)) * 9 * shake);
+                + (Wave(0.01 + (i * 0.012)) * 6);
             frame.FeatherX[i] = f.ClosedX + ((f.OpenX - f.ClosedX) * cp);
             frame.FeatherY[i] = f.ClosedY + ((f.OpenY - f.ClosedY) * cp);
             frame.FeatherLength[i] = f.LengthClosed + ((1 - f.LengthClosed) * len);
@@ -189,15 +262,21 @@ public sealed class HudhudPoser
         frame.CrestScale = 1 + (input.Raise * 0.09);
 
         // Wing (positive lifts it), flight feathers fan out, tail wiggles.
-        double wl = input.Wing + (breath * 1.2) + (Math.Sin(ds * Tau * 13) * 14 * shake) + (10 * shake);
+        double wl = input.Wing + (breath * 1.2) + (fluff * 7) + (Wave(0.06) * 9);
         frame.WingAngle = _wing.Rest + wl;
-        double sp = input.Spread + (1.2 * shake);
+        double sp = input.Spread + (fluff * 1.1);
         for (int i = 0; i < _primaries.Length; i++)
         {
             frame.PrimaryAngle[i] = _primaries[i].Rest + (sp * ((i * 7) - 7)) + (wl * 0.35);
         }
 
-        double tw = (Math.Sin(t * Tau / 2.6) * 1.6 * a * (1 - sl)) + (Math.Sin(ds * Tau * 10) * 14 * shake);
+        double tw = (Math.Sin(t * Tau / 2.6) * 1.6 * a * (1 - sl)) + (Wave(0.1) * 11);
+        if (settle >= 0)
+        {
+            // The tail keeps wagging a moment after the body has stopped.
+            tw += Math.Sin((ds - 0.7) * Tau * 3.2) * (1 - settle) * 5 * a;
+        }
+
         if (scratching)
         {
             tw += Math.Sin(dp * Tau * 7) * 8;
@@ -205,6 +284,6 @@ public sealed class HudhudPoser
 
         frame.TailAngle = _tail.Rest + tw;
         frame.Breath = breath;
-        frame.Shake = shake;
+        frame.Shake = ds >= 0 ? RouseStrength(ds) * a : 0;
     }
 }

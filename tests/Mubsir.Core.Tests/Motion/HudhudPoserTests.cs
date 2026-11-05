@@ -73,7 +73,7 @@ public class HudhudPoserTests
     }
 
     [Fact]
-    public void A_shake_moves_the_wing_and_dies_away()
+    public void A_shake_builds_up_before_it_peaks_and_then_dies_away()
     {
         var poser = new HudhudPoser(Rig());
         HudhudFrame frame = poser.NewFrame();
@@ -81,13 +81,87 @@ public class HudhudPoserTests
         input.ReduceMotion = false;
         input.Time = 10;
 
-        input.ShakeAge = 0.05;
+        // The crouch comes first: feathers up, no shaking yet.
+        input.ShakeAge = 0.1;
         poser.Pose(input, frame);
-        Assert.True(frame.Shake > 0.8, "shake " + frame.Shake);
+        Assert.Equal(0, frame.Shake);
+        Assert.True(frame.Fluff > 0.5, "fluff " + frame.Fluff);
+
+        input.ShakeAge = 0.28;
+        poser.Pose(input, frame);
+        Assert.True(frame.Shake > 0.6, "shake " + frame.Shake);
+        Assert.True(frame.EyesShut);
 
         input.ShakeAge = HudhudPoser.ShakeSeconds + 0.1;
         poser.Pose(input, frame);
         Assert.Equal(0, frame.Shake);
+        Assert.Equal(0, frame.Fluff);
+        Assert.False(frame.EyesShut);
+    }
+
+    [Fact]
+    public void Each_beat_of_the_shake_is_slow_enough_to_see()
+    {
+        // Counts direction changes in the burst, sampled at 60 frames a second.
+        int turns = 0;
+        double last = 0;
+        double lastDelta = 0;
+        for (double t = 0; t < HudhudPoser.ShakeSeconds; t += 1.0 / 60)
+        {
+            double v = HudhudPoser.RouseWave(t, 0);
+            double delta = v - last;
+            if (delta * lastDelta < 0)
+            {
+                turns++;
+            }
+
+            last = v;
+            lastDelta = delta == 0 ? lastDelta : delta;
+        }
+
+        // 0.6 s at 8 falling to 5.5 beats a second is about four beats, each at least 6 frames.
+        Assert.InRange(turns, 5, 10);
+    }
+
+    [Fact]
+    public void The_shake_starts_at_the_head_and_reaches_the_tail_later()
+    {
+        double firstAtHead = FirstMoment(0);
+        double firstAtTail = FirstMoment(0.1);
+
+        Assert.True(firstAtTail > firstAtHead, "tail " + firstAtTail + ", head " + firstAtHead);
+    }
+
+    [Fact]
+    public void The_shake_never_swings_the_whole_bird_hard()
+    {
+        var poser = new HudhudPoser(Rig());
+        HudhudFrame frame = poser.NewFrame();
+        HudhudInput input = Still();
+        input.ReduceMotion = false;
+        double largest = 0;
+        for (double t = 0; t < HudhudPoser.ShakeSeconds; t += 0.005)
+        {
+            input.ShakeAge = t;
+            input.Time = 5.2; // the slow weight shift is at zero here
+            poser.Pose(input, frame);
+            largest = Math.Max(largest, Math.Abs(frame.BodySway));
+        }
+
+        Assert.True(largest <= 1.05, "feet must stay planted, sway " + largest);
+    }
+
+    private static double FirstMoment(double delay)
+    {
+        for (double t = 0; t < 1; t += 0.001)
+        {
+            if (Math.Abs(HudhudPoser.RouseWave(t, delay)) > 0.05)
+            {
+                return t;
+            }
+        }
+
+        return double.NaN;
     }
 
     [Fact]

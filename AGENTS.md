@@ -2,6 +2,7 @@
 
 Read this first, then `docs/HANDOFF.md` (where we are and what's next), `docs/CONVERSATION-SUMMARY.md`
 (everything the owner asked for and decided), then `docs/PLAN.md` (the full plan).
+Before building reading or memory, read `docs/USER-JOURNEY.md` (the blind user's journey, code gaps, token options).
 Brand options: `docs/BRAND.md`. When building, follow `docs/EXECUTION.md` (order of work, tests, numbers to report in `docs/RESULTS.md`).
 
 ## What this is
