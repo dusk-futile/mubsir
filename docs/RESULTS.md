@@ -3,6 +3,19 @@
 Measured numbers for each phase (`docs/archive/EXECUTION.md` → "Tests and the numbers to report").
 Every row: date, commit, sample size, value, target, pass or fail.
 
+## Free hearing against Gemini, in Arabic
+
+Measured 2026-11-05 on an Intel i3-8100, 2 threads. 4 Fish voice samples with known text, in formal Arabic, Egyptian and Saudi. They're clear computer voices, so real speech will be harder for all of them. Words wrong after ignoring tashkeel and hamza.
+
+| Engine | Words wrong | Speed | RAM | Runs on the PC |
+| --- | --- | --- | --- | --- |
+| Whisper tiny | 72% | 7x | 414 MB | Yes |
+| Whisper base | 61% | 3.6x | 541 MB | Yes |
+| Whisper small | 39% | 1.1x | 1,077 MB | Yes, but only just keeps up |
+| Gemini 3.5 Flash-Lite | 7% | about 3 s per sample | none | No |
+
+Handy is a dictation app built on Whisper and Parakeet, so it isn't a better engine than these. Fish's hearing hasn't been measured.
+
 ## Gemini brain against the real service
 
 Measured 2026-11-05 from macOS with a free-tier key and the app's real `GeminiWire` and `SystemPrompt`. `GeminiBrain` itself and the Windows tools weren't run.

@@ -5,6 +5,7 @@ Update this file at the end of every session. Newest on top. Older entries are i
 # Latest session, 2026-11-05 (sixth part)
 
 - **The owner has no keys yet and wants it free.** `Brain/GeminiBrain.cs` (with `Core/Agent/GeminiWire.cs`) is a new free brain, and `BrainRouter` uses Claude only if its key exists. A Gemini key alone is enough to start. `FishVoice` tries `s2.1-pro-free` first, then the paid model. Its pages give two end dates, the later being 2026-11-30.
+- **Hearing:** the owner asked about Handy, a dictation app built on Whisper. Free Whisper got 39% to 72% of Arabic words wrong against 7% for Gemini (`docs/RESULTS.md`), so Whisper is not built in. Gemini stays for hearing until real speech says otherwise.
 - **Gemini tested for real from the Mac** (numbers in `docs/RESULTS.md`): the format works, but Flash-Lite often claimed an action without calling a tool, so `GeminiBrain` now forces a tool for action requests and holds their text back. The free Fish model is still untested: no account. `GeminiBrain` itself has not run. Tests B12, B13, D13 and D17 cover the rest.
 - **Privacy:** Google and Fish may use free requests to improve their products. The setup and consent text say so. The owner should decide on paid keys before daily use by their grandfather.
 - The free use isn't counted in "صرفت كام". Gemini hearing still is, at paid rates, so that command can read slightly high.
