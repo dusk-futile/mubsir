@@ -69,6 +69,11 @@ internal sealed partial class WindowsToolExecutor : IToolExecutor
         _documents = documents;
         _positions = positions;
         _books = books;
+        if (books is not null)
+        {
+            books.ImageReader = ReadPageImageAsync;
+        }
+
         _brain = brain;
         _speech = speech;
         _settings = settings;
@@ -282,6 +287,7 @@ internal sealed partial class WindowsToolExecutor : IToolExecutor
         ToolNames.DescribeScreen => DescribeScreenAsync(a, s, ct),
         ToolNames.OcrWindow => OcrWindowAsync(ct),
         ToolNames.ReadDocument => ReadDocumentAsync(a, s, ct),
+        ToolNames.FindBook => Task.FromResult(FindBook(a)),
         ToolNames.Media => MediaAsync(a, s, ct),
         ToolNames.ListFolder => Task.Run(() => ListFolder(a), ct),
         ToolNames.FindFiles => Task.Run(() => FindFiles(a, s, ct), ct),

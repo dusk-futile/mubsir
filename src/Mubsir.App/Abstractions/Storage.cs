@@ -19,6 +19,12 @@ public static class AppPaths
 
     public static string PositionsFile => Path.Combine(DataDir, "positions.json");
 
+    public static string BookNotesFile => Path.Combine(DataDir, "book-notes.json");
+
+    public static string LibraryFile => Path.Combine(DataDir, "library.json");
+
+    public static string PageRepairsFile => Path.Combine(DataDir, "page-repairs.json");
+
     public static string UndoJournalFile => Path.Combine(DataDir, "undo.jsonl");
 
     public static string NvdaQuietFile => Path.Combine(DataDir, "nvda-quiet.json");

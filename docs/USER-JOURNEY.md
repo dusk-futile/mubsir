@@ -156,11 +156,66 @@ I read the open-source Clicky (`farzaa/clicky`, MIT) and the community Windows p
 
 **Where we already beat them:** we act on the PC, Arabic and English mixed, full use with no screen at all, reading any book with symbols, memory across days, and the four-press payment gate.
 
+## The walk as the code works today
+
+Written from the code on `feat/reading-direct`. Windows has compiled all of this and the book check runs it, but nobody has yet used it by ear on a real PC.
+
+| Moment | What he does | What Mubsir does | What it reads or sends |
+| --- | --- | --- | --- |
+| Lock screen | Types his password | Nothing: Mubsir starts only after sign-in. NVDA or Narrator must speak this screen | Nothing |
+| Signed in | Waits | Sound, "Mubsir is ready", then "Yesterday you stopped on page 34 of 312 of Phonology. Say continue" | Local files only. Quiet in private mode or with `GreetWithLastBook` off |
+| Very first run | Presses Enter | Explains what goes to the cloud and asks once. Enter is required, not voice | Nothing until he agrees |
+| Any request | Holds Right Ctrl, talks, lets go | Speech stops, sound, recording, sound | His voice and the app's name go to Google to become text |
+| A book command | "Next page", "كمل", "mark this", "read for 10 minutes" | Handled on the PC, then reads on by itself if talking is what interrupted it | Nothing more |
+| "Give me the book on phonology" | Says it | Searches the library cards. One match opens; several are read as a numbered list, and he says a number | Nothing more. Cards are built in the background from each file's first 3 pages and stay on the PC |
+| Reading | Listens | Says the page, reads word for word, saves his place only when a sentence starts playing, and queues one page ahead | Nothing. No AI at all |
+| A broken page | Listens | Local OCR first. If that fails, one image to the AI, at most 3 in a row and 10 a book a day. Otherwise "This page is hard to read" | One page image, only when he has reached it, never in private mode |
+| "What's an allophone?" | Asks mid-book | Finds up to 5 passages on the PC and sends only those, then removes any quote that isn't really in the book | About 2,000 tokens of the book |
+| "Open WhatsApp" | Says it | Local command list first, otherwise the AI with the accessibility tree of the window in front | Element names on screen, with passwords and codes removed |
+| A paying or sending step | Says it | Stops, says the facts, and waits for his OK. Bank pages turn the AI off | Nothing on bank pages |
+
+### When something goes wrong
+
+| What happens | What he hears | State |
+| --- | --- | --- |
+| Mic off | A sound, then "I can't hear you" | Built |
+| Heard nothing | "I didn't catch that", with no action | Built |
+| No internet | "No internet", and that local things still work. Voice requests can't work offline, but Right Ctrl twice then Space, or Page Up / Down, still drive the book | Built; offline speech recognition isn't |
+| Page out of range | "There are only 312 pages. Which one?" | Built |
+| Number out of range | "There are only 3. Which one?" | Built |
+| Same-named books | Each is read with its folder | Built |
+| Locked PDF | "This book is locked with a password, so I can't read it" | Built; asking for the password isn't |
+| Book moved | Found by its contents, once the library has seen it | Built |
+| Book deleted | "That book is no longer on this PC". The bookmark stays | Built |
+| Admin window | Says it can't read it | Built |
+| PC locked mid-book | Speech is held and comes back on unlock | Built |
+| Shared PC | Private mode or `GreetWithLastBook` keeps the greeting quiet | Built; the setting has no voice command yet |
+| The AI is slow | A sound after 1.5 seconds; Ctrl always stops | Built |
+| Headphones unplugged | Should pause so a private book doesn't play aloud | **Not built** |
+| A pop-up steals focus | Should be read first | **Not checked** |
+| Subject in another language | "فونولوجيا" won't match an English title locally. The AI's `find_book` can try both | Local search can't |
+
+## What each next feature would cost to run
+
+Estimates from the price list in PLAN §9 (Haiku $0.10 / $0.50 per million tokens, Fish ≈ $15 per million bytes), not measured. Fish's price still needs confirming. One active reader is taken as 10 questions a day.
+
+| Feature | Build size | Running cost | Why |
+| --- | --- | --- | --- |
+| Next and previous page, "where am I", repeat, faster, slower | Small | $0, and each one saves ~$0.001 of AI | He'll reach for these as soon as he starts reading |
+| Answers from 3–5 passages, with checked quotes | Medium | ~$0.0004 a question, ~$0.12 a month (today up to $0.009, $2.70 a month) | Biggest token saving left, and answers can be checked |
+| Library cards, so unnamed books can be found | Medium | ~$0.0005 a book, ~$0.20 once for 400 books | "Give me the book on phonology" |
+| Page check and image locks | Medium | ~$0.0006 per broken page, ~$0.10 for 5 books | Stops wrong words, with a hard cap on images |
+| Reading journal and start-up greeting | Small | ~$0.01 a month | "Yesterday you stopped on page 34" |
+| Voice notes, bookmarks and a sleep timer | Small | $0 | All on the PC |
+| Premium voice for books | Large | ~$0.03 a page in English, ~$0.06 in Arabic; a 600-page book ≈ $20–40 for the first reader | About 95 % of all running cost, so it waits for the shared library |
+
 ## Suggested build order
 
-1. **Reading fixes (small, and they fix real bugs):** reading skips the AI, bookmarks by fingerprint, save only what was heard. **Built on `feat/reading-direct`; not yet heard on a real PC.**
+All six are built on `feat/reading-direct` and not yet heard on a real PC.
+
+1. **Reading fixes (small, and they fix real bugs):** reading skips the AI, bookmarks by fingerprint, save only what was heard.
 2. **Numbered lists and local commands.**
-3. **Page check and image locks,** with the tests.
-4. **Library cards,** so unnamed books can be found.
+3. **Page check and image locks,** with the tests. Locks 1, 2 (one page ahead counts as reached), 3, 5 and 7 are built. The font map (4) and the server cap (6) are not.
+4. **Library cards,** so unnamed books can be found. Local only for now, so no AI naming.
 5. **Reading journal and start-up greeting.**
 6. **Answers from passages, with checked quotes.**

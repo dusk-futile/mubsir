@@ -62,6 +62,8 @@ internal static class ActionNarration
                 return ar ? "أقرأ النص من صورة الشاشة" : "Reading the text from the screen image";
             case ToolNames.ReadDocument:
                 return ar ? "أقرأ المستند" : "Reading the document";
+            case ToolNames.FindBook:
+                return ar ? "أدور في كتبك" : "Looking through your books";
             case ToolNames.Media:
                 return Arg("action") switch
                 {

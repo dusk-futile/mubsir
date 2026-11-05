@@ -1,3 +1,9 @@
+# Latest session, 2026-11-05
+
+- PR 14 merged. PR 15 (`feat/reading-direct`, into `main`) holds the reading fixes, the softer notch, `--book-check` and the reader's features: page commands and keys, notes, sleep timer, journal and greeting, passages with checked quotes, library cards, page check.
+- The walk, what is still missing and the feature prices are in `docs/USER-JOURNEY.md`.
+- Next: read the "Real book check" CI results and fix what they find, then have someone use it by ear with NVDA. Headphone unplug and offline speech aren't built.
+
 # Handoff — where the work stands
 
 Update this file at the end of every session. Newest entry on top.

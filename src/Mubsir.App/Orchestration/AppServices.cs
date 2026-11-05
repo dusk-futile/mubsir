@@ -1,3 +1,4 @@
+using Mubsir.App.Speech;
 using Mubsir.Core.Agent;
 using Mubsir.Core.Common;
 using Mubsir.Core.Cost;
@@ -43,6 +44,8 @@ internal sealed class AppServices
     public required DiagnosticsReport Report { get; init; }
 
     public UiaScreenReader? Screen { get; set; }
+
+    public BookAloud? Books { get; set; }
 
     public GeminiEars? Ears { get; set; }
 

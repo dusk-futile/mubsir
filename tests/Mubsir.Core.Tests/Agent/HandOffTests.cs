@@ -43,7 +43,7 @@ public class HandOffTests
 
         public Task<ToolResult> HandOffAsync(PreparedAction action, CancellationToken ct) => Task.FromResult(result);
 
-        public string? Narration(PreparedAction action, Lang lang) => null;
+        public string Narration(PreparedAction action, Lang lang) => string.Empty;
     }
 
     private sealed class Confirmer : IConfirmer

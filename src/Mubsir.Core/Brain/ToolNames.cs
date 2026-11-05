@@ -19,6 +19,8 @@ public static class ToolNames
     public const string DescribeScreen = "describe_screen";
     public const string OcrWindow = "ocr_window";
     public const string ReadDocument = "read_document";
+
+    public const string FindBook = "find_book";
     public const string Media = "media";
     public const string ListFolder = "list_folder";
     public const string FindFiles = "find_files";
@@ -37,7 +39,7 @@ public static class ToolNames
     public static IReadOnlySet<string> All { get; } = new[]
     {
         ReadScreen, Invoke, SetText, TypeText, PressKeys, Scroll, Focus, ListWindows, SwitchTo, OpenApp, OpenUrl,
-        BrowseSearch, DescribeScreen, OcrWindow, ReadDocument, Media, ListFolder, FindFiles, MoveFile, CopyFile,
+        BrowseSearch, DescribeScreen, OcrWindow, ReadDocument, FindBook, Media, ListFolder, FindFiles, MoveFile, CopyFile,
         RenameFile, Recycle, SystemStatus, SetVolume, OpenSettings, WindowsUpdateStatus, RestartPc, Remember, AskUser,
     }.ToFrozenSet(StringComparer.Ordinal);
 

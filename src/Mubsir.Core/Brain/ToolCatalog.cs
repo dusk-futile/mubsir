@@ -84,6 +84,11 @@ public static class ToolCatalog
             Int("page", "Page number to start from, or null to continue from where the user stopped.", nullable: true),
             Str("question", "What to find or answer in the document, or null to read it aloud.", nullable: true)),
 
+        Tool(ToolNames.FindBook,
+            "Search the books on this PC by subject, title or author, even files with no useful name. "
+            + "Try the words of the book's own language, for example both the English and Arabic name of a subject. Then pass the chosen path to read_document.",
+            Str("query", "What to look for.")),
+
         Tool(ToolNames.Media,
             "Control media playback (YouTube, music, video) in the current app or browser.",
             Choice("action", "What to do.", "play_pause", "next", "previous", "seek_forward", "seek_back")),

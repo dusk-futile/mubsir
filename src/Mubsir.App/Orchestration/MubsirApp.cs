@@ -7,6 +7,7 @@ using Mubsir.Core.Config;
 using Mubsir.Core.Input;
 using Mubsir.Core.Localization;
 using Mubsir.Core.Logging;
+using Mubsir.Core.Reading;
 using Mubsir.Core.Speech;
 
 namespace Mubsir.App.Orchestration;
@@ -198,8 +199,17 @@ internal sealed class MubsirApp : IDisposable
     {
         switch (command)
         {
+            case LayerCommand.ReadFromHere when _app.Books?.Session.Engaged == true:
+                _ = Guard(_app.Books.Session.ContinueAsync(), "layer_continue");
+                break;
             case LayerCommand.ReadFromHere:
                 _ = Guard(_reading.ReadFromHereAsync(_stopping.Token), "layer_read");
+                break;
+            case LayerCommand.NextPage:
+                _ = Guard(TurnPageAsync(forward: true), "layer_page");
+                break;
+            case LayerCommand.PreviousPage:
+                _ = Guard(TurnPageAsync(forward: false), "layer_page");
                 break;
             case LayerCommand.PreviousSentence:
                 _reading.PreviousSentence();
@@ -225,6 +235,22 @@ internal sealed class MubsirApp : IDisposable
             case LayerCommand.Help:
                 _app.SayNow(StringKey.LayerHelp);
                 break;
+        }
+    }
+
+    /// <summary>Page keys need no internet, so a book can still be driven when voice requests can't reach the cloud.</summary>
+    private async Task TurnPageAsync(bool forward)
+    {
+        if (_app.Books?.Session is not { Engaged: true } session)
+        {
+            _app.SayNow(StringKey.NothingToRead);
+            return;
+        }
+
+        string? reply = await (forward ? session.NextPageAsync() : session.PreviousPageAsync()).ConfigureAwait(false);
+        if (!string.IsNullOrWhiteSpace(reply))
+        {
+            _app.Speech.Speak(reply, UtteranceKind.System, _app.UiLang, interrupt: true);
         }
     }
 
@@ -326,6 +352,8 @@ internal sealed class MubsirApp : IDisposable
             {
                 await _consent.EnsureAsync(_stopping.Token).ConfigureAwait(false);
             }
+
+            GreetWithLastBook(settings);
         }
         catch (OperationCanceledException)
         {
@@ -333,6 +361,20 @@ internal sealed class MubsirApp : IDisposable
         catch (Exception e) when (e is not OutOfMemoryException)
         {
             _app.Log.Failure("startup", e);
+        }
+    }
+
+    /// <summary>Only ever said out loud on this PC. Private mode and the setting keep it quiet on a shared one.</summary>
+    private void GreetWithLastBook(MubsirSettings settings)
+    {
+        if (settings.PrivateMode || !settings.GreetWithLastBook || _app.Books is not { } books)
+        {
+            return;
+        }
+
+        if (books.LastPlace() is { } last)
+        {
+            _app.Speech.Speak(ReadingJournal.Greeting(last.Place, last.Title, _app.Clock.UtcNow, _app.UiLang), UtteranceKind.System, _app.UiLang);
         }
     }
 

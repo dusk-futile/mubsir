@@ -3,6 +3,23 @@
 Measured numbers for each phase (`docs/EXECUTION.md` → "Tests and the numbers to report").
 Every row: date, commit, sample size, value, target, pass or fail.
 
+## Softer notch and the reader's features
+
+Measured 2026-11-05 on branch `feat/reading-direct`, macOS, SDK 10.0.401. Windows results are in the CI run for the same commit.
+
+| Test | Sample | Value | Target | Result |
+| --- | --- | --- | --- | --- |
+| Core unit tests, all | 137 tests | 137 pass | all pass | Pass |
+| Notch opening to listening, overshoot | spring model | 9.6 px before, 0.8 px after | under 2.5 px | Pass |
+| Notch opening to listening, time to within 2 px | spring model | 0.28 s before, 0.34 s after | under 0.36 s | Pass |
+| Page images for a clean book | 100 pages | 0 | 0 | Pass |
+| Page images for a broken book | 50 pages | 3 | 3 or fewer in a row | Pass |
+| Page images, broken and good pages mixed | 60 pages | 10 | 10 or fewer a day | Pass |
+| Text sent for a question | 400-page book | under 8,000 characters | about 2,000 tokens | Pass |
+| Windows overlay smoke test, before the features | run 42002603609 | passed; asleep 8.1 % of one core, against 2.5–3.4 % before | no target on this machine | Check on the next run |
+
+Not measured yet: `--book-check` on Windows, using any of this by ear, and how long a real library scan takes.
+
 ## Reading fixes: straight to the voice, bookmarks by file, place saved when heard
 
 Measured 2026-11-05 on branch `feat/reading-direct`, macOS, SDK 10.0.401. Speech is a fake voice on the real `SpeechHistory` and splitter.

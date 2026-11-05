@@ -44,7 +44,7 @@ Most AI assistants live in a chat box and tell you what to click. **Mubsir does 
 *A preview of what's in development: a notch at the top of your screen that shows what Mubsir is doing, and Hudhud, the hoopoe who keeps you company in the corner.*
 
 - **The notch and Hudhud**, with a live checklist and a pointer that flies to the exact button.
-- **Your whole library by voice.** "Give me the book on phonology", even if the file has no name, and pick up tomorrow on the exact line you stopped at.
+- **Your whole library by voice.** "Give me the book on phonology", even if the file has no name, and pick up tomorrow on the exact line you stopped at. Being tested now.
 - **No keys and no accounts.** Download it and start talking.
 
 ## Getting started
@@ -74,6 +74,7 @@ Without keys, Mubsir still reads the screen and runs OCR locally.
 | Double-tap **Right Ctrl**, then **Space** | Read from here |
 | … then **← / →** | Previous / next sentence |
 | … then **↑ / ↓** | Previous / next paragraph |
+| … then **Page Up / Page Down** | Previous / next page of a book, with no internet needed |
 | … then **.** | Repeat |
 | … then **Enter** | Type a request instead of speaking |
 | … then **F1** | Help |

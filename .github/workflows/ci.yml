@@ -146,8 +146,11 @@ jobs:
           Add-WindowsCapability -Online -Name 'Language.OCR~~~ar-SA~0.0.1.0'
           Add-WindowsCapability -Online -Name 'Language.TextToSpeech~~~ar-EG~0.0.1.0'
 
+      - name: Restore (locked)
+        run: dotnet restore src/Mubsir.App
+
       - name: Publish win-x64
-        run: dotnet publish src/Mubsir.App -c Release -r win-x64 -o publish
+        run: dotnet publish src/Mubsir.App -c Release -r win-x64 --no-restore -o publish
 
       - name: Read the books
         shell: pwsh

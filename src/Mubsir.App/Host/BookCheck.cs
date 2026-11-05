@@ -6,6 +6,7 @@ using Mubsir.App.Screen.Documents;
 using Mubsir.App.Speech;
 using Mubsir.App.Storage;
 using Mubsir.Core.Common;
+using Mubsir.Core.Library;
 using Mubsir.Core.Reading;
 using Mubsir.Core.Speech;
 
@@ -96,6 +97,7 @@ internal static class BookCheck
             Skip("scan-ar.pdf", "Arabic OCR isn't installed on this PC");
         }
 
+        await Library(documents, temp);
         await RealVoice(documents, temp);
     }
 
@@ -167,6 +169,31 @@ internal static class BookCheck
         }
     }
 
+    /// <summary>Real library cards from real files: found by subject with no AI, including a scan with a useless name.</summary>
+    private static async Task Library(DocumentReader documents, string temp)
+    {
+        const string Test = "library cards";
+        var library = new BookLibrary(Path.Combine(temp, "library.json"));
+        foreach (string name in new[] { "english.pdf", "arabic.pdf", "scan.pdf", "english.docx" })
+        {
+            library.Put(await documents.ReadCardAsync(Path.Combine(temp, name), CancellationToken.None));
+        }
+
+        foreach ((string query, string file) in new[] { ("harbour", "english.pdf"), ("المدرسة", "arabic.pdf"), ("river", "scan.pdf"), ("paragraphs", "english.docx") })
+        {
+            IReadOnlyList<LibraryCard> found = library.Search(query);
+            if (found.Count == 0 || !found[0].Path.EndsWith(file, StringComparison.OrdinalIgnoreCase))
+            {
+                Fail(Test, $"\"{query}\" did not find {file}");
+                return;
+            }
+
+            Line($"  card: {found[0].Title}, {found[0].Pages} pages");
+        }
+
+        Pass(Test);
+    }
+
     /// <summary>Stops on a sentence, renames the file, and checks reading picks up on that same sentence.</summary>
     private static async Task StopRenameResume(DocumentReader documents, string temp, string name, Lang lang, string stopAt, int page)
     {
@@ -236,11 +263,10 @@ internal static class BookCheck
         using var settings = new SettingsProvider(log, Path.Combine(temp, "settings.json"), Path.Combine(temp, "profile.json"));
         using var speech = new SpeechService(new NvdaController(), oneCore, settings, log, SystemClock.Instance);
         var positions = new ReadingPositions(Path.Combine(temp, "voice.json"));
-        var books = new BookAloud(speech, positions, _ => { }, log);
+        var books = new BookAloud(speech, positions, new BookNotes(Path.Combine(temp, "notes.json")), new BookLibrary(Path.Combine(temp, "library.json")), documents, new PageImageBudget(), () => false, _ => { }, log);
         string path = Path.Combine(temp, "english.docx");
-        var (pages, _) = await Open(documents, path);
 
-        if (!await books.StartAsync(pages, path, 1, 0, Lang.English))
+        if (await books.OpenAsync(path, 1, Lang.English, CancellationToken.None) is not null)
         {
             Fail(Test, "reading did not start");
             return;
@@ -271,7 +297,7 @@ internal static class BookCheck
 
         Pass(Test + ": sentences start, the place saves, Stop holds");
 
-        if (!await books.StartAsync(pages, path, 1, 0, Lang.English))
+        if (await books.OpenAsync(path, 1, Lang.English, CancellationToken.None) is not null)
         {
             Fail(Test, "reading did not start again");
             return;

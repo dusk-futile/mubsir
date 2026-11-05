@@ -367,6 +367,8 @@ public sealed class InputStateMachine
         (ScanCodes.Right, true) => LayerCommand.NextSentence,
         (ScanCodes.Up, true) => LayerCommand.PreviousParagraph,
         (ScanCodes.Down, true) => LayerCommand.NextParagraph,
+        (ScanCodes.PageUp, true) => LayerCommand.PreviousPage,
+        (ScanCodes.PageDown, true) => LayerCommand.NextPage,
         (ScanCodes.Period, false) => LayerCommand.Repeat,
         (ScanCodes.Enter, _) => LayerCommand.TypeRequest,
         (ScanCodes.Escape, _) => LayerCommand.StopTask,
@@ -379,6 +381,8 @@ public sealed class InputStateMachine
         or LayerCommand.NextSentence
         or LayerCommand.PreviousParagraph
         or LayerCommand.NextParagraph
+        or LayerCommand.PreviousPage
+        or LayerCommand.NextPage
         or LayerCommand.Repeat;
 
     private static LayerKey[] CreateLayerKeyActions()

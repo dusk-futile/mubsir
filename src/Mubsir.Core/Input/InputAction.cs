@@ -7,6 +7,8 @@ public enum LayerCommand
     NextSentence,
     PreviousParagraph,
     NextParagraph,
+    PreviousPage,
+    NextPage,
     Repeat,
     TypeRequest,
     StopTask,

@@ -25,6 +25,7 @@ internal sealed class UtteranceFlow
     private readonly TaskRunner _tasks;
     private readonly UsageSink _usage;
     private readonly CancellationToken _appStopping;
+    private readonly BookCommandRunner _bookCommands;
 
     public UtteranceFlow(
         AppServices app,
@@ -44,6 +45,7 @@ internal sealed class UtteranceFlow
         _tasks = tasks;
         _usage = usage;
         _appStopping = appStopping;
+        _bookCommands = new BookCommandRunner(app);
     }
 
     public void OnTalkEnded()
@@ -173,6 +175,11 @@ internal sealed class UtteranceFlow
         }
 
         Lang lang = ScriptSegmenter.DominantLanguage(text, _app.UiLang);
+        if (await _bookCommands.TryRunAsync(text, lang).ConfigureAwait(false))
+        {
+            return;
+        }
+
         if (CommandGrammar.TryParseName(localCommand, out LocalCommand fromEars))
         {
             await _local.RunAsync(fromEars, localArgument, text, lang, _appStopping).ConfigureAwait(false);

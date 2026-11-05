@@ -1,7 +1,10 @@
 using System.Diagnostics;
+using Mubsir.Core.Library;
 using Mubsir.Core.Logging;
+using Mubsir.Core.Reading;
 using UglyToad.PdfPig.DocumentLayoutAnalysis.TextExtractor;
 using Windows.Data.Pdf;
+using Windows.Graphics.Imaging;
 using Windows.Storage;
 using Windows.Storage.Streams;
 using PigDocument = UglyToad.PdfPig.PdfDocument;
@@ -28,6 +31,8 @@ internal sealed class DocumentReader(UiaScreenReader screen, IEventLog log)
     public const int MaxTextChars = 5_000_000;
 
     private const double OcrRenderScale = 3.0;
+    private const int CardPages = 3;
+    private const int PageImageMaxSide = 1600;
 
     private static readonly TimeSpan PageOcrTimeout = TimeSpan.FromSeconds(30);
 
@@ -84,6 +89,120 @@ internal sealed class DocumentReader(UiaScreenReader screen, IEventLog log)
             log.Fail(LogKind.Error, "document." + MetaLog.Code(e));
             throw new DocumentReadException("unreadable");
         }
+    }
+
+    /// <summary>Local OCR of one page. It's free, so it always comes before asking the AI.</summary>
+    public async Task<string?> OcrPageAsync(string path, int page, CancellationToken ct)
+    {
+        if (!path.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) || !screen.Ocr.IsAvailable)
+        {
+            return null;
+        }
+
+        try
+        {
+            var pages = new string[page];
+            await OcrPagesAsync(path, pages, [page], [page], null, ct).ConfigureAwait(false);
+            return pages[page - 1];
+        }
+        catch (Exception e) when (e is not OutOfMemoryException and not OperationCanceledException)
+        {
+            log.Fail(LogKind.Error, "document.ocr_page." + MetaLog.Code(e));
+            return null;
+        }
+    }
+
+    /// <summary>A picture of one page, for the one place allowed to send it to the AI.</summary>
+    public async Task<byte[]?> RenderPageJpegAsync(string path, int page, CancellationToken ct)
+    {
+        if (!path.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        try
+        {
+            var file = await StorageFile.GetFileFromPathAsync(path).AsTask(ct).ConfigureAwait(false);
+            var pdf = await WinPdfDocument.LoadFromFileAsync(file).AsTask(ct).ConfigureAwait(false);
+            if (page < 1 || page > pdf.PageCount)
+            {
+                return null;
+            }
+
+            using var rendered = pdf.GetPage((uint)(page - 1));
+            using var stream = new InMemoryRandomAccessStream();
+            var (w, h) = ImageCodec.Fit((int)Math.Ceiling(rendered.Size.Width * 2), (int)Math.Ceiling(rendered.Size.Height * 2), PageImageMaxSide);
+            await rendered.RenderToStreamAsync(stream, new PdfPageRenderOptions { DestinationWidth = w, DestinationHeight = h }).AsTask(ct).WaitAsync(PageOcrTimeout, ct).ConfigureAwait(false);
+            stream.Seek(0);
+            using var bitmap = await ImageCodec.DecodeAsync(stream, PageImageMaxSide, ct).ConfigureAwait(false);
+            using var opaque = SoftwareBitmap.Convert(bitmap, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Ignore);
+            using var output = new InMemoryRandomAccessStream();
+            var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.JpegEncoderId, output).AsTask(ct).ConfigureAwait(false);
+            encoder.SetSoftwareBitmap(opaque);
+            await encoder.FlushAsync().AsTask(ct).ConfigureAwait(false);
+            using var bytes = new MemoryStream();
+            await output.AsStreamForRead().CopyToAsync(bytes, ct).ConfigureAwait(false);
+            return bytes.Length == 0 ? null : bytes.ToArray();
+        }
+        catch (Exception e) when (e is not OutOfMemoryException and not OperationCanceledException)
+        {
+            log.Fail(LogKind.Error, "document.render_page." + MetaLog.Code(e));
+            return null;
+        }
+    }
+
+    /// <summary>A library card from a book's first pages, without reading the whole book.</summary>
+    public async Task<LibraryCard> ReadCardAsync(string path, CancellationToken ct)
+    {
+        var info = new FileInfo(path);
+        string? print = FileFingerprint.Of(path);
+        string? title = null;
+        string? author = null;
+        int count = 0;
+        string opening = string.Empty;
+        bool locked = false;
+        try
+        {
+            if (info.Extension.Equals(".pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                string?[] first = await Task.Run<string?[]>(() =>
+                {
+                    using var pdf = PigDocument.Open(path, new PigParsingOptions { UseLenientParsing = true });
+                    count = pdf.NumberOfPages;
+                    title = pdf.Information.Title;
+                    author = pdf.Information.Author;
+                    var found = new string?[Math.Min(CardPages, count)];
+                    for (int i = 0; i < found.Length; i++)
+                    {
+                        ct.ThrowIfCancellationRequested();
+                        found[i] = DocumentFormats.FixPdfPageText(ContentOrderTextExtractor.GetText(pdf.GetPage(i + 1)));
+                    }
+
+                    return found;
+                }, ct).ConfigureAwait(false);
+                opening = string.Join('\n', first.Where(t => !string.IsNullOrWhiteSpace(t)));
+                if (DocumentFormats.LooksScanned(opening) && count > 0)
+                {
+                    opening = await OcrPageAsync(path, 1, ct).ConfigureAwait(false) ?? string.Empty;
+                }
+            }
+            else
+            {
+                DocumentText doc = await ReadAsync(path, 1, 0, null, ct).ConfigureAwait(false);
+                count = doc.Pages.Count;
+                opening = string.Join('\n', doc.Pages.Take(CardPages));
+            }
+        }
+        catch (UglyToad.PdfPig.Exceptions.PdfDocumentEncryptedException)
+        {
+            locked = true;
+        }
+        catch (Exception e) when (e is not OutOfMemoryException and not OperationCanceledException)
+        {
+            log.Fail(LogKind.Error, "library.card." + MetaLog.Code(e));
+        }
+
+        return new LibraryCard(path, print, BookTitle.Guess(info.Name, title, opening), string.IsNullOrWhiteSpace(author) ? null : author.Trim(), count, opening, info.Length, info.LastWriteTimeUtc, locked);
     }
 
     private static async Task<DocumentText> ReadPlainAsync(string path, CancellationToken ct)

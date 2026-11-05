@@ -58,6 +58,10 @@ public static class ScanCodes
     public const int Ctrl = 0x1D;
     public const int LeftShift = 0x2A;
     public const int Period = 0x34;
+
+    public const int PageUp = 0x49;
+
+    public const int PageDown = 0x51;
     public const int RightShift = 0x36;
     public const int Alt = 0x38;
     public const int Space = 0x39;

@@ -29,6 +29,9 @@ public sealed record MubsirSettings
 
     public bool PrivateMode { get; set; }
 
+    /// <summary>Say the last book and page at start-up. Turn off on a shared PC.</summary>
+    public bool GreetWithLastBook { get; set; } = true;
+
     public bool MubsirPaused { get; set; }
 
     public List<string> BankDomains { get; set; } = BankDomainDefaults.Create();

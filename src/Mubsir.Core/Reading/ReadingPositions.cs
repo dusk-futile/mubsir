@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Mubsir.Core.Reading;
 
-public sealed record ReadingPosition(int Page, int Offset, DateTimeOffset UpdatedAt, string? Path = null);
+public sealed record ReadingPosition(int Page, int Offset, DateTimeOffset UpdatedAt, string? Path = null, int Pages = 0, string? Print = null);
 
 /// <summary>
 /// Where the user stopped in each book. Found by the file's contents, so renaming or moving a book keeps the
@@ -34,7 +34,7 @@ public sealed class ReadingPositions(string file)
         }
     }
 
-    public void Set(string path, int page, int offset)
+    public void Set(string path, int page, int offset, int pages = 0)
     {
         lock (_gate)
         {
@@ -47,7 +47,7 @@ public sealed class ReadingPositions(string file)
                 items.Remove(stale);
             }
 
-            items[key] = new ReadingPosition(Math.Max(1, page), Math.Max(0, offset), DateTimeOffset.UtcNow, pathKey);
+            items[key] = new ReadingPosition(Math.Max(1, page), Math.Max(0, offset), DateTimeOffset.UtcNow, pathKey, Math.Max(0, pages), key == pathKey ? null : key);
             if (items.Count > MaxEntries)
             {
                 foreach (var old in items.OrderBy(kv => kv.Value.UpdatedAt).Take(items.Count - MaxEntries).Select(kv => kv.Key).ToList())
@@ -57,6 +57,15 @@ public sealed class ReadingPositions(string file)
             }
 
             Save(items);
+        }
+    }
+
+    /// <summary>The books read most recently, newest first.</summary>
+    public IReadOnlyList<ReadingPosition> Recent(int count)
+    {
+        lock (_gate)
+        {
+            return Items().Values.OrderByDescending(p => p.UpdatedAt).Take(count).ToArray();
         }
     }
 

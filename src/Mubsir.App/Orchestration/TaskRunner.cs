@@ -157,6 +157,9 @@ internal sealed class TaskRunner
         }
     }
 
+    private string? WithBookHint(string? context) =>
+        _app.Books?.Session.ContextHint() is { } hint ? (context is null ? hint : hint + "\n" + context) : context;
+
     private async Task RunAsync(string text, Lang lang, Task<(ScreenContext Screen, BuiltContext Built)?>? context, Running running, CancellationToken appCt)
     {
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(appCt, running.Cts.Token);
@@ -204,7 +207,7 @@ internal sealed class TaskRunner
             lang);
         var request = new AgentRequest(
             text,
-            captured?.Built.Text,
+            WithBookHint(captured?.Built.Text),
             InitialImage: null,
             task,
             options,

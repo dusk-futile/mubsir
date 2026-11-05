@@ -1,3 +1,4 @@
+using Mubsir.Core.Library;
 using System.Diagnostics;
 using System.Threading.Channels;
 using Mubsir.App.Actions;
@@ -107,6 +108,7 @@ internal sealed class MubsirHost
         var prompter = new UserPrompter(app);
         var usage = new UsageSink(app);
 
+        LibraryScanner? scanner = null;
         UiaScreenReader? screen = Create("screen", () => new UiaScreenReader(_log));
         app.Screen = screen;
         app.Ears = Create("ears", () => new GeminiEars(secrets, settings, _log));
@@ -114,9 +116,16 @@ internal sealed class MubsirHost
         if (screen is not null)
         {
             var positions = new ReadingPositions(AppPaths.PositionsFile);
-            var books = new BookAloud(speech, positions, input.SetReading, _log);
+            var documents = new DocumentReader(screen, _log);
+            var library = new BookLibrary(AppPaths.LibraryFile);
+            var books = new BookAloud(
+                speech, positions, new BookNotes(AppPaths.BookNotesFile), library, documents, new PageImageBudget(AppPaths.PageRepairsFile),
+                () => !settings.Settings.PrivateMode && settings.Profile.CloudConsentGiven && !settings.Settings.MubsirPaused,
+                input.SetReading, _log);
+            app.Books = books;
             app.Executor = Create<IToolExecutor>("executor", () => new WindowsToolExecutor(
-                screen, new DocumentReader(screen, _log), positions, books, app.Brain, speech, settings, memory, prompter, usage, _log));
+                screen, documents, positions, books, app.Brain, speech, settings, memory, prompter, usage, _log));
+            scanner = new LibraryScanner(library, documents, _log);
         }
 
         using var hook = new KeyboardHookService(input, actions.Writer, _log) { FastStop = speech.RequestStopFast };
@@ -132,6 +141,8 @@ internal sealed class MubsirHost
             };
         }
 
+        using var scanStopping = new CancellationTokenSource();
+        scanner?.Start(scanStopping.Token);
         using var foreground = new ForegroundWatcher(app, mubsir.Tasks, hook);
         foreground.Start();
         using var session = new SessionWatcher(app, mubsir.Tasks, hook);
