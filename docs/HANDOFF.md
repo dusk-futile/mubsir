@@ -4,6 +4,61 @@ Update this file at the end of every session. Newest entry on top.
 
 ---
 
+## 2026-11-05 (later) — blind user journey, new shake, edge light, README
+
+- **`docs/USER-JOURNEY.md` is new. Read it before building reading.** It walks the owner's scenario (find an unnamed book, numbered choices, rename, read, resume), and lists real code gaps, image-cost locks, token options, the Clicky comparison and a build order. Nothing in it is built yet; the owner picks what's first.
+- **The shake is now a bird's rouse** (`HudhudPoser` in Core, `drawHud` in the prototype, same numbers): crouch with feathers up, eyes shut, a burst travelling from head to tail with the feet planted at 8 slowing to 5.5 beats a second, then a nod and a tail wag. Waking no longer hops first. Dust leaves from the outline.
+- **Prototype only, waiting for approval (version 6):** the rainbow rim is replaced by an ember edge light whose movement means something: flowing in = listening, out = speaking, one spark = thinking, a growing line = doing (shrinks on undo), a quarter per Ctrl press = payment, green = paid. Not in the native overlay yet; port it after approval.
+- **README rewritten** to present Mubsir as a voice agent for your PC. The GitHub "About" text still says blind and low-vision; the owner hasn't asked to change it yet.
+
+## 2026-11-05 — native notch and Hudhud started (PR #14)
+
+The owner approved prototype version 5 (smaller bird, paper-layer shadows) and asked to start the real
+thing. Try it on a Windows PC with `Mubsir.exe --overlay-demo`. It runs over the real desktop and listens
+to, sends and clicks nothing. Ctrl stops the checklist and undoes it, or wakes Hudhud. Clicking Hudhud
+opens the panel, and clicking the notch replays the story. Esc quits.
+
+- **`src/Mubsir.Overlay`** (WPF built in code, on its own UI thread):
+  - The notch morphs between states on the prototype's springs (`motion-tokens.json`): idle, peek,
+    listening, thinking, doing, pointing, speaking, reading, payment, paid and undone. Voice wave and
+    glowing rim are in.
+  - The pointer flies out of the notch to a point on the screen, lands with two pulses and names it.
+  - Hudhud is the same cut-out puppet as the prototype. `assets/hudhud/rig.json` and the PNGs are shared
+    by both and embedded in the assembly.
+  - Clicking Hudhud opens a small Mubsir panel (Talk, Read this screen, Settings). A click anywhere else
+    closes it, and Hudhud stays awake while it is open.
+  - It never takes focus. Its windows stay click-through until the cursor is on the notch or the bird,
+    because soft shadows have visible pixels that would otherwise swallow clicks. An error inside the
+    overlay can't take the app down: it carries on, and closes itself after three failures.
+  - Respects Windows' "Show animations" setting. Draws only as much as it needs: every refresh while
+    something really moves, 20 fps for resting breaths, 10 fps for a sleeping bird. Hides over full-screen
+    apps while it has nothing to show, and comes back when it does.
+  - Hudhud's paper shadows and light edge are baked into its pictures at startup (`PaperBaker` in Core),
+    not drawn as live effects: without a GPU, live effects cost 85 % of a core while idle.
+- **`Mubsir.Core/Motion`**: spring engine, tokens, rig, pose math and shadow baking, with 29 tests in
+  `tests/Mubsir.Core.Tests` (the repo's first .NET unit tests).
+- **CI smoke test** (`scripts/overlay-smoke.ps1`, on windows-2025): runs the real demo on a Windows
+  desktop, saves screenshots as the `overlay-shots` artifact, tests Ctrl undo, the panel and a clean Esc
+  exit, the notch's hover and click, and records memory, CPU and frame rate. Numbers are in
+  `docs/RESULTS.md`. This is how to check the native visuals from a Mac. It can't confirm hiding over
+  full-screen apps: that machine reports Windows' "quiet time" state instead, so check it on a real PC.
+- The zip grows from 62.7 MB to 86.9 MB because the app now ships WPF.
+
+### Next session (normal mode, PLAN phase 7)
+1. Owner runs `--overlay-demo` on their Windows PC and says what to change.
+2. Wire it to the real app: a normal or blind mode setting (blind mode must create no overlay windows),
+   then `UtteranceFlow` (listening, transcript), `TaskRunner` (thinking, doing steps, stop and undo),
+   `Narrator` (speaking, voice level) and `Confirmer` (the four Ctrl presses).
+3. Still to build: the monitor with the mouse, dragging Hudhud to another corner, the teaching board,
+   Arabic for the notch's own labels (the app's words already show right-to-left; "Listening", "Thinking"
+   and the like are English for now), and Readex Pro as the font (static TTFs; it uses Segoe UI for now).
+4. Measure on a real PC: frame rate, CPU and memory against the app without the overlay
+   (`docs/EXECUTION.md`: 60 fps, 0 % idle, < 30 MB extra). CI has no GPU, so its numbers are a worst case.
+5. Dependabot: #5 (setup-python) passes and can be merged. #13 (vitest 5) fails the relay tests, so check
+   it against `@cloudflare/vitest-plugin` first.
+
+---
+
 ## 2026-11-04 (night) — repo cleaned, all open work merged
 
 - **Contributors cleaned.** The six early commits that named the AI assistant as their author were
@@ -11,11 +66,13 @@ Update this file at the end of every session. Newest entry on top.
   The files are byte-for-byte the same. The v0.1.0 tag still points at the same first commit, and
   stars are not affected. A full backup of the repo from before the rewrite is on the owner's Mac:
   `~/Desktop/mubsir-before-cleanup-2026-11-04.bundle`.
-  - The old session branch was deleted, and the tool credit lines were removed from PRs #6 and #8.
+  - The old session branch was deleted, and the tool credit lines were removed from PRs #6 and #8 and
+    three old PR comments.
   - GitHub still shows the old commits inside closed PRs #6–#8 (it keeps those refs; only GitHub
     Support can purge them). The 6 forks keep their old copies.
 - **Agent files have neutral names:** instructions in `AGENTS.md`, skills in `.agents/skills/`.
-  Tools that only look for their own file name need to be pointed at `AGENTS.md`.
+  Tools that only look for their own file name need to be pointed at `AGENTS.md`. On the owner's Mac a
+  small untracked shim does this (listed in `.git/info/exclude`, so it never reaches the repo).
 - **Merged into `main`** (squash, in this order): #10 (CI fix, SDK pinned), #9 (app icon, brand kit,
   notch + Hudhud prototype), #11 (Phase 1 relay, server side).
 - **Built and tested** on macOS with SDK 10.0.401:
@@ -23,6 +80,8 @@ Update this file at the end of every session. Newest entry on top.
   - NVDA add-on built.
   - Relay: type check clean, 37/37 tests.
   - GitHub CI green on all three PRs: Core build and add-on, Windows build, and relay tests.
+
+---
 
 ## 2026-11-04 (evening) — Hudhud rebuilt from ChatGPT-drawn parts, notch pass
 
@@ -33,7 +92,7 @@ checklist, and Ctrl to stop and undo. Published as version 4 on the owner's link
 
 - **Hudhud is now a cutout puppet.** ChatGPT (the owner's account, in the desktop app's browser pane)
   drew two part sheets on a lime-green background. The parts were cut out with soft chroma-key edges
-  into `prototypes/hudhud-companion/assets/hudhud-rig/` (16 PNGs). `rig.json` gives each part's joint,
+  into `assets/hudhud/` (16 PNGs; moved there from the prototype folder so the app shares them). `rig.json` gives each part's joint,
   place and resting angle; `build.py` bakes them into `index.html` as one layered SVG.
   - The crest feathers grow from the crown: they slide forward and fan up when raised and lie back
     when folded. The flight feathers tuck under the wing and spread when it lifts.

@@ -2,6 +2,7 @@
 
 Read this first, then `docs/HANDOFF.md` (where we are and what's next), `docs/CONVERSATION-SUMMARY.md`
 (everything the owner asked for and decided), then `docs/PLAN.md` (the full plan).
+Before building reading or memory, read `docs/USER-JOURNEY.md` (the blind user's journey, code gaps, token options).
 Brand options: `docs/BRAND.md`. When building, follow `docs/EXECUTION.md` (order of work, tests, numbers to report in `docs/RESULTS.md`).
 
 ## What this is
@@ -46,16 +47,23 @@ Mubsir (مُبصِر) is a free Windows voice agent that can do anything a mouse
   context builder). Builds on Linux; CI builds it.
 - `src/Mubsir.App` — Windows host (keyboard hook, UIA, OCR, audio, speech, tools, Claude/Gemini clients).
   Windows only.
+- `src/Mubsir.Overlay` — normal mode's visuals: the notch and Hudhud, WPF built in code on its own UI
+  thread. Sizes and springs are in `motion-tokens.json`, taken from the approved prototype. Try it with
+  `Mubsir.exe --overlay-demo`. Spring, token and pose logic live in `Mubsir.Core/Motion`.
+- `assets/hudhud/` — Hudhud's cut-out parts and `rig.json`, shared by the overlay and the prototype.
+- `cloud/proxy/` — the relay (Cloudflare Worker, TypeScript).
+- `tests/Mubsir.Core.Tests` — Core unit tests (xunit). Runs on any OS.
 - `nvda-addon/` — NVDA Bridge add-on (Python, GPL-2.0).
-- `scripts/` — `setup.ps1` installer script, `build-addon.py`.
-- Planned (see PLAN §11): `src/Mubsir.Overlay` (WPF), `src/Mubsir.Setup` (Velopack), `cloud/proxy`
-  (Cloudflare Worker), `tests/`.
+- `scripts/` — `setup.ps1` installer script, `build-addon.py`, `build-icons.py`, and `overlay-smoke.ps1`
+  (runs the overlay on a Windows desktop in CI; its screenshots are the `overlay-shots` artifact).
+- Planned (see PLAN §11): `src/Mubsir.Setup` (Velopack).
 
 ## Build
 
 ```bash
 dotnet build src/Mubsir.Core -c Release        # any OS
-dotnet build Mubsir.slnx                        # Windows, full app
+dotnet test tests/Mubsir.Core.Tests -c Release  # any OS
+dotnet build Mubsir.slnx                        # compiles anywhere; running the app or overlay needs Windows
 python scripts/build-addon.py
 ```
 

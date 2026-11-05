@@ -9,7 +9,7 @@ Status (2026-11-04, design session): two parts, both chosen by the owner.
   The owner chose concept 4, the **layered paper-cut** hoopoe
   (`prototypes/hudhud-companion/assets/concepts/hudhud-4-paper-cut.jpg`), now an animated cutout
   puppet: ChatGPT drew each part (body, head with open and closed eyes, wing, three flight feathers,
-  six crest feathers, tail, legs), and `prototypes/hudhud-companion/assets/hudhud-rig/rig.json` says
+  six crest feathers, tail, legs), and `assets/hudhud/rig.json` says
   where each part's joint is. The hand-drawn SVG version looked blocky to the owner and was replaced.
 
 The name stays **Mubsir · مُبصِر** ("the one who sees"). Most important for blind users, the identity
@@ -115,5 +115,7 @@ GitHub social preview (`assets/brand/social-preview.png`).
 Done since: the Hudhud concept (4, paper-cut), its cutout parts and rig, and the companion and notch
 states in this style (`prototypes/hudhud-companion/`).
 
-Still to do: the owner approves the prototype's look and motion, then the sound set and the native
-WPF overlay that reuses the rig and the motion tokens.
+The owner approved the prototype's look on 2026-11-04 (version 5), and the native overlay that reuses
+the rig and the motion tokens is under way in `src/Mubsir.Overlay`.
+
+Still to do: the sound set, and Readex Pro in the native overlay (it uses Segoe UI for now).

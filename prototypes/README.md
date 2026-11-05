@@ -9,7 +9,7 @@ native Windows (WPF), and its motion tokens come from the approved prototype.
 
 Concept images for the Hudhud redesign (2026-11-04) are in `hudhud-companion/assets/concepts/`.
 
-Hudhud is a cutout puppet. Its parts are PNGs drawn by ChatGPT in `hudhud-companion/assets/hudhud-rig/`,
+Hudhud is a cutout puppet. Its parts are PNGs drawn by ChatGPT in `assets/hudhud/` at the repo root (the Windows overlay uses the same files),
 and `rig.json` there gives each part's joint, place and resting angle. After changing a part or the rig,
 run `python3 prototypes/hudhud-companion/build.py`: it bakes the parts into `index.html` between the
 `hudhud:start` and `hudhud:end` markers, so the page stays a single file.

@@ -1,6 +1,6 @@
 """Bake the Hudhud cutout rig into index.html.
 
-Reads assets/hudhud-rig/rig.json and the part PNGs next to it, builds the layered SVG (every part in its
+Reads assets/hudhud/rig.json (at the repo root, shared with the Windows overlay) and the part PNGs next to it, builds the layered SVG (every part in its
 own group, so the page can rotate it around its joint) and replaces what sits between the
 `<!-- hudhud:start -->` and `<!-- hudhud:end -->` markers in index.html. The PNGs are embedded as data
 URIs, so the page stays a single file that can be published as is.
@@ -15,7 +15,7 @@ import json
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-RIG = HERE / "assets" / "hudhud-rig"
+RIG = HERE.parent.parent / "assets" / "hudhud"
 PAGE = HERE / "index.html"
 START, END = "<!-- hudhud:start -->", "<!-- hudhud:end -->"
 

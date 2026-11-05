@@ -105,9 +105,9 @@ kbd { font-family: inherit; font-size: 12px; border: 1px solid var(--line); bord
 .clock { text-align: right; line-height: 1.25; font-variant-numeric: tabular-nums }
 
 /* ---------- the notch ---------- */
-.rim { position: absolute; top: 0; left: 50%; width: 130px; height: 33px; transform: translateX(-50%); z-index: 19; pointer-events: none;
-  border-radius: 0 0 20px 20px; opacity: 0; filter: blur(10px);
-  background: conic-gradient(from var(--ang, 0deg) at 50% 30%, #F3C343, #E2703A, #A98BFF, #57D6C6, #F3C343) }
+/* The edge light: ember colours from Hudhud's crest, running along the notch's edge. Its movement says what is
+   happening: flowing in = listening, flowing out = speaking, one spark = thinking, a growing line = progress. */
+.edge { position: absolute; top: 0; left: 50%; width: 560px; height: 280px; transform: translateX(-50%); z-index: 21; pointer-events: none }
 .notch { --f: 12px; position: absolute; top: 0; left: 50%; width: 120px; height: 28px; transform: translateX(-50%);
   background: var(--island); border-radius: 0 0 14px 14px; z-index: 20; cursor: pointer; outline: none;
   box-shadow: 0 16px 36px rgba(0, 0, 12, .5), inset 0 -1px 0 rgba(255, 255, 255, .08) }
@@ -139,7 +139,10 @@ kbd { font-family: inherit; font-size: 12px; border: 1px solid var(--line); bord
   background: radial-gradient(circle at 35% 35%, #FFF4DE, #F3C343 45%, #E2703A 100%); box-shadow: 0 0 12px rgba(243, 195, 67, .7);
   animation: orb 1.5s ease-in-out infinite }
 @keyframes orb { 50% { transform: scale(.68); box-shadow: 0 0 4px rgba(243, 195, 67, .5) } }
-.think { font-size: 13.5px; color: var(--cream-dim); letter-spacing: .01em }
+.think { font-size: 13.5px; letter-spacing: .01em; color: var(--cream-dim);
+  background: linear-gradient(100deg, rgba(255,244,222,.5) 38%, #FFF4DE 50%, rgba(255,244,222,.5) 62%); background-size: 240% 100%;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; animation: shimmer 2s linear infinite }
+@keyframes shimmer { from { background-position: 120% 0 } to { background-position: -120% 0 } }
 @keyframes spin { to { transform: rotate(360deg) } }
 
 /* doing: a real checklist (wait -> run -> done; undoing -> undone) */
@@ -303,7 +306,7 @@ td.num { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabu
         <div class="body" id="app"></div>
       </div>
 
-      <div class="rim" id="rim" aria-hidden="true"></div>
+      <canvas class="edge" id="edge" aria-hidden="true"></canvas>
       <div class="notch" id="notch" tabindex="0" role="button" aria-label="Mubsir notch. Click to talk.">
         <div class="clip">
           <div class="pane" data-pane="idle"><i class="presence"></i></div>
@@ -403,13 +406,13 @@ td.num { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabu
       <h2 id="h-states">States</h2>
       <dl class="states">
         <div><dt>Idle</dt><dd>The notch rests as a small pill with an amber light. Hudhud breathes and blinks, and now and then glances up, shakes its feathers, stretches a wing or hops. Hover the notch to peek; click Hudhud to open Mubsir.</dd></div>
-        <div><dt>Listening</dt><dd>The notch pours out with a soft glowing rim and a fluid voice wave; your words appear as they are heard. Hudhud opens its crest.</dd></div>
-        <div><dt>Thinking</dt><dd>One small breathing light and the word Thinking. Nothing else. Hudhud looks up and nods.</dd></div>
-        <div><dt>Doing</dt><dd>Each step spins while it runs and is ticked only when it is finished. Ctrl stops it and undoes the finished steps in reverse, on screen.</dd></div>
+        <div><dt>Listening</dt><dd>The notch pours out with a fluid voice wave, and light flows in along its edge as you speak; your words appear as they are heard. Hudhud opens its crest.</dd></div>
+        <div><dt>Thinking</dt><dd>One small breathing light, the word Thinking, and one calm spark travelling along the edge. Hudhud looks up and nods.</dd></div>
+        <div><dt>Doing</dt><dd>Each step spins while it runs and is ticked only when it is finished, and a line along the edge grows with them. Ctrl stops it and undoes the finished steps in reverse, and the line shrinks back.</dd></div>
         <div><dt>Pointing</dt><dd>The pointer flies out of the notch to the exact button and names it. Ctrl calls it back.</dd></div>
-        <div><dt>Speaking</dt><dd>Captions follow the voice word by word, then the Arabic line; the wave moves with the voice.</dd></div>
+        <div><dt>Speaking</dt><dd>Captions follow the voice word by word, then the Arabic line; the wave moves with the voice, and light flows out along the edge.</dd></div>
         <div><dt>Reading</dt><dd>Book, page and progress, and what you can say next; the current line glows on the page.</dd></div>
-        <div><dt>Payment</dt><dd>The real amount and site. Only four Ctrl presses approve it, each one felt in the notch. Esc cancels.</dd></div>
+        <div><dt>Payment</dt><dd>The real amount and site. Only four Ctrl presses approve it, and each one lights a quarter of the edge. Esc cancels.</dd></div>
         <div><dt>Sleeping</dt><dd>After a while with nothing to do, Hudhud tucks its head, closes its eyes and breathes slowly. Ctrl or a click wakes it, and it shakes itself awake.</dd></div>
       </dl>
     </section>
@@ -470,7 +473,7 @@ td.num { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabu
   }
 
   /* ---------- elements ---------- */
-  const shell = $('#shell'), stage = $('#stage'), notch = $('#notch'), rim = $('#rim'), app = $('#app'), win = $('#win'), wintitle = $('#wintitle');
+  const shell = $('#shell'), stage = $('#stage'), notch = $('#notch'), edge = $('#edge'), app = $('#app'), win = $('#win'), wintitle = $('#wintitle');
   const hud = $('#hud'), hglow = $('#hglow'), ptr = $('#ptr'), sr = $('#sr'), fpsEl = $('#fps'), playBtn = $('#play'), appcard = $('#appcard');
   const doingPane = $('#doingPane'), doingLbl = $('#doingLbl'), stepsEl = $('#steps');
 
@@ -481,6 +484,7 @@ td.num { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabu
     k = shell.clientWidth / 960;
     if (canZoom) stage.style.zoom = k; else stage.style.transform = `scale(${k})`;
     sizeVoices();
+    sizeEdge();
   };
 
   /* ---------- the notch: size per state, panes cross-fade with blur ---------- */
@@ -506,7 +510,9 @@ td.num { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabu
   }
   function setNotch(name) {
     const [w, h] = SIZES[name]; nw.set(w); nh.set(h); nr.set(Math.min(h / 2, 36)); showPane(name);
-    rimS.set(name === 'listening' ? 1 : name === 'speaking' ? 0.7 : 0);
+    const level = EDGE_LEVEL[name] || 0;
+    rimS.set(level);
+    if (level > 0) edgeState = name;
   }
 
   /* ---------- voice wave: three translucent ribbons, tapered at the ends ---------- */
@@ -519,7 +525,7 @@ td.num { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabu
   let nextSyl = 0;
   const LAYERS = [
     { f: 1.5, sp: 2.4, a: 1, from: '243,195,67', to: '226,112,58', al: 0.55 },
-    { f: 2.2, sp: -3.1, a: 0.72, from: '226,112,58', to: '169,139,255', al: 0.45 },
+    { f: 2.2, sp: -3.1, a: 0.72, from: '226,112,58', to: '243,195,67', al: 0.45 },
     { f: 3.1, sp: 4.2, a: 0.46, from: '255,244,222', to: '243,195,67', al: 0.4 }
   ];
   function drawVoices(t) {
@@ -560,7 +566,7 @@ td.num { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabu
 
   /* ---------- Hudhud: a cutout puppet; every part turns around its own joint ---------- */
   const byId = (id) => document.getElementById(id);
-  const hBody = byId('hBody'), hHead = byId('hHead'), hFlip = byId('hFlip'), hCrest = byId('hCrest'), hWing = byId('hWing'), hTail = byId('hTail');
+  const hTorso = byId('hTorso'), hBody = byId('hBody'), hHead = byId('hHead'), hFlip = byId('hFlip'), hCrest = byId('hCrest'), hWing = byId('hWing'), hTail = byId('hTail');
   const faceOpen = byId('hFaceOpen'), faceClosed = byId('hFaceClosed'), hDust = byId('hDust'), hZzz = byId('hZzz');
   const prims = [0, 1, 2].map(i => byId('hP' + i));
   const nums = (s) => s.split(' ').map(Number);
@@ -619,9 +625,10 @@ td.num { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabu
   function puff() {
     if (reduce) return;
     for (let i = 0; i < 12; i++) {
+      // Dust leaves from the bird's outline (chest or back), not from the middle of its body.
       const side = Math.random() < 0.5 ? -1 : 1;
-      dust.push({ x: 470 + Math.random() * 140, y: 470 + Math.random() * 220, vx: side * (180 + Math.random() * 360), vy: -(220 + Math.random() * 420),
-        life: 0, max: 0.7 + Math.random() * 0.45, r: 13 + Math.random() * 12, c: ['#FFF4DE', '#F3C343', '#E9B04A', '#FCEBD0'][i % 4] });
+      dust.push({ x: side > 0 ? 660 + Math.random() * 40 : 320 + Math.random() * 50, y: 450 + Math.random() * 260, vx: side * (160 + Math.random() * 320), vy: -(160 + Math.random() * 360),
+        life: 0, max: 0.6 + Math.random() * 0.4, r: 9 + Math.random() * 10, c: ['#FFF4DE', '#F3C343', '#E9B04A', '#FCEBD0'][i % 4] });
     }
     dust.splice(0, Math.max(0, dust.length - dustEls.length));
   }
@@ -630,20 +637,46 @@ td.num { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabu
     const z = document.createElementNS('http://www.w3.org/2000/svg', 'text'); z.textContent = 'z'; z.setAttribute('opacity', '0'); hZzz.appendChild(z); return z;
   });
 
-  function shake() { act = { name: 'shake', t: clock() }; setTimeout(puff, 60); crest.kick(3); }
+  function shake() { act = { name: 'shake', t: clock() }; setTimeout(puff, 220); }
+
+  /* A bird's rouse, not an earthquake: a small crouch with the feathers standing up, then a burst that starts
+     at the head and travels down to the tail with the feet planted, slowing from 8 to 5.5 beats a second so
+     each beat is visible, then a nod and a last wag of the tail. Same numbers as HudhudPoser in Core. */
+  const SHAKE_SECONDS = 1.25, CROUCH = 0.14, BURST = 0.6;
+  const smooth = (k) => k * k * (3 - 2 * k);
+  function rouseStrength(x) {
+    const u = (x - CROUCH) / BURST;
+    if (u <= 0 || u >= 1) return 0;
+    return smooth(Math.min(1, u / 0.18)) * Math.pow(1 - u, 1.2);
+  }
+  function rouseWave(s, delay) {
+    const x = s - delay, u = (x - CROUCH) / BURST;
+    if (u <= 0 || u >= 1) return 0;
+    return rouseStrength(x) * Math.sin(TAU * BURST * (8 * u - 1.25 * u * u));
+  }
+  function rouseFluff(s) {
+    if (s <= 0 || s >= 1.15) return 0;
+    if (s < CROUCH) return smooth(s / CROUCH);
+    return s < 0.7 ? 1 : 1 - smooth((s - 0.7) / 0.45);
+  }
 
   function drawHud(t, dt) {
     const a = reduce ? 0 : 1, sl = sleepy.x;
     const breath = Math.sin(t * TAU / (3.6 + 1.8 * sl)) * a;
     const d = act ? t - act.t : 0;
-    const shakeEnv = act && act.name === 'shake' && d < 1.05 ? Math.exp(-3.2 * d) * a : 0;
+    if (act && act.name === 'shake' && d >= SHAKE_SECONDS) act = null;
+    const sd = act && act.name === 'shake' ? d : -1;
+    const wave = (delay) => (sd >= 0 ? rouseWave(sd, delay) * a : 0);
+    const fluff = sd >= 0 ? rouseFluff(sd) * a : 0;
+    const crouch = sd < 0 ? 0 : (sd < CROUCH ? smooth(sd / CROUCH) : sd < 0.34 ? 1 - smooth((sd - CROUCH) / 0.2) : 0) * a;
+    const settle = sd >= 0.7 ? (sd - 0.7) / (SHAKE_SECONDS - 0.7) : -1;
     const scratching = !!act && act.name === 'preen' && d > 0.35 && d < 1.3;
-    if (act && act.name === 'shake' && d >= 1.05) act = null;
 
     // body: breathing, a slow weight shift, squash and stretch on hops, and the shake
     const st = clamp(-bodyY.v * 0.00013, -0.07, 0.09) * a;
-    const sway = Math.sin(t * TAU / 5.2) * 0.7 * a * (1 - sl) + Math.sin(d * TAU * 11) * 6 * shakeEnv;
-    hBody.setAttribute('transform', `translate(0 ${(bodyY.x + breath * (9 + 8 * sl)).toFixed(2)}) translate(${feetX} ${feetY}) rotate(${sway.toFixed(2)}) scale(${(1 - st * 0.6).toFixed(4)} ${(1 + st).toFixed(4)}) translate(${-feetX} ${-feetY})`);
+    const sway = Math.sin(t * TAU / 5.2) * 0.7 * a * (1 - sl) + wave(0.03);
+    hTorso.setAttribute('transform', `rotate(${(wave(0.035) * 2.6).toFixed(2)}) scale(${(1 + 0.055 * fluff).toFixed(4)} ${(1 + 0.025 * fluff).toFixed(4)})`);
+    hBody.setAttribute('transform', `translate(0 ${(bodyY.x + breath * (9 + 8 * sl) + crouch * 14).toFixed(2)}) translate(${feetX} ${feetY}) rotate(${sway.toFixed(2)}) scale(${(1 - st * 0.6).toFixed(4)} ${(1 + st).toFixed(4)}) translate(${-feetX} ${-feetY})`);
 
     // head: tilt is "beak up" positive; the rig faces right, so it turns the other way
     let up = tilt.x;
@@ -651,19 +684,20 @@ td.num { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabu
     if (state === 'doing') up += Math.sin(t * TAU / 0.85) * 3 * a;
     if (state === 'speaking') up += voice.x * 3 * Math.sin(t * 9) * a;
     if (scratching) up += Math.sin(d * TAU * 9) * 5;
-    up -= Math.sin(d * TAU * 11) * 4 * shakeEnv;
-    hHead.setAttribute('transform', `translate(0 ${(sl * 26 + breath * 4).toFixed(2)}) rotate(${(-up).toFixed(2)})`);
+    up += wave(0) * 7;
+    if (settle > 0.27 && settle < 1) up += Math.sin(Math.PI * (settle - 0.27) / 0.73) * 5 * a;
+    hHead.setAttribute('transform', `translate(0 ${(sl * 26 + breath * 4 + crouch * 10).toFixed(2)}) rotate(${(-up).toFixed(2)})`);
     hFlip.setAttribute('transform', `translate(${faceX} 0) scale(${flip.x.toFixed(4)} 1) translate(${-faceX} 0)`);
-    const closed = asleep || blink(t);
+    const closed = asleep || (sd > 0.16 && sd < 0.66 && a > 0) || blink(t);
     faceClosed.setAttribute('opacity', closed ? '1' : '0');
     faceOpen.setAttribute('opacity', closed ? '0' : '1');
 
     // crest: fans open and folds back; ripples while awake; shivers in the shake
-    const c = crest.x + (state === 'speaking' ? voice.x * 0.22 : 0), cp = clamp(c, -0.15, 1.15);
+    const c = crest.x + (state === 'speaking' ? voice.x * 0.22 : 0) + fluff * 0.28, cp = clamp(c, -0.15, 1.15);
     feathers.forEach((f, i) => {
       const ang = f.closed + (f.open - f.closed) * c
         + Math.sin(t * 2.2 + i * 0.8) * (0.8 + 1.6 * Math.max(0, c)) * a * (1 - sl)
-        + Math.sin(d * TAU * 12 + i * 1.3) * 9 * shakeEnv;
+        + wave(0.01 + i * 0.012) * 6;
       const x = f.atC[0] + (f.at[0] - f.atC[0]) * cp, y = f.atC[1] + (f.at[1] - f.atC[1]) * cp;
       const len = f.lenC + (1 - f.lenC) * clamp(c, 0, 1.04);
       f.el.setAttribute('transform', `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${ang.toFixed(2)}) scale(1 ${len.toFixed(4)})`);
@@ -671,11 +705,12 @@ td.num { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabu
     hCrest.setAttribute('transform', `scale(${(1 + raise.x * 0.09).toFixed(4)})`);
 
     // wing (positive lifts it), flight feathers fan out, tail wiggles
-    const wl = wing.x + breath * 1.2 + Math.sin(d * TAU * 13) * 14 * shakeEnv + 10 * shakeEnv;
-    hWing.setAttribute('transform', `rotate(${(WING_REST + wl).toFixed(2)})`);
-    const sp = spread.x + 1.2 * shakeEnv;
+    const wl = wing.x + breath * 1.2 + fluff * 7 + wave(0.06) * 9;
+    hWing.setAttribute('transform', `rotate(${(WING_REST + wl).toFixed(2)}) scale(${(1 + 0.03 * fluff).toFixed(4)})`);
+    const sp = spread.x + fluff * 1.1;
     for (let i = 0; i < 3; i++) prims[i].setAttribute('transform', `rotate(${(PRIM_REST[i] + sp * (i * 7 - 7) + wl * 0.35).toFixed(2)})`);
-    let tw = Math.sin(t * TAU / 2.6) * 1.6 * a * (1 - sl) + Math.sin(d * TAU * 10) * 14 * shakeEnv;
+    let tw = Math.sin(t * TAU / 2.6) * 1.6 * a * (1 - sl) + wave(0.1) * 11;
+    if (settle >= 0) tw += Math.sin((sd - 0.7) * TAU * 3.2) * (1 - settle) * 5 * a;
     if (scratching) tw += Math.sin(d * TAU * 7) * 8;
     hTail.setAttribute('transform', `rotate(${(TAIL_REST + tw).toFixed(2)})`);
 
@@ -723,7 +758,7 @@ td.num { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabu
     asleep = false; sleepy.set(0); zzz.set(0); stage.classList.remove('asleep');
     setPose(state === 'idle' ? 'idle' : state);
     blinkAt = clock() + 0.15; blinkTwice = true;
-    setTimeout(() => { if (!asleep) { bodyY.kick(-500); shake(); } }, 380);
+    setTimeout(() => { if (!asleep) shake(); }, 620);
     sr.textContent = 'Hudhud is awake.';
     return true;
   }
@@ -1032,13 +1067,120 @@ td.num { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabu
     notch.style.height = h.toFixed(2) + 'px';
     notch.style.borderRadius = `0 0 ${r.toFixed(2)}px ${r.toFixed(2)}px`;
     notch.style.setProperty('--f', Math.min(12, h / 2).toFixed(2) + 'px');
-    const ro = clamp(rimS.x, 0, 1) * (0.75 + 0.25 * Math.min(1, voice.x * 1.4));
-    rim.style.opacity = ro.toFixed(3);
-    if (ro > 0.005) {
-      rim.style.width = (w + 12).toFixed(2) + 'px'; rim.style.height = (h + 6).toFixed(2) + 'px';
-      rim.style.borderRadius = `0 0 ${(r + 6).toFixed(2)}px ${(r + 6).toFixed(2)}px`;
-      rim.style.setProperty('--ang', ((t * 70) % 360).toFixed(1) + 'deg');
+    drawEdge(t, w, h, r);
+  }
+
+  /* ---------- the edge light ---------- */
+  const EDGE_W = 560, EDGE_H = 280, EDGE_SEGMENTS = 170;
+  const EDGE_LEVEL = { listening: 1, speaking: 0.9, thinking: 0.85, doing: 1, pointing: 0.8, reading: 0.75, confirm: 1, paid: 1, undone: 0.8 };
+  const EMBER = { amber: [243, 195, 67], crest: [226, 112, 58], cream: [255, 244, 222], ok: [111, 211, 154] };
+  const edgeCtx = edge.getContext('2d');
+  const edgeProgress = new Spring(0, T.notchH);
+  let edgeState = 'listening', edgeRatio = 1, edgeDrawn = false;
+  function sizeEdge() {
+    edgeRatio = (window.devicePixelRatio || 1) * (canZoom ? k : 1);
+    edge.width = Math.round(EDGE_W * edgeRatio);
+    edge.height = Math.round(EDGE_H * edgeRatio);
+  }
+  // A point on the notch's edge: 0 is the top left, 0.5 the middle of the bottom, 1 the top right.
+  function edgePoint(s, w, h, r) {
+    const vert = Math.max(0, h - r), arc = Math.PI * r / 2, flat = Math.max(0, w - 2 * r);
+    const left = EDGE_W / 2 - w / 2, right = EDGE_W / 2 + w / 2;
+    let d = s * (2 * vert + 2 * arc + flat);
+    if (d <= vert) return [left, d];
+    d -= vert;
+    if (d <= arc) { const a = r ? d / r : 0; return [left + r - r * Math.cos(a), h - r + r * Math.sin(a)]; }
+    d -= arc;
+    if (d <= flat) return [left + r + d, h];
+    d -= flat;
+    if (d <= arc) { const a = r ? d / r : 0; return [right - r + r * Math.sin(a), h - r + r * Math.cos(a)]; }
+    return [right, Math.max(0, h - r - (d - arc))];
+  }
+  const fract = (v) => v - Math.floor(v);
+  const bell = (x, width) => Math.exp(-(x * x) / (width * width));
+  // Three sparks running along one side, each with a fading tail behind it.
+  function sparks(along, time) {
+    let sum = 0;
+    for (let n = 0; n < 3; n++) {
+      const behind = fract(time + n / 3) - along;
+      if (behind > 0 && behind < 0.42) sum += Math.pow(1 - behind / 0.42, 2);
     }
+    return sum;
+  }
+  // How bright the edge is at s, and which colours: [brightness, from colour, to colour, mix].
+  function edgeLight(s, t) {
+    const side = 1 - Math.abs(s - 0.5) * 2;   // 0 at the top corners, 1 at the middle of the bottom
+    const v = reduce ? 0.4 : Math.min(1, voice.x * 1.3);
+    switch (edgeState) {
+      case 'listening': { // sound flows in from the corners and meets in the middle
+        const b = 0.1 + sparks(side, t * (0.5 + 0.55 * v)) * (0.3 + 0.7 * v) + bell(1 - side, 0.09) * v * 0.9;
+        return [b, EMBER.amber, EMBER.cream, side];
+      }
+      case 'speaking': { // the voice flows out from the middle to the corners
+        const b = 0.1 + sparks(1 - side, t * (0.5 + 0.55 * v)) * (0.3 + 0.7 * v) + bell(1 - side, 0.07) * v * 0.6;
+        return [b, EMBER.amber, EMBER.crest, 1 - side];
+      }
+      case 'thinking': { // one calm spark, travelling to and fro
+        const at = 0.5 + 0.5 * Math.sin(t * 1.5);
+        return [0.08 + bell(s - at, 0.13), EMBER.amber, EMBER.cream, bell(s - at, 0.05)];
+      }
+      case 'doing': { // a line that grows from both corners as steps finish, and shrinks back when undoing
+        const mode = doingPane.dataset.mode, undoing = mode === 'undo';
+        const front = edgeProgress.x;
+        const lit = side <= front ? 0.72 : 0.08;
+        const head = mode === 'run' || undoing ? bell(side - front, 0.05) * (0.7 + 0.3 * Math.sin(t * 7)) : 0;
+        const colour = undoing ? EMBER.crest : mode === 'run' ? EMBER.amber : EMBER.ok;
+        return [lit + head, colour, EMBER.cream, head];
+      }
+      case 'pointing': { // a spark on the bottom edge, on the side where the pointer went
+        const at = 0.5 + clamp((px.to - 480) / 700, -0.35, 0.35);
+        return [0.1 + bell(s - at, 0.07) * (0.8 + 0.2 * Math.sin(t * 5)), EMBER.crest, EMBER.cream, bell(s - at, 0.03)];
+      }
+      case 'reading': // a thin, calm line: how far through the book
+        return [s <= 34 / 312 ? 0.75 : 0.1, EMBER.amber, EMBER.amber, 0];
+      case 'confirm': { // four parts, one for each Ctrl press
+        const part = Math.floor(s * 4), inside = fract(s * 4);
+        if (inside < 0.03 || inside > 0.97) return [0, EMBER.crest, EMBER.crest, 0];
+        return part < taps.length ? [1, EMBER.crest, EMBER.cream, 0.25] : [0.2 + 0.1 * Math.sin(t * 3), EMBER.crest, EMBER.crest, 0];
+      }
+      case 'paid': return [0.85, EMBER.ok, EMBER.ok, 0];
+      default: return [0.5, EMBER.crest, EMBER.crest, 0];
+    }
+  }
+  function drawEdge(t, w, h, r) {
+    const level = clamp(rimS.x, 0, 1);
+    if (level < 0.005) {
+      if (edgeDrawn) { edgeCtx.clearRect(0, 0, edge.width, edge.height); edgeDrawn = false; }
+      return;
+    }
+    if (edgeState === 'doing') {
+      const list = $$('li', stepsEl), finished = list.filter(li => li.dataset.s === 'done' || li.dataset.s === 'undoing').length;
+      edgeProgress.set(list.length ? finished / list.length : 0);
+    }
+    edgeDrawn = true;
+    const c = edgeCtx;
+    c.setTransform(edgeRatio, 0, 0, edgeRatio, 0, 0);
+    c.clearRect(0, 0, EDGE_W, EDGE_H);
+    c.lineCap = 'butt';   // round ends would overlap and stack into a dotted line
+    c.globalCompositeOperation = 'lighter';
+    let last = edgePoint(0, w, h, r);
+    for (let i = 1; i <= EDGE_SEGMENTS; i++) {
+      const s = i / EDGE_SEGMENTS, p = edgePoint(s, w, h, r);
+      const [b, from, to, mix] = edgeLight(s - 0.5 / EDGE_SEGMENTS, t);
+      const a = Math.min(1, b) * level;
+      if (a > 0.01) {
+        const m = clamp(mix, 0, 1);
+        const rgb = `${from[0] + (to[0] - from[0]) * m | 0},${from[1] + (to[1] - from[1]) * m | 0},${from[2] + (to[2] - from[2]) * m | 0}`;
+        // A wide soft glow, a narrower one, and the crisp line.
+        for (const [width, alpha] of [[11, 0.05], [5, 0.14], [1.5, 0.95]]) {
+          c.strokeStyle = `rgba(${rgb},${(a * alpha).toFixed(3)})`;
+          c.lineWidth = width;
+          c.beginPath(); c.moveTo(last[0], last[1]); c.lineTo(p[0], p[1]); c.stroke();
+        }
+      }
+      last = p;
+    }
+    c.globalCompositeOperation = 'source-over';
   }
   function drawPanes() {
     for (const name in panes) {

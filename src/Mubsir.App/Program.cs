@@ -22,6 +22,8 @@ internal static class Program
                 return KeyCommands.ClearKey(cmd.KeyName!);
             case RunMode.Watch:
                 return Supervisor.Run(cmd.ChildArgs ?? []);
+            case RunMode.OverlayDemo:
+                return OverlayDemo.Run();
             case RunMode.Invalid:
                 ConsoleIo.Attach();
                 ConsoleIo.WriteLine(cmd.Error ?? "invalid arguments");

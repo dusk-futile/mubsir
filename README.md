@@ -4,8 +4,11 @@
 
 # Mubsir · مُبصِر
 
-**An AI screen assistant for blind and low-vision Windows users.**<br>
-Hold a key, ask in Arabic or English, and Mubsir reads, explains and does things on your PC.
+### Your PC, by voice.
+
+**A professional AI agent that lives on your Windows PC.**<br>
+Hold one key and say what you want, in Arabic, in English, or both in one sentence.<br>
+Mubsir reads it, explains it and gets it done, and tells you exactly what it did.
 
 [![Release](https://img.shields.io/github/v/release/dusk-futile/mubsir?include_prereleases&label=release)](https://github.com/dusk-futile/mubsir/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -16,16 +19,33 @@ Hold a key, ask in Arabic or English, and Mubsir reads, explains and does things
 
 ---
 
-Mubsir runs in the background next to the [NVDA](https://www.nvaccess.org/) screen reader. It has no window to look at; you talk to it or use a couple of keys. It is built for people who switch between Arabic and English all day, and for older PCs with 4 GB of RAM.
+Most AI assistants live in a chat box and tell you what to click. **Mubsir does the clicking.** It sees what's on your screen, works your apps, reads your documents and answers out loud. You never have to look away from what you're doing. You don't have to look at all.
 
-## What it does
+> ```
+> "افتح جوجل وابحث عن مواعيد الصلاة"
+> "الكتاب ده بيتكلم عن إيه؟"
+> "open a new window with the same page"
+> "مين بعتلي على واتساب؟"
+> ```
 
-- **Reads anything on screen.** Web pages, Word, PDFs (including scanned Arabic books, through OCR), and apps that NVDA struggles with.
-- **Answers questions about it.** "What is this page about?", "Who sent me this email?", "What's in this picture?"
-- **Does things for you.** Opens apps and sites, searches Google, scrolls, fills in fields, plays YouTube, manages files.
-- **Speaks Arabic and English properly.** Switches voice mid-sentence, reads math and symbols, emoji and Arabizi (`7abibi`).
-- **Understands dialects.** Egyptian, Gulf, Levantine, Libyan, Maghrebi and MSA.
-- **Asks before anything you can't undo.** Sending, paying and deleting need one Enter press. On bank pages the AI switches off and you press Pay yourself.
+## Why it's different
+
+- **It acts, it doesn't just advise.** Opens apps and sites, searches, scrolls, fills in fields, plays YouTube, manages files.
+- **It reads what's really there.** Web pages, Word, PDFs and scanned Arabic books, plus apps that other tools struggle with.
+- **It speaks your language, properly.** Egyptian, Gulf, Levantine, Libyan, Maghrebi and MSA, with English mixed in mid-sentence. It switches voice as it goes, and handles math, symbols, emoji and Arabizi (`7abibi`).
+- **It works with your eyes closed.** Everything it does is spoken, with no window you need to look at. It runs alongside the [NVDA](https://www.nvaccess.org/) screen reader.
+- **You stay in control.** One key stops anything, instantly. Sending, paying and deleting need your OK. On bank pages the AI switches off, and you press Pay yourself.
+- **Your screen stays yours.** Nothing leaves your PC until you ask. Passwords, card numbers and one-time codes never do.
+
+## What's coming
+
+<img src="assets/brand/readme-preview.jpg" alt="Preview: a black notch at the top of a Windows desktop shows a checklist, with finished steps ticked, while a paper-cut hoopoe stands in the bottom-right corner.">
+
+*A preview of what's in development: a notch at the top of your screen that shows what Mubsir is doing, and Hudhud, the hoopoe who keeps you company in the corner.*
+
+- **The notch and Hudhud**, with a live checklist and a pointer that flies to the exact button.
+- **Your whole library by voice.** "Give me the book on phonology", even if the file has no name, and pick up tomorrow on the exact line you stopped at.
+- **No keys and no accounts.** Download it and start talking.
 
 ## Getting started
 
@@ -90,7 +110,9 @@ dotnet publish src/Mubsir.App -c Release -r win-x64 -o publish
 python scripts/build-addon.py
 ```
 
-The core library (`src/Mubsir.Core`) builds on any OS. The app itself (`src/Mubsir.App`) runs on Windows only.
+The core library (`src/Mubsir.Core`) builds on any OS, and `dotnet test tests/Mubsir.Core.Tests` runs its tests. The app itself (`src/Mubsir.App`) runs on Windows only.
+
+On Windows, `Mubsir.exe --overlay-demo` shows the normal-mode notch and Hudhud on their own. It listens to, sends and clicks nothing, and Esc quits.
 
 ## License
 

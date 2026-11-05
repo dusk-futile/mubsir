@@ -2,5 +2,9 @@
   <Folder Name="/src/">
     <Project Path="src/Mubsir.App/Mubsir.App.csproj" />
     <Project Path="src/Mubsir.Core/Mubsir.Core.csproj" />
+    <Project Path="src/Mubsir.Overlay/Mubsir.Overlay.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Mubsir.Core.Tests/Mubsir.Core.Tests.csproj" />
   </Folder>
 </Solution>

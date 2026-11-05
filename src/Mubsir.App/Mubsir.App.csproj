@@ -14,10 +14,16 @@
     <InvariantGlobalization>false</InvariantGlobalization>
     <PublishReadyToRun>true</PublishReadyToRun>
     <SelfContained>true</SelfContained>
+    <!-- Light on 4 GB PCs: no extra GC thread, and no profiling data the JIT would keep in memory. -->
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <TieredPGO>false</TieredPGO>
+    <!-- The app has its own Arabic and English text; WPF's other language files only add size. -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Mubsir.Core\Mubsir.Core.csproj" />
+    <ProjectReference Include="..\Mubsir.Overlay\Mubsir.Overlay.csproj" />
   </ItemGroup>
 
   <ItemGroup>

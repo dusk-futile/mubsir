@@ -26,7 +26,8 @@ which numbers to report**.
 | Cloudflare relay (`cloud/proxy`) code, tests, deploy | ✅ (needs Cloudflare token) | — | — |
 | STT bake-off, voice tests, IPA tests, cost measurements (API calls) | ✅ (needs keys + network allow-list) | ✅ | ✅ |
 | Notch HTML prototype + screenshots (taste-skill, Playwright) | ✅ | — | — |
-| Build the Windows app, WPF notch | — | ✅ build + unit tests | ✅ |
+| Build the Windows app, WPF notch | ✅ compiles only (any OS) | ✅ build + unit tests | ✅ |
+| Run the WPF notch and Hudhud: screenshots, Ctrl undo, panel, memory, CPU (`scripts/overlay-smoke.ps1`) | — | ✅ software rendering, so CPU is a worst case; screenshots in the `overlay-shots` artifact | ✅ |
 | Real end-to-end: microphone, NVDA, UI Automation on real apps, latency, RAM on a 4 GB PC | — | ❌ (no mic/NVDA) | ✅ **only here** |
 
 So the final checks of each Windows phase need a real Windows PC: either the owner runs the coding agent on

@@ -39,6 +39,9 @@ jobs:
       - name: Core build (locked restore)
         run: dotnet build src/Mubsir.Core -c Release
 
+      - name: Core tests
+        run: dotnet test tests/Mubsir.Core.Tests -c Release
+
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: '3.13'
@@ -99,6 +102,18 @@ jobs:
 
       - name: Publish win-x64
         run: dotnet publish src/Mubsir.App -c Release -r win-x64 --no-restore -o publish
+
+      - name: Overlay smoke test
+        shell: pwsh
+        run: ./scripts/overlay-smoke.ps1 -Exe publish/Mubsir.exe -Out overlay-shots -ForceAnimations
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: overlay-shots
+          path: overlay-shots/
+          if-no-files-found: warn
+          retention-days: 14
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:

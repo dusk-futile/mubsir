@@ -63,7 +63,7 @@ A Windows tool, combining what **Clicky** (screen tutor that points and explains
 
 1. Done 2026-11-04: history rewritten so every commit is authored by dusk-futile (contributors list
    cleaned).
-2. CI is red on `main` (lock-file / SDK mismatch; fix in `docs/HANDOFF.md`).
+2. Done 2026-11-04: the SDK is pinned to 10.0.401 (#10) and CI is green on `main`.
 3. Owner to create accounts: Anthropic, Fish Audio, Cloudflare; set spend limits; never put keys in the repo.
 4. Pilot testers (~10 blind, 5 sighted) and ~50 real Egyptian/English voice recordings for the STT test.
 5. Run the build on a real Windows PC (a coding agent running on that PC), because the
