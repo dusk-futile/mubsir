@@ -31,7 +31,7 @@ public class OnboardingFlowTests
     [Fact]
     public void A_blind_reader_gets_a_subject_question_then_speed_and_the_plan_follows_the_answers()
     {
-        OnboardingFlow flow = Run(false, "عربي", "مش بشوف الشاشة", "عايز اقرا كتب", "الفونولوجيا", "لأ", "سريعة", "خلاص");
+        OnboardingFlow flow = Run(false, "عربي", "مش بشوف الشاشة", "عايز اقرا كتب", "الفونولوجيا", "لأ", "سريعة", "ولا حاجة", "خلاص");
         Assert.Null(flow.Current);
         PersonalPlan plan = flow.Plan();
         Assert.Equal(UserKind.Blind, plan.Kind);
@@ -74,7 +74,7 @@ public class OnboardingFlowTests
     public void The_plan_changes_the_settings_and_marks_setup_done()
     {
         var settings = new MubsirSettings();
-        Run(false, "arabic", "low vision", "books", "skip", "skip").Plan().ApplyTo(settings);
+        Run(false, "arabic", "low vision", "books", "skip", "لأ", "none", "skip").Plan().ApplyTo(settings);
         Assert.True(settings.OnboardingDone);
         Assert.Equal(UserKind.LowVision, settings.UserKind);
         Assert.True(settings.ShowHudhud);
@@ -115,35 +115,13 @@ public class OnboardingFlowTests
         Assert.InRange(light.Total, 2m, 8m);
     }
 
-    [Theory]
-    [InlineData(ToolNames.Invoke)]
-    [InlineData(ToolNames.TypeText)]
-    [InlineData(ToolNames.SetText)]
-    [InlineData(ToolNames.PressKeys)]
-    [InlineData(ToolNames.OpenUrl)]
-    [InlineData(ToolNames.Recycle)]
-    [InlineData(ToolNames.OpenApp)]
-    public void Teaching_cant_touch_anything_whatever_the_ai_asks(string tool)
-    {
-        var task = new TaskContext { UserUtterance = "teach me", TeachMode = true };
-        Assert.Equal(ReasonCodes.TeachOnly, new PolicyEngine().Evaluate(new AgentAction { Tool = tool }, task).ReasonCode);
-    }
-
     [Fact]
-    public void Teaching_can_point_and_look()
+    public void A_person_can_choose_their_ai_chat_at_the_start()
     {
-        var task = new TaskContext { UserUtterance = "teach me", TeachMode = true };
-        Assert.Equal(ActionTier.Allow, new PolicyEngine().Evaluate(new AgentAction { Tool = ToolNames.PointAt }, task).Tier);
-        Assert.DoesNotContain(TeachMode.Tools, t => t.Name == ToolNames.Invoke);
-        Assert.Contains(TeachMode.Tools, t => t.Name == ToolNames.PointAt);
+        OnboardingFlow flow = Run(false, "arabic", "low vision", "books", "skip", "لأ", "gemini", "skip");
+        Assert.Null(flow.Current);
+        Assert.Equal(Mubsir.Core.Chat.ChatSite.Gemini, flow.Plan().ChatSite);
     }
-
-    [Theory]
-    [InlineData("علمني مونتاج الفيديو", true)]
-    [InlineData("teach me excel", true)]
-    [InlineData("عايز اتعلم Excel", true)]
-    [InlineData("افتح يوتيوب", false)]
-    public void A_request_to_learn_is_recognised(string said, bool expected) => Assert.Equal(expected, TeachMode.IsRequest(said));
 
     [Theory]
     [InlineData(ToolNames.MoveFile)]

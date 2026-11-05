@@ -8,7 +8,7 @@
 
 **A free voice agent for blind and low-vision people on Windows.**<br>
 Hold one key and say what you want, in Arabic, in English, or both in one sentence.<br>
-Mubsir reads it, explains it, does it, or teaches you how.
+Mubsir reads it, finds it or does it.
 
 [![Release](https://img.shields.io/github/v/release/dusk-futile/mubsir?include_prereleases&label=release)](https://github.com/dusk-futile/mubsir/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -19,12 +19,12 @@ Mubsir reads it, explains it, does it, or teaches you how.
 
 ---
 
-Most AI assistants live in a chat box and tell you what to click. **Mubsir does the clicking**, or teaches you the keys if you'd rather learn. It reads your screen, works your apps, reads your documents and answers out loud.
+Most AI assistants live in a chat box and tell you what to click. **Mubsir does the clicking**. It reads your screen, works your apps, reads your documents and answers out loud.
 
 > ```
 > "افتح جوجل وابحث عن مواعيد الصلاة"
 > "هات the book on النحو واقرأ من آخر مكان"
-> "علمني أقص فيديو خطوة بخطوة"
+> "اسأل جيميني يعني ايه cat"
 > "open a new window with the same page"
 > ```
 
@@ -40,6 +40,7 @@ On first start it asks a few questions, and each answer changes how it behaves. 
 - **It works the whole PC.** Opens apps, sites and files, searches and reads you numbered results, clicks what it can see, scrolls, fills in fields, plays YouTube, manages files, and installs a program when you ask and press a key.
 - **It reads what's really there.** Web pages, Word, PDFs and scanned Arabic books.
 - **It reads any symbol.** Phonetic writing such as /ʃɪp/ is said sound by sound, and maths and Greek are named.
+- **It can ask your own AI chat.** Signed in to ChatGPT or Gemini in your browser? Plain questions go there, cost nothing, and the answer is read aloud.
 - **You pick the Arabic voice.** Say "غير الصوت", hear each one, and say its number.
 - **It speaks your language.** Egyptian, Gulf, Levantine, Libyan, Maghrebi and MSA, with English mixed in mid-sentence.
 - **You stay in control.** One key stops anything, instantly. Sending, paying and deleting need your OK. On bank pages the AI switches off, and you press Pay yourself.
@@ -96,7 +97,7 @@ Things you can say:
 الكتاب ده بيتكلم عن إيه؟
 scroll down and read the next part
 open a new window with the same page
-علمني Excel
+اسأل شات جي بي تي يعني ايه cat
 ```
 
 ## Your chats

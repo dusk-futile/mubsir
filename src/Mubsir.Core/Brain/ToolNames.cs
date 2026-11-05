@@ -35,20 +35,20 @@ public static class ToolNames
     public const string RestartPc = "restart_pc";
     public const string Remember = "remember";
     public const string AskUser = "ask_user";
-    public const string PointAt = "point_at";
     public const string ClickOn = "click_on";
     public const string OpenFile = "open_file";
     public const string CreateFolder = "create_folder";
     public const string ReadClipboard = "read_clipboard";
     public const string Wait = "wait";
     public const string ChooseVoice = "choose_voice";
+    public const string ChooseChat = "choose_chat";
 
     public static IReadOnlySet<string> All { get; } = new[]
     {
         ReadScreen, Invoke, SetText, TypeText, PressKeys, Scroll, Focus, ListWindows, SwitchTo, OpenApp, OpenUrl,
         BrowseSearch, DescribeScreen, OcrWindow, ReadDocument, FindBook, Media, ListFolder, FindFiles, MoveFile, CopyFile,
-        RenameFile, Recycle, SystemStatus, SetVolume, OpenSettings, WindowsUpdateStatus, RestartPc, Remember, AskUser, PointAt,
-        ClickOn, OpenFile, CreateFolder, ReadClipboard, Wait, ChooseVoice,
+        RenameFile, Recycle, SystemStatus, SetVolume, OpenSettings, WindowsUpdateStatus, RestartPc, Remember, AskUser,
+        ClickOn, OpenFile, CreateFolder, ReadClipboard, Wait, ChooseVoice, ChooseChat,
     }.ToFrozenSet(StringComparer.Ordinal);
 
     public static IReadOnlySet<string> FileTools { get; } = new[]

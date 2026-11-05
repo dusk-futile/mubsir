@@ -149,11 +149,6 @@ public static class ToolCatalog
             "Ask the user one short question and wait for the spoken answer. Use when the request is ambiguous or you are stuck.",
             Str("question", "The question, short, in the user's language.")),
 
-        Tool(ToolNames.PointAt,
-            "Show the user where something is on the screen. A pointer flies to the element and stays there. It never clicks. Use it to teach, or when the user asks where something is.",
-            Int("id", IdHint),
-            Str("label", "A few words saying what it is, in the user's language.")),
-
         Tool(ToolNames.ClickOn,
             "Click something by looking at the screen, as a person would with a mouse. Use it only when the thing has no element id, "
             + "for example in games, drawing apps, video players or pictures of buttons. It costs more and is slower than invoke.",
@@ -174,6 +169,10 @@ public static class ToolCatalog
         Tool(ToolNames.Wait,
             "Wait for something to finish, such as a page loading or a download.",
             Int("seconds", "From 1 to 30.")),
+
+        Tool(ToolNames.ChooseChat,
+            "Choose which AI chat the person is signed in to in their browser. Plain questions then go there, which costs nothing, and the answer is read aloud. 'none' sends them to you instead.",
+            Choice("site", "The chat to use.", "chatgpt", "gemini", "none")),
 
         Tool(ToolNames.ChooseVoice,
             "Let the user hear and pick the Arabic voice. With no number it plays a short sample of each voice with its number, then ask which they want. "

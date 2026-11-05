@@ -166,7 +166,7 @@ internal sealed class MubsirHost
                 input.SetReading, _log);
             app.Books = books;
             app.Executor = Create<IToolExecutor>("executor", () => new WindowsToolExecutor(
-                screen, documents, positions, books, app.Brain, speech, settings, memory, prompter, usage, _log) { Companion = () => app.Companion, Voices = fishVoice });
+                screen, documents, positions, books, app.Brain, speech, settings, memory, prompter, usage, _log) { Voices = fishVoice });
             scanner = new LibraryScanner(library, documents, _log) { Describe = app.Executor is WindowsToolExecutor hands ? hands.DescribeBookAsync : null };
         }
 

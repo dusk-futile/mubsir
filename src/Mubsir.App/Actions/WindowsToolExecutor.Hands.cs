@@ -5,6 +5,7 @@ using Mubsir.App.Screen.Interop;
 using Mubsir.App.Speech;
 using Mubsir.Core.Agent;
 using Mubsir.Core.Brain;
+using Mubsir.Core.Chat;
 using Mubsir.Core.Common;
 using Mubsir.Core.Context;
 using Mubsir.Core.Library;
@@ -137,6 +138,18 @@ internal sealed partial class WindowsToolExecutor
         int seconds = Math.Clamp(ToolArgs.Int(a.Args, "seconds") ?? 2, 1, MaxWaitSeconds);
         await Task.Delay(TimeSpan.FromSeconds(seconds), ct).ConfigureAwait(false);
         return Ok($"Waited {seconds} seconds. Call read_screen to check.");
+    }
+
+    private (string, bool) ChooseChat(AgentAction a)
+    {
+        ChatSite site = Arg(a, "site") switch
+        {
+            "chatgpt" => ChatSite.ChatGpt,
+            "gemini" => ChatSite.Gemini,
+            _ => ChatSite.None,
+        };
+        _settings?.Update(old => old with { ChatSite = site });
+        return Ok(site == ChatSite.None ? "Questions now go to the AI service." : $"Plain questions now go to {site} in the browser and are read aloud. They must be signed in there.");
     }
 
     private async Task<(string, bool)> ChooseVoiceAsync(AgentAction a, ExecutorState s, CancellationToken ct)

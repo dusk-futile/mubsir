@@ -99,12 +99,6 @@ internal sealed class CompanionBridge(SpeechService speech, WaveInRecorder recor
         }
     }
 
-    public void PointAt(int x, int y, string label)
-    {
-        _overlay?.Show(CompanionState.Pointing, new CompanionContent { PointText = label });
-        _overlay?.PointAt(x, y, label);
-    }
-
     public void Dispose()
     {
         speech.SpeakingChanged -= OnSpeaking;

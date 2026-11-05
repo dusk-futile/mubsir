@@ -40,8 +40,6 @@ internal sealed partial class WindowsToolExecutor : IToolExecutor
 
     private readonly UiaScreenReader _screen;
 
-    public Func<CompanionBridge?>? Companion { get; init; }
-
     private readonly DocumentReader _documents;
     private readonly ReadingPositions _positions;
     private readonly BookAloud? _books;
@@ -102,7 +100,7 @@ internal sealed partial class WindowsToolExecutor : IToolExecutor
         bool sameWindow = snapshot is not null && snapshot.Hwnd == fg.Hwnd && fg.Hwnd != 0;
         UiNode? target = null;
 
-        if (tool is ToolNames.Invoke or ToolNames.SetText or ToolNames.Focus or ToolNames.Scroll or ToolNames.PointAt && ToolArgs.Int(args, "id") is { } id)
+        if (tool is ToolNames.Invoke or ToolNames.SetText or ToolNames.Focus or ToolNames.Scroll && ToolArgs.Int(args, "id") is { } id)
         {
             if (_screen.Registry.TryResolve(id, out var node, out var element, out var snap) && node is not null)
             {
@@ -315,7 +313,7 @@ internal sealed partial class WindowsToolExecutor : IToolExecutor
         ToolNames.RestartPc => Task.Run(Restart, ct),
         ToolNames.Remember => Task.FromResult(Remember(a)),
         ToolNames.AskUser => AskUserAsync(a, ct),
-        ToolNames.PointAt => PointAtAsync(a, s, ct),
+        ToolNames.ChooseChat => Task.FromResult(ChooseChat(a)),
         ToolNames.ClickOn => ClickOnAsync(a, s, ct),
         ToolNames.OpenFile => OpenFileAsync(a, ct),
         ToolNames.CreateFolder => Task.Run(() => CreateFolder(a), ct),

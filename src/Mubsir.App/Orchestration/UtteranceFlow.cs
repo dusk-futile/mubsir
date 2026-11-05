@@ -1,3 +1,6 @@
+using Mubsir.Core.Speech;
+using Mubsir.App.Actions;
+using Mubsir.Core.Chat;
 using Mubsir.Core.Agent;
 using Mubsir.Core.Common;
 using Mubsir.Core.Context;
@@ -193,7 +196,41 @@ internal sealed class UtteranceFlow
             return;
         }
 
+        if (await TryAskChatAsync(text, lang).ConfigureAwait(false))
+        {
+            return;
+        }
+
         await _tasks.ProcessAsync(text, context, _appStopping).ConfigureAwait(false);
+    }
+
+    /// <summary>A plain question goes to the person's own AI chat. If that can't work, they're told and the brain answers.</summary>
+    private async Task<bool> TryAskChatAsync(string text, Lang lang)
+    {
+        var settings = _app.Settings.Settings;
+        if (_app.Executor is not WindowsToolExecutor hands || settings.PrivateMode || ChatRouting.Pick(text, settings.ChatSite) is not { } request
+            || Redactor.Redact(request.Question) != request.Question)
+        {
+            return false;
+        }
+
+        bool arabic = lang == Lang.Arabic;
+        _app.Speech.Speak(arabic ? "بسأل." : "Asking.", UtteranceKind.System, lang);
+        (string? answer, ChatFailure failure) = await hands.AskChatAsync(request, _appStopping).ConfigureAwait(false);
+        if (answer is not null)
+        {
+            _app.Speech.Speak(answer, UtteranceKind.System, ScriptSegmenter.DominantLanguage(answer, lang), interrupt: true);
+            return true;
+        }
+
+        _app.Log.Error("chat_" + failure.ToString().ToLowerInvariant(), LogKind.ToolCall);
+        _app.Speech.Speak(failure switch
+        {
+            ChatFailure.NeedsSignIn => arabic ? "مش مسجل دخول في الشات. هجاوب بالطريقة التانية." : "You aren't signed in to the chat. I'll answer another way.",
+            ChatFailure.NoAnswer => arabic ? "الشات مردش في الوقت. هجاوب بالطريقة التانية." : "The chat didn't answer in time. I'll answer another way.",
+            _ => arabic ? "ماقدرتش أوصل للشات. هجاوب بالطريقة التانية." : "I couldn't reach the chat. I'll answer another way.",
+        }, UtteranceKind.System, lang);
+        return false;
     }
 
     private Task<(ScreenContext Screen, BuiltContext Built)?>? StartContextCapture()

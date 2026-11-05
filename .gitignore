@@ -28,3 +28,5 @@ minisign.key
 
 dist/
 overlay-shots/
+test-results/
+book-check.txt

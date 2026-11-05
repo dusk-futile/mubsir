@@ -159,12 +159,6 @@ internal sealed class TaskRunner
         }
     }
 
-    /// <summary>Anyone can ask for teaching, or leave it, in their own words.</summary>
-    private static bool TeachingFor(string text)
-    {
-        return !TeachMode.IsEnd(text) && TeachMode.IsRequest(text);
-    }
-
     private void SaveChat(string who, string? text)
     {
         var settings = _app.Settings.Settings;
@@ -184,8 +178,7 @@ internal sealed class TaskRunner
         MubsirSettingsSnapshot s = Snapshot();
 
         (ScreenContext Screen, BuiltContext Built)? captured = await AwaitContextAsync(context, ct).ConfigureAwait(false);
-        bool teach = TeachingFor(text);
-        TaskContext task = TaskContexts.Create(text, lang, _app.Settings.Settings, teach);
+        TaskContext task = TaskContexts.Create(text, lang, _app.Settings.Settings);
         ScreenContext? screen = captured?.Screen;
         if (screen is not null && SensitiveDetector.Evaluate(screen, task.BankDomains).Sensitive)
         {
@@ -206,7 +199,7 @@ internal sealed class TaskRunner
             return;
         }
 
-        BrainMode mode = teach ? BrainMode.Agent : RequestModeClassifier.Classify(text);
+        BrainMode mode = RequestModeClassifier.Classify(text);
         if (mode == BrainMode.Agent && _app.Executor is null)
         {
             mode = BrainMode.QuickAnswer;
@@ -219,9 +212,9 @@ internal sealed class TaskRunner
 
         var options = new BrainSessionOptions(
             mode,
-            SystemPrompt.Build(lang, s.ReplyStyle, s.Verbosity, _app.Settings.Settings.UserKind, teach),
+            SystemPrompt.Build(lang, s.ReplyStyle, s.Verbosity, _app.Settings.Settings.UserKind),
             ProfileBlock.Build(ProfileFields.From(_app.Settings.Profile), SafeMemory(), _app.Settings.Profile.Apps ?? []),
-            teach ? TeachMode.Tools : mode == BrainMode.Agent ? ToolCatalog.All : [],
+            mode == BrainMode.Agent ? ToolCatalog.All : [],
             AllowWebSearch: true,
             lang);
         var request = new AgentRequest(
@@ -230,8 +223,8 @@ internal sealed class TaskRunner
             InitialImage: null,
             task,
             options,
-            MaxSteps: teach ? TeachMode.MaxSteps : Math.Max(1, s.MaxSteps),
-            MaxSeconds: teach ? TeachMode.MaxSeconds : Math.Max(10, s.MaxSeconds));
+            MaxSteps: Math.Max(1, s.MaxSteps),
+            MaxSeconds: Math.Max(10, s.MaxSeconds));
 
         long started = _app.Clock.NowMs;
         AgentOutcome outcome = await RunLoopAsync(request, running, lang, ct).ConfigureAwait(false);

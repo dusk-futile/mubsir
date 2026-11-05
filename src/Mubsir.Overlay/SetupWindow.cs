@@ -584,7 +584,6 @@ public sealed class SetupWindow : Window
         Option("ShowHudhud", T("أظهر الهدهد (بعد إعادة التشغيل)", "Show Hudhud (after a restart)"));
         Option("UseFishVoice", T("اتكلم عربي بصوت Fish Audio", "Speak Arabic in the Fish Audio voice"));
         Option("ReadArabicBooksWithFish", T("اقرأ الكتب العربية بصوت Fish (10 صفحات بحوالي 50 سنت)", "Read Arabic books in the Fish voice (about $0.50 for 10 pages)"));
-        Option("TeachMovesMouse", T("وأنا بعلم، حرك الماوس للمكان الصح", "When teaching, move the mouse to the right place"));
         Option("ReadFullTashkeel", T("اقرأ التشكيل كاملاً (لو مقفول، متروك للصوت)", "Read Arabic diacritics fully (when off, left to the voice)"));
         Option("SaveSessions", T("احفظ المحادثات في فولدر على جهازي", "Save chats in a folder on this PC"));
 

@@ -18,11 +18,6 @@ public sealed class PolicyEngine
             return Block(ReasonCodes.UnknownTool);
         }
 
-        if (task.TeachMode && !TeachMode.AllowedTools.Contains(tool))
-        {
-            return Block(ReasonCodes.TeachOnly);
-        }
-
         var chords = tool == ToolNames.PressKeys ? KeyChords.Parse(action.KeyChord ?? Arg(action, "keys")) : [];
         return CheckBlock(tool, action, task, chords)
             ?? CheckBank(tool, action, task, chords)

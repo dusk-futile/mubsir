@@ -27,8 +27,10 @@ They hold **Right Ctrl**, say what they want and let go. Pressing **Ctrl** stops
 - It can undo a file move, rename or copy.
 - Settings can be changed by voice, including speed and the Arabic voice. "صرفت كام" says the month's spending.
 
-**Teach**
-- "علمني Excel" teaches one step at a time and checks each step by reading the screen. It can't click or type in this mode. A blind learner is taught keys and what they'll hear. For low vision, the pointer also moves to the right place.
+**Ask his own AI chat**
+- If he's signed in to ChatGPT or Gemini in his browser, plain questions like "يعني ايه cat" go there and the answer is read aloud, with no API cost beyond hearing him. He can also name it: "اسأل جيميني ...".
+- Anything about the screen, a file or an action stays with the brain. If the chat can't be reached or he isn't signed in, he's told and the brain answers.
+- Only the question goes to the chat, and the reply is only read aloud. Nothing acts on it. These services' terms may limit automated use, so check them.
 
 ## Voices
 

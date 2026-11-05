@@ -2,12 +2,17 @@
 
 Read this first, then `docs/PRODUCT.md` (what the app is), `docs/HANDOFF.md` (where we are and what's next) and `docs/WINDOWS-TEST.md` (the full test). `docs/BRAND.md` has the brand. Older plans are in `docs/archive/`. Where they disagree with "Owner decisions" below, the decisions win.
 
+## When the owner says "run tests"
+
+Do the full setup and run everything: `docs/WINDOWS-TEST.md` under "Run tests" says how. Show them the UI too. Fix failures, re-test, and record results in `docs/RESULTS.md`.
+
 ## What this is
 
 Mubsir (مُبصِر) is a free voice agent for blind and low-vision people on Windows (decided 2026-11-05: no other audience). It can do anything a mouse and keyboard can do.
 - The notch shows for everyone, so anyone watching the screen understands what's happening, and all of it works by voice and Right Ctrl alone.
 - First start is a short branching conversation (`Mubsir.Core/Onboarding`). Each answer changes settings and behaviour. The only kinds of user are blind and low vision.
-- Teaching mode never clicks: a blind learner is taught the keys, and for low vision the pointer goes to the place. The policy enforces this.
+- It only executes what is said by voice. There is no teaching mode (decided 2026-11-05).
+- Plain questions can go to the ChatGPT or Gemini the person is signed in to in their browser, to keep API use low. The reply is only read aloud (`Core/Chat`, `WindowsToolExecutor.Chat.cs`).
 - Arabic (Egyptian and other dialects) and English, mixed mid-sentence.
 
 ## Owner decisions (don't re-ask)
@@ -48,7 +53,7 @@ Mubsir (مُبصِر) is a free voice agent for blind and low-vision people on W
 - `tests/Mubsir.Core.Tests` — Core unit tests (xunit). Runs on any OS.
 - `nvda-addon/` — NVDA Bridge add-on (Python, GPL-2.0).
 - `scripts/` — `setup.ps1` installer script, `pack-msix.ps1` (Store package), `build-addon.py`, `build-icons.py`, and
-  `overlay-smoke.ps1` and `setup-shots.ps1` (run on a Windows desktop in CI; their screenshots are the `overlay-shots` artifact).
+  `run-tests.ps1` (everything for "run tests"), `overlay-smoke.ps1` and `setup-shots.ps1` (run on a Windows desktop in CI; their screenshots are the `overlay-shots` artifact).
 - `docs/archive/` — old plans, kept for history.
 - `packaging/` — the Store package's manifest. `docs/STORE.md` says what's left to submit it.
 

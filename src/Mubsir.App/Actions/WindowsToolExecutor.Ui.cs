@@ -137,33 +137,6 @@ internal sealed partial class WindowsToolExecutor
             : "The field now contains: " + Quote(readBack));
     }
 
-    /// <summary>Shows where something is. The real mouse moves there too when that's on, and nothing is ever clicked.</summary>
-    private async Task<(string, bool)> PointAtAsync(AgentAction a, ExecutorState s, CancellationToken ct)
-    {
-        if (s.TargetMissing || s.Element is not { } element)
-        {
-            return Error(NotFound);
-        }
-
-        var center = await _screen.RunUiaAsync(
-            _ => UiaActions.IsAlive(element, s.TargetRuntimeId) ? UiaActions.Center(element) : null,
-            UiaActionTimeout,
-            ct).ConfigureAwait(false);
-        if (center is not { } spot)
-        {
-            return Error(NotFound);
-        }
-
-        string label = a.Args.TryGetValue("label", out var l) ? l ?? string.Empty : string.Empty;
-        Companion?.Invoke()?.PointAt(spot.X, spot.Y, label);
-        if (_settings?.Settings.TeachMovesMouse != false)
-        {
-            User32.SetCursorPos(spot.X, spot.Y);
-        }
-
-        return Ok("The pointer is on it. Nothing was clicked.");
-    }
-
     private async Task<(string, bool)> TypeTextAsync(AgentAction a, ExecutorState s, CancellationToken ct)
     {
         var text = a.Args.TryGetValue("text", out var t) ? t ?? "" : "";

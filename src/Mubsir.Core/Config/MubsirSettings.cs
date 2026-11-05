@@ -54,9 +54,6 @@ public sealed record MubsirSettings
     /// <summary>The first conversation has finished. Setup opens until it has.</summary>
     public bool OnboardingDone { get; set; }
 
-    /// <summary>In teaching, the real mouse moves to the place too. It never clicks.</summary>
-    public bool TeachMovesMouse { get; set; } = true;
-
     /// <summary>The notch shows anyone watching the screen what's going on. The app works the same without it.</summary>
     public bool ShowNotch { get; set; } = true;
 
@@ -70,6 +67,9 @@ public sealed record MubsirSettings
 
     /// <summary>The Gemini model used as the brain when there's no Claude key.</summary>
     public string GeminiBrainModel { get; set; } = DefaultGeminiBrainModel;
+
+    /// <summary>The AI chat they're signed in to. Plain questions go there, so they don't use the API.</summary>
+    public Mubsir.Core.Chat.ChatSite ChatSite { get; set; }
 
     /// <summary>Send the opening of each book to the AI once, to describe it for searching. The person chooses this.</summary>
     public bool DescribeBooks { get; set; }

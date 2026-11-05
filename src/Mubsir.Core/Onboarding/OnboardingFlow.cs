@@ -37,7 +37,8 @@ public sealed record PersonalPlan(
     string? Name,
     string FirstSuggestionArabic,
     string FirstSuggestionEnglish,
-    bool DescribeBooks = false)
+    bool DescribeBooks = false,
+    Mubsir.Core.Chat.ChatSite ChatSite = Mubsir.Core.Chat.ChatSite.None)
 {
     public string FirstSuggestion => Language == Lang.Arabic ? FirstSuggestionArabic : FirstSuggestionEnglish;
 
@@ -50,6 +51,7 @@ public sealed record PersonalPlan(
         settings.ShowHudhud = ShowHudhud;
         settings.UseNvda = UseNvda;
         settings.DescribeBooks = DescribeBooks;
+        settings.ChatSite = ChatSite;
         settings.OnboardingDone = true;
     }
 
@@ -114,6 +116,12 @@ public sealed class OnboardingFlow
     private static readonly OnboardingStep AskMessagesApp = new("subject_messages", "بتستخدم إيه أكتر: واتساب، إيميل، ولا حاجة تانية؟", "Which do you use most: WhatsApp, email, or something else?", [], Free: true);
 
     private static readonly OnboardingStep AskWorkApps = new("subject_work", "بتشتغل على أي برامج؟ قولهم، أو قول خلاص.", "Which programs do you work in? Name them, or say skip.", [], Free: true);
+
+    private static readonly OnboardingStep AskChat = new("chat_site", "لو عندك حساب في شات جي بي تي أو جيميني على المتصفح، أسأله هو للأسئلة العادية عشان ماتدفعش. تستخدم إيه؟", "If you're signed in to ChatGPT or Gemini in your browser, I can ask it plain questions so you don't pay. Which do you use?", [
+        new("chatgpt", "شات جي بي تي", "ChatGPT", "شات", "جي بي تي", "chatgpt", "chat gpt", "gpt"),
+        new("gemini", "جيميني", "Gemini", "جيميني", "جمناي", "gemini"),
+        new("none", "ولا حاجة", "neither", "ولا", "لا", "مفيش", "neither", "none", "no", "skip", "خلاص"),
+    ]);
 
     private static readonly OnboardingStep AskName = new("name", "أناديك بإيه؟ أو قول خلاص.", "What should I call you? Or say skip.", [], Free: true);
 
@@ -210,7 +218,13 @@ public sealed class OnboardingFlow
             _name,
             ar,
             en,
-            Get("describe_books") == "yes");
+            Get("describe_books") == "yes",
+            Get("chat_site") switch
+            {
+                "chatgpt" => Mubsir.Core.Chat.ChatSite.ChatGpt,
+                "gemini" => Mubsir.Core.Chat.ChatSite.Gemini,
+                _ => Mubsir.Core.Chat.ChatSite.None,
+            });
     }
 
     private static (string Arabic, string English) FirstSuggestion(string goal, string? subject) => goal switch
@@ -227,6 +241,7 @@ public sealed class OnboardingFlow
         "sight" => "blind",
         "blind_goal" => "web",
         "describe_books" => "no",
+        "chat_site" => "none",
         "speed" => "normal",
         _ => step.Options[0].Id,
     };
@@ -296,11 +311,12 @@ public sealed class OnboardingFlow
             "books" => AskStudyPlace,
             "messages" => AskMessagesApp,
             "work" => AskWorkApps,
-            _ => Get("sight") == "lowvision" ? AskName : AskBlindSpeed,
+            _ => Get("sight") == "lowvision" ? AskChat : AskBlindSpeed,
         },
         "subject_books" => AskDescribeBooks,
-        "describe_books" or "subject_messages" or "subject_work" => Get("sight") == "lowvision" ? AskName : AskBlindSpeed,
-        "speed" => AskName,
+        "describe_books" or "subject_messages" or "subject_work" => Get("sight") == "lowvision" ? AskChat : AskBlindSpeed,
+        "speed" => AskChat,
+        "chat_site" => AskName,
         _ => null,
     };
 

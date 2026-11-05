@@ -140,14 +140,6 @@ public class FullControlTests
         Assert.Equal(ActionTier.Confirm, Check(ToolNames.ClickOn, target: play, task: task).Tier);
     }
 
-    [Theory]
-    [InlineData(ToolNames.ClickOn)]
-    [InlineData(ToolNames.OpenFile)]
-    [InlineData(ToolNames.CreateFolder)]
-    [InlineData(ToolNames.ReadClipboard)]
-    public void Teaching_can_never_use_the_hands(string tool) =>
-        Assert.Equal(ActionTier.Block, Check(tool, task: new TaskContext { TeachMode = true }).Tier);
-
     [Fact]
     public void Private_mode_takes_no_picture_to_click() =>
         Assert.Equal(ActionTier.Block, Check(ToolNames.ClickOn, task: new TaskContext { PrivateMode = true }).Tier);

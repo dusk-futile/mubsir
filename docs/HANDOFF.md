@@ -2,7 +2,13 @@
 
 Update this file at the end of every session. Newest on top. Older entries are in `docs/archive/HANDOFF-OLD.md`.
 
-# Latest session, 2026-11-05 (sixth part)
+# Latest session, 2026-11-05 (seventh part)
+
+- **Teaching removed:** Mubsir only does what's said. The overlay's pointer code stays for the demo, and nothing else uses it.
+- **Asking his AI chat is new and has never run on Windows or against the real sites:** `Core/Chat/ChatRouting.cs` picks plain questions, and `WindowsToolExecutor.Chat.cs` types them into ChatGPT or Gemini and reads the reply. Reading the answer off a real page is the main risk.
+- **"Run tests":** `scripts/run-tests.ps1`, explained in `AGENTS.md` and `docs/WINDOWS-TEST.md`. It has never run on a real PC.
+
+# Earlier, 2026-11-05 (sixth part)
 
 - **Start here on Windows:** `docs/WINDOWS-TEST.md` has numbered tests and the prompt to paste. The latest finished CI run passed, including Ryan on Windows.
 - **Open questions for the owner:** free Gemini or a paid Claude brain, a paid Gemini key for privacy, and Fish's end date for its free model.

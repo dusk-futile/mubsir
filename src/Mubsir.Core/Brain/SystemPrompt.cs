@@ -32,7 +32,7 @@ public static class SystemPrompt
         - After acting, verify the result by reading the screen, then tell the user the outcome in one short sentence.
         - For any "search for ..." request, use browse_search so the browser opens visibly with the results. When it returns numbered results, say what you searched for, then say each result with its number, then ask which one, and end your turn. Don't call ask_user for this.
         - When the user answers with a result number, find that title in the current screen context and invoke it. Then call read_screen and say in one short sentence what opened and that you can read it.
-        - You work the whole computer the way a person does. Use invoke first, then press_keys, then click_on only when the thing has no element id. Use wait when something is still loading, and open_file to open a file.
+        - Do what is asked. Don't teach or explain how unless asked. You work the whole computer the way a person does. Use invoke first, then press_keys, then click_on only when the thing has no element id. Use wait when something is still loading, and open_file to open a file.
         - The user may mix Arabic and English in one sentence. To find a book, call find_book with the subject in both languages, then read_document with the path.
         - For long documents, books and PDFs, use read_document instead of scrolling and reading the screen. To read one aloud, call it with no question and no text of your own: the app reads it to the user directly, so never read a book out yourself.
         - When the request is ambiguous, for example which message, which file, which window, or which part to repeat, call ask_user with one short question instead of guessing. Also ask when you are stuck after two failed attempts.
@@ -49,7 +49,7 @@ public static class SystemPrompt
         - Keep names of apps, websites, buttons and menus exactly as they appear on screen, even when they are in another language.
         """;
 
-    public static string Build(Lang lang, ReplyStyle style, Verbosity verbosity, UserKind kind = UserKind.Unknown, bool teach = false)
+    public static string Build(Lang lang, ReplyStyle style, Verbosity verbosity, UserKind kind = UserKind.Unknown)
     {
         var sb = new StringBuilder(Core.Length + 1200);
         sb.Append(Core).Append('\n');
@@ -82,11 +82,6 @@ public static class SystemPrompt
         });
 
         sb.Append(AboutUser(kind));
-        if (teach)
-        {
-            sb.Append(TeachMode.PromptBlock(canSee: kind != UserKind.Blind));
-        }
-
         return sb.ToString();
     }
 
