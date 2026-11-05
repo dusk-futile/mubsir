@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Media;
+using Mubsir.Core.Motion;
 
 namespace Mubsir.Overlay;
 
@@ -10,7 +11,6 @@ namespace Mubsir.Overlay;
 internal sealed class VoiceWave : FrameworkElement
 {
     private const int Points = 64;
-    private const double Tau = Math.PI * 2;
     private readonly Layer[] _layers;
     private readonly Brush _line;
     private double _level = 0.08;
@@ -20,11 +20,11 @@ internal sealed class VoiceWave : FrameworkElement
     {
         _layers =
         [
-            new Layer(1.5, 2.4, 1, Ribbon(palette.Amber, palette.Crest, 0.72)),
-            new Layer(2.2, -3.1, 0.72, Ribbon(palette.Crest, palette.Lilac, 0.58)),
-            new Layer(3.1, 4.2, 0.46, Ribbon(palette.Cream, palette.Amber, 0.5)),
+            new Layer(1.2, 1.7, 1, Ribbon(palette.Amber, palette.Crest, 0.72)),
+            new Layer(1.8, -2.2, 0.72, Ribbon(palette.Crest, palette.Lilac, 0.58)),
+            new Layer(2.5, 2.9, 0.46, Ribbon(palette.Cream, palette.Amber, 0.5)),
         ];
-        _line = Ribbon(palette.Cream, palette.Cream, 0.85);
+        _line = Ribbon(palette.Cream, palette.Cream, 0.5);
         IsHitTestVisible = false;
     }
 
@@ -58,9 +58,7 @@ internal sealed class VoiceWave : FrameworkElement
         var heights = new double[Points + 1];
         for (int i = 0; i <= Points; i++)
         {
-            double x = (double)i / Points;
-            double envelope = Math.Pow(Math.Sin(Math.PI * x), 2.2);
-            heights[i] = Math.Abs(Math.Sin((Tau * layer.Frequency * x) + (_time * layer.Speed)) * envelope * _level * layer.Amplitude * h * 0.46) + (h * 0.02);
+            heights[i] = NotchCurves.WaveHeight((double)i / Points, _time, layer.Frequency, layer.Speed, layer.Amplitude, _level, h * 0.46);
         }
 
         var geometry = new StreamGeometry();

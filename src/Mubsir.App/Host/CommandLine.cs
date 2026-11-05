@@ -8,6 +8,7 @@ internal enum RunMode
     ClearKey,
     Version,
     OverlayDemo,
+    BookCheck,
     Invalid,
 }
 
@@ -35,6 +36,14 @@ internal sealed record CommandLine(
         if (args.Any(a => Is(a, "--overlay-demo")))
         {
             return new CommandLine(RunMode.OverlayDemo);
+        }
+
+        int check = IndexOf(args, "--book-check");
+        if (check >= 0)
+        {
+            return check + 2 < args.Count
+                ? new CommandLine(RunMode.BookCheck, KeyName: args[check + 1], KeyValue: args[check + 2])
+                : new CommandLine(RunMode.Invalid, Error: "usage: --book-check <folder> <results file>");
         }
 
         if (args.Any(a => Is(a, WatchFlag)))

@@ -18,7 +18,7 @@ public class MotionTokensTests
 
         Assert.Equal(new Size2(120, 28), tokens.NotchSizes[CompanionState.Idle]);
         Assert.Equal(new Size2(424, 172), tokens.NotchSizes[CompanionState.Doing]);
-        Assert.Equal(new SpringToken(0.52, 0.72), tokens.Spring("notchWidth"));
+        Assert.Equal(new SpringToken(0.44, 0.86), tokens.Spring("notchWidth"));
         Assert.Equal(new SpringToken(0.32, 1.0), tokens.Spring("content"));
         Assert.Equal(new Size2(92, 100), tokens.Hudhud.Size);
         Assert.Equal(20, tokens.Hudhud.SleepAfterSeconds);

@@ -24,6 +24,9 @@ internal static class Program
                 return Supervisor.Run(cmd.ChildArgs ?? []);
             case RunMode.OverlayDemo:
                 return OverlayDemo.Run();
+            case RunMode.BookCheck:
+                ConsoleIo.Attach();
+                return BookCheck.Run(cmd.KeyName!, cmd.KeyValue!);
             case RunMode.Invalid:
                 ConsoleIo.Attach();
                 ConsoleIo.WriteLine(cmd.Error ?? "invalid arguments");

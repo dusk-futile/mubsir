@@ -1,10 +1,10 @@
 {
   "about": "Motion and size tokens for the normal-mode companion (the notch and Hudhud), taken from the approved HTML prototype in prototypes/hudhud-companion. Sizes are device-independent pixels. Springs are response (seconds) and damping fraction (1 = no bounce), like SwiftUI.",
   "springs": {
-    "notchWidth":  { "response": 0.52, "damping": 0.72 },
-    "notchHeight": { "response": 0.44, "damping": 0.76 },
+    "notchWidth":  { "response": 0.44, "damping": 0.86 },
+    "notchHeight": { "response": 0.4,  "damping": 0.9 },
     "content":     { "response": 0.32, "damping": 1.0 },
-    "voice":       { "response": 0.12, "damping": 0.7 },
+    "voice":       { "response": 0.24, "damping": 1.0 },
     "crest":       { "response": 0.42, "damping": 0.55 },
     "head":        { "response": 0.62, "damping": 0.8 },
     "wing":        { "response": 0.38, "damping": 0.5 },
@@ -31,7 +31,7 @@
       "undone": [372, 48]
     },
     "maxRadius": 36,
-    "filletMax": 12,
+    "filletMax": 18,
     "contentBlur": 10,
     "contentDelayMs": 70
   },

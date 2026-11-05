@@ -78,7 +78,7 @@ internal sealed class NotchWindow : Window, IAnimated
             Opacity = 0,
             Visibility = Visibility.Collapsed,
             IsHitTestVisible = false,
-            Effect = new BlurEffect { Radius = 10, RenderingBias = RenderingBias.Performance },
+            Effect = new BlurEffect { Radius = 14, RenderingBias = RenderingBias.Performance },
         };
         _shape = new WpfPath
         {
@@ -331,7 +331,7 @@ internal sealed class NotchWindow : Window, IAnimated
         double w = Math.Max(0, _width.Value);
         double h = Math.Max(0, _height.Value);
         double fillet = Math.Min(_assets.Tokens.NotchFilletMax, h / 2);
-        double r = Math.Clamp(_radius.Value, 0, Math.Max(0, Math.Min(h - fillet, w / 2)));
+        double r = NotchCurves.CornerLength(Math.Max(0, _radius.Value), w, h, fillet);
 
         // Hudhud keeps the clock running, but a notch at rest must not redraw its shadow every frame.
         if (w != _drawnWidth || h != _drawnHeight || r != _drawnRadius)
@@ -361,9 +361,11 @@ internal sealed class NotchWindow : Window, IAnimated
     }
 
     /// <summary>The notch's outline: flat along the top edge, with concave fillets into the screen edge and
-    /// rounded bottom corners.</summary>
-    private static StreamGeometry Outline(double center, double width, double height, double radius, double fillet)
+    /// soft bottom corners. <paramref name="corner"/> is how far back each bottom corner's curve starts.</summary>
+    private static StreamGeometry Outline(double center, double width, double height, double corner, double fillet)
     {
+        double f = fillet * (1 - NotchCurves.CornerHandle);
+        double b = corner * (1 - NotchCurves.CornerHandle);
         double left = center - (width / 2);
         double right = center + (width / 2);
         var geometry = new StreamGeometry();
@@ -371,28 +373,13 @@ internal sealed class NotchWindow : Window, IAnimated
         {
             c.BeginFigure(new Point(left - fillet, 0), isFilled: true, isClosed: true);
             c.LineTo(new Point(right + fillet, 0), isStroked: false, isSmoothJoin: false);
-            if (fillet > 0)
-            {
-                c.ArcTo(new Point(right, fillet), new Size(fillet, fillet), 0, false, SweepDirection.Counterclockwise, false, false);
-            }
-
-            c.LineTo(new Point(right, height - radius), isStroked: false, isSmoothJoin: false);
-            if (radius > 0)
-            {
-                c.ArcTo(new Point(right - radius, height), new Size(radius, radius), 0, false, SweepDirection.Clockwise, false, false);
-            }
-
-            c.LineTo(new Point(left + radius, height), isStroked: false, isSmoothJoin: false);
-            if (radius > 0)
-            {
-                c.ArcTo(new Point(left, height - radius), new Size(radius, radius), 0, false, SweepDirection.Clockwise, false, false);
-            }
-
+            c.BezierTo(new Point(right + f, 0), new Point(right, f), new Point(right, fillet), false, false);
+            c.LineTo(new Point(right, height - corner), isStroked: false, isSmoothJoin: false);
+            c.BezierTo(new Point(right, height - b), new Point(right - b, height), new Point(right - corner, height), false, false);
+            c.LineTo(new Point(left + corner, height), isStroked: false, isSmoothJoin: false);
+            c.BezierTo(new Point(left + b, height), new Point(left, height - b), new Point(left, height - corner), false, false);
             c.LineTo(new Point(left, fillet), isStroked: false, isSmoothJoin: false);
-            if (fillet > 0)
-            {
-                c.ArcTo(new Point(left - fillet, 0), new Size(fillet, fillet), 0, false, SweepDirection.Counterclockwise, false, false);
-            }
+            c.BezierTo(new Point(left, f), new Point(left - f, 0), new Point(left - fillet, 0), false, false);
         }
 
         geometry.Freeze();
