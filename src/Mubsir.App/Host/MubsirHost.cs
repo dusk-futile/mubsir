@@ -12,6 +12,7 @@ using Mubsir.Core.Cost;
 using Mubsir.Core.Input;
 using Mubsir.Core.Logging;
 using Mubsir.Core.Policy;
+using Mubsir.Core.Reading;
 
 namespace Mubsir.App.Host;
 
@@ -112,8 +113,10 @@ internal sealed class MubsirHost
         app.Brain = Create<IBrain>("brain", () => new ClaudeBrain(secrets, settings, _log));
         if (screen is not null)
         {
+            var positions = new ReadingPositions(AppPaths.PositionsFile);
+            var books = new BookAloud(speech, positions, input.SetReading, _log);
             app.Executor = Create<IToolExecutor>("executor", () => new WindowsToolExecutor(
-                screen, new DocumentReader(screen, _log), new ReadingPositions(), app.Brain, speech, settings, memory, prompter, usage, _log));
+                screen, new DocumentReader(screen, _log), positions, books, app.Brain, speech, settings, memory, prompter, usage, _log));
         }
 
         using var hook = new KeyboardHookService(input, actions.Writer, _log) { FastStop = speech.RequestStopFast };

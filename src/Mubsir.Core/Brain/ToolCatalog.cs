@@ -77,10 +77,12 @@ public static class ToolCatalog
             "Read the text of the foreground window with local OCR. Use when the element list shows no text, e.g. images of text or some apps."),
 
         Tool(ToolNames.ReadDocument,
-            "Read a document (txt, docx or pdf), including long books. Prefer this to scrolling for documents.",
+            "Read a document (txt, docx or pdf), including long books. Prefer this to scrolling for documents. "
+            + "With no question, the app reads it aloud directly to the user, continuing from where they stopped, and the task ends there. "
+            + "With a question, you get the answer back.",
             Str("path", "File path from list_folder or find_files, or null for the document open on screen.", nullable: true),
-            Int("page", "Page number to start from, or null.", nullable: true),
-            Str("question", "What to find or answer in the document, or null to read from the start.", nullable: true)),
+            Int("page", "Page number to start from, or null to continue from where the user stopped.", nullable: true),
+            Str("question", "What to find or answer in the document, or null to read it aloud.", nullable: true)),
 
         Tool(ToolNames.Media,
             "Control media playback (YouTube, music, video) in the current app or browser.",

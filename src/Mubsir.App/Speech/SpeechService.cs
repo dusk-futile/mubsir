@@ -58,6 +58,12 @@ internal sealed class SpeechService : IDisposable
 
     public event Action<bool>? SpeakingChanged;
 
+    /// <summary>The queue was cleared: the user stopped speech, or something interrupted it.</summary>
+    public event Action? Stopped;
+
+    /// <summary>Changes every time speech is stopped.</summary>
+    public long Generation => Interlocked.Read(ref _generation);
+
     public SpeechHistory History { get; } = new();
 
     public bool IsSpeaking
@@ -291,6 +297,8 @@ internal sealed class SpeechService : IDisposable
         {
             w.TrySetResult();
         }
+
+        Stopped?.Invoke();
     }
 
     private void CancelOutputs()

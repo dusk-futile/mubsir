@@ -7,6 +7,7 @@ using Mubsir.Core.Common;
 using Mubsir.Core.Context;
 using Mubsir.Core.Logging;
 using Mubsir.Core.Policy;
+using Mubsir.Core.Reading;
 using Mubsir.Core.Speech;
 using Interop.UIAutomationClient;
 
@@ -25,6 +26,8 @@ internal sealed class ExecutorState
     public bool TargetMissing { get; set; }
 
     public bool FocusTarget { get; set; }
+
+    public bool EndsTurn { get; set; }
 }
 
 internal sealed partial class WindowsToolExecutor : IToolExecutor
@@ -36,6 +39,7 @@ internal sealed partial class WindowsToolExecutor : IToolExecutor
     private readonly UiaScreenReader _screen;
     private readonly DocumentReader _documents;
     private readonly ReadingPositions _positions;
+    private readonly BookAloud? _books;
     private readonly IBrain? _brain;
     private readonly SpeechService? _speech;
     private readonly SettingsProvider? _settings;
@@ -52,6 +56,7 @@ internal sealed partial class WindowsToolExecutor : IToolExecutor
         UiaScreenReader screen,
         DocumentReader documents,
         ReadingPositions positions,
+        BookAloud? books,
         IBrain? brain,
         SpeechService? speech,
         SettingsProvider? settings,
@@ -63,6 +68,7 @@ internal sealed partial class WindowsToolExecutor : IToolExecutor
         _screen = screen;
         _documents = documents;
         _positions = positions;
+        _books = books;
         _brain = brain;
         _speech = speech;
         _settings = settings;
@@ -193,7 +199,7 @@ internal sealed partial class WindowsToolExecutor : IToolExecutor
             _log.Ok(LogKind.ToolCall, tool, clock.ElapsedMilliseconds, action.Action.Target?.Role);
         }
 
-        return new ToolResult(action.Call.Id, content, isError);
+        return new ToolResult(action.Call.Id, content, isError, !isError && state.EndsTurn);
     }
 
     public async Task<ToolResult> HandOffAsync(PreparedAction action, CancellationToken ct)

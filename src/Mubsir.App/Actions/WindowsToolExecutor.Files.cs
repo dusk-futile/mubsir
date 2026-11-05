@@ -6,6 +6,7 @@ using Mubsir.Core.Common;
 using Mubsir.Core.Config;
 using Mubsir.Core.Logging;
 using Mubsir.Core.Policy;
+using Mubsir.Core.Reading;
 using Mubsir.Core.Speech;
 
 namespace Mubsir.App.Actions;
@@ -160,6 +161,11 @@ internal sealed partial class WindowsToolExecutor
                 : Error(error);
         }
 
+        if (_books is null)
+        {
+            return Error("speech is not available");
+        }
+
         int startPage = requestedPage ?? 1;
         int startOffset = 0;
         if (path is not null && requestedPage is null && _positions.Get(path) is { } pos)
@@ -168,25 +174,15 @@ internal sealed partial class WindowsToolExecutor
             startOffset = pos.Offset;
         }
 
-        var read = DocumentChunker.Read(pages, startPage, startOffset, DocumentChunker.ReadTokens, unread);
-        if (path is not null)
+        // Straight to the voice: the book's text stays on this PC and costs no tokens.
+        var source = new DocumentPages(pages, unread, path, _documents, MaxOcrPagesPerRead);
+        if (!await _books.StartAsync(source, path, startPage, startOffset, lang).ConfigureAwait(false))
         {
-            _positions.Set(path, read.NextPage > read.TotalPages ? 1 : read.NextPage, read.NextPage > read.TotalPages ? 0 : read.NextOffset);
+            return Error("the document could not be read aloud");
         }
 
-        var header = new StringBuilder($"Page {read.FirstPage} of {read.TotalPages}");
-        if (read.LastPage != read.FirstPage)
-        {
-            header.Append($" (to page {read.LastPage})");
-        }
-
-        if (scannedCount > 0)
-        {
-            header.Append($"; {scannedCount} scanned pages are read with OCR and may contain mistakes");
-        }
-
-        header.Append(read.NextPage <= read.TotalPages ? $". Continue with page {read.NextPage}." : ". End of document.");
-        return Ok(header + "\n\n" + Redactor.Redact(read.Text));
+        s.EndsTurn = true;
+        return Ok($"Reading aloud to the user from page {Math.Clamp(startPage, 1, pages.Count)} of {pages.Count}.");
     }
 
     private (string, bool) ListFolder(AgentAction a)

@@ -4,6 +4,15 @@ Update this file at the end of every session. Newest entry on top.
 
 ---
 
+## 2026-11-05 (reading) — books go straight to the voice (branch `feat/reading-direct`, on top of PR #14)
+
+- **Reading a book no longer uses the AI.** `read_document` with no question hands the book to `BookAloud` (`Mubsir.App/Speech`), which queues it for the voice. The tool result carries `EndsTurn`, so `AgentLoop` returns `AgentEnd.HandedOff` and never calls the model again. The book's text stays on the PC and costs no tokens. Questions about a book still go to the model as before.
+- **Bookmarks follow the file.** `ReadingPositions` moved to `Mubsir.Core/Reading` and now finds a book by `FileFingerprint` (SHA-256 of length, first MB, last MB). A rename or move keeps the place. An edited file keeps it by path. Old path-keyed bookmarks still load and upgrade when next saved.
+- **The place is saved only when heard.** `BookReading` (Core) maps each spoken sentence to its page and offset, and saves when `SpeechHistory.Spoken` fires for it. One page is queued ahead of the page being heard. A stop leaves the place on the sentence playing, and that sentence is read again on resume. Hearing "end of the book" sends the place back to page 1.
+- Scanned pages are read with OCR as the reader reaches them. Pages that fail are named; three failures in a row stop the reading. Blank pages are skipped.
+- **Not tested on a real PC:** the logic has unit tests, but nobody has listened to it with NVDA and OneCore yet. That's the first thing to check.
+- **Still missing:** "next page" and "previous page" have no way to know the current page, because the AI isn't told it. Start with passing the saved place into the context or adding a page-turn command.
+
 ## 2026-11-05 (later) — blind user journey, new shake, edge light, README
 
 - **`docs/USER-JOURNEY.md` is new. Read it before building reading.** It walks the owner's scenario (find an unnamed book, numbered choices, rename, read, resume), and lists real code gaps, image-cost locks, token options, the Clicky comparison and a build order. Nothing in it is built yet; the owner picks what's first.

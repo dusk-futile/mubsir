@@ -3,6 +3,20 @@
 Measured numbers for each phase (`docs/EXECUTION.md` → "Tests and the numbers to report").
 Every row: date, commit, sample size, value, target, pass or fail.
 
+## Reading fixes: straight to the voice, bookmarks by file, place saved when heard
+
+Measured 2026-11-05 on branch `feat/reading-direct`, macOS, SDK 10.0.401. Speech is a fake voice on the real `SpeechHistory` and splitter.
+
+| Test | Sample | Value | Target | Result |
+| --- | --- | --- | --- | --- |
+| Core unit tests, all | 62 tests | 62 pass | all pass | Pass |
+| AI calls after a book starts reading | 1 run with a fake brain | 0 | 0 | Pass |
+| Place saved before any sentence is heard | 1 run | never | never | Pass |
+| Bookmark after a rename, a move, an edit, and from an old file | 1 run each | kept in all 4 | kept | Pass |
+| Release build of the solution | Core, Overlay, App, tests | 0 warnings, 0 errors | 0 | Pass |
+
+Not measured yet (needs a Windows PC): reading a real book through NVDA and OneCore, and stopping it with Ctrl.
+
 ## Phase 7, started: native notch and Hudhud (`src/Mubsir.Overlay`)
 
 Measured 2026-11-05 on branch `feat/native-notch`. Unit tests and sizes on macOS with SDK 10.0.401.

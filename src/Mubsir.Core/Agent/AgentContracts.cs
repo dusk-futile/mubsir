@@ -121,6 +121,9 @@ public enum AgentEnd
     Cancelled,
     BrainError,
     PolicyStopped,
+
+    /// <summary>A tool took over, like the book reader. It speaks for itself, so nothing is reported.</summary>
+    HandedOff,
 }
 
 public sealed record AgentOutcome(AgentEnd End, int Steps, BrainErrorKind? Error = null, string? FinalText = null);

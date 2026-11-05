@@ -7,7 +7,6 @@ internal sealed record DocumentChunk(string Text, int FirstPage, int LastPage, i
 
 internal static class DocumentChunker
 {
-    public const int ReadTokens = 6_000;
     public const int QuestionTokens = 90_000;
 
     public static DocumentChunk Read(IReadOnlyList<string> pages, int startPage, int startOffset, int maxTokens, IReadOnlyCollection<int>? unreadPages = null)

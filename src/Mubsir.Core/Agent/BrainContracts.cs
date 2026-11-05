@@ -26,7 +26,8 @@ public sealed record ToolResults(IReadOnlyList<ToolResult> Results) : BrainInput
 
 public sealed record ToolCall(string Id, string Name, JsonElement Arguments);
 
-public sealed record ToolResult(string ToolCallId, string Content, bool IsError = false);
+/// <param name="EndsTurn">The tool has taken over and the task is finished, so the AI isn't called again.</param>
+public sealed record ToolResult(string ToolCallId, string Content, bool IsError = false, bool EndsTurn = false);
 
 public enum BrainErrorKind
 {

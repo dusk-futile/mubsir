@@ -391,7 +391,7 @@ internal sealed class TaskRunner
 
     private static LogOutcome OutcomeOf(AgentEnd end) => end switch
     {
-        AgentEnd.Completed => LogOutcome.Ok,
+        AgentEnd.Completed or AgentEnd.HandedOff => LogOutcome.Ok,
         AgentEnd.Cancelled => LogOutcome.Cancelled,
         AgentEnd.PolicyStopped => LogOutcome.Blocked,
         AgentEnd.StepLimit or AgentEnd.TimeLimit => LogOutcome.TimedOut,

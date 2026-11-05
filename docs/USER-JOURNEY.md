@@ -30,9 +30,9 @@ Status marks: ✅ built, 🟡 partly, ❌ not built.
 
 ## What I found in the code (real gaps)
 
-1. **Reading goes through the AI.** `read_document` hands up to 6,000 tokens of text to the model, and the model repeats it. About $0.0036 per chunk on Haiku, it adds to every later turn, and only an instruction ("read it faithfully") stops it changing words. **Biggest fix for both cost and accuracy.**
-2. **Renaming or moving a book loses his place.** `ReadingPositions` is keyed by the file's path. Step 5 of the scenario would break step 9. Key it by a fingerprint of the file.
-3. **The place is saved before he hears it.** It's stored when text is handed to the model, so if he stops halfway it can jump ahead. Save the sentence he actually heard.
+1. **Reading goes through the AI.** `read_document` hands up to 6,000 tokens of text to the model, and the model repeats it. About $0.0036 per chunk on Haiku, it adds to every later turn, and only an instruction ("read it faithfully") stops it changing words. **Biggest fix for both cost and accuracy.** **Fixed on `feat/reading-direct`.**
+2. **Renaming or moving a book loses his place.** `ReadingPositions` is keyed by the file's path. Step 5 of the scenario would break step 9. Key it by a fingerprint of the file. **Fixed on `feat/reading-direct`.**
+3. **The place is saved before he hears it.** It's stored when text is handed to the model, so if he stops halfway it can jump ahead. Save the sentence he actually heard. **Fixed on `feat/reading-direct`.**
 4. **Unnamed books can't be found.** File-name search only, in the usual folders.
 5. **Questions can send up to 90,000 tokens** (`QuestionTokens`), about $0.009 each on Haiku, when 3–5 passages would do.
 6. **Nothing checks for garbled text.** Old PDFs with broken fonts, like many phonology books, would be read as nonsense without warning.
@@ -158,7 +158,7 @@ I read the open-source Clicky (`farzaa/clicky`, MIT) and the community Windows p
 
 ## Suggested build order
 
-1. **Reading fixes (small, and they fix real bugs):** reading skips the AI, bookmarks by fingerprint, save only what was heard.
+1. **Reading fixes (small, and they fix real bugs):** reading skips the AI, bookmarks by fingerprint, save only what was heard. **Built on `feat/reading-direct`; not yet heard on a real PC.**
 2. **Numbered lists and local commands.**
 3. **Page check and image locks,** with the tests.
 4. **Library cards,** so unnamed books can be found.

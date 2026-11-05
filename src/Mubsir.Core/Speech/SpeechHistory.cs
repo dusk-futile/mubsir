@@ -31,6 +31,9 @@ public sealed class SpeechHistory
         Capacity = capacity;
     }
 
+    /// <summary>A sentence has started playing. May come from NVDA's callback, so handlers must return quickly.</summary>
+    public event Action<int>? Spoken;
+
     public int Capacity { get; }
 
     public int Count
@@ -95,12 +98,19 @@ public sealed class SpeechHistory
 
     public void MarkSpoken(int index)
     {
+        bool known;
         lock (_gate)
         {
-            if (ItemAt(index) is not null)
+            known = ItemAt(index) is not null;
+            if (known)
             {
                 _cursor = index;
             }
+        }
+
+        if (known)
+        {
+            Spoken?.Invoke(index);
         }
     }
 

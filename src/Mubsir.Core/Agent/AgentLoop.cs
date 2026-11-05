@@ -104,6 +104,11 @@ public sealed class AgentLoop(
                     }
                 }
 
+                if (results.Exists(r => r.EndsTurn))
+                {
+                    return new AgentOutcome(AgentEnd.HandedOff, steps);
+                }
+
                 await WaitIfPausedAsync(control, state, ct).ConfigureAwait(false);
                 input = new ToolResults(results);
             }
