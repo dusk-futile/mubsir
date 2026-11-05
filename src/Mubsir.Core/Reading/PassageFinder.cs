@@ -19,6 +19,14 @@ public static class PassageFinder
         "ايه", "إيه", "يعني", "ما", "ماذا", "هو", "هي", "في", "من", "على", "عن", "الى", "إلى", "هل", "مين", "ليه", "لماذا", "كيف", "ازاي", "الكتاب", "كتاب", "الصفحة", "صفحة", "بيتكلم", "بتتكلم", "اللي", "ده", "دي",
     }.Select(ArabicFolding.Fold), StringComparer.Ordinal);
 
+    /// <summary>True if the book holds any word of the question. If not, or if the question mixes languages, it's
+    /// worth asking the AI for keywords, because a question in Arabic can be about an English book.</summary>
+    public static bool Matches(IReadOnlyList<string> pages, string question)
+    {
+        string[] terms = Terms(question).Distinct(StringComparer.Ordinal).ToArray();
+        return terms.Length > 0 && pages.Any(page => Terms(page).Any(w => Array.IndexOf(terms, w) >= 0));
+    }
+
     public static IReadOnlyList<Passage> Find(IReadOnlyList<string> pages, string question, int currentPage)
     {
         string[] terms = Terms(question).Distinct(StringComparer.Ordinal).ToArray();

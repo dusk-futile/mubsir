@@ -185,6 +185,86 @@ public sealed class BookLibrary(string file)
     }
 }
 
+/// <summary>
+/// Finds a book from however it was asked for. The words as said are searched first. If that isn't a clear match,
+/// or the sentence mixes languages, the AI gives keywords in both languages, and a failure there never loses
+/// what was already found.
+/// </summary>
+public static class BookSearch
+{
+    public const string KeywordPrompt = "A person is looking for a book or a topic in a text, and may mix Arabic and English. "
+        + "List search keywords that would appear in its title or its text: the subject in both English and Arabic, common synonyms, transliterations, and likely authors or titles. "
+        + "One per line, up to 10, with no numbering and no other words. The request: ";
+
+    private const int MaxKeywords = 10;
+
+    public static async Task<IReadOnlyList<LibraryCard>> FindAsync(BookLibrary library, string query, Func<string, Task<string?>>? askAi, int count = 5)
+    {
+        IReadOnlyList<LibraryCard> direct = library.Search(query, count);
+        if (askAi is null || (IsClear(direct, query) && !IsMixed(query)))
+        {
+            return direct;
+        }
+
+        string? answer = null;
+        try
+        {
+            answer = await askAi(KeywordPrompt + query).ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is not OutOfMemoryException and not OperationCanceledException)
+        {
+        }
+
+        string[] keywords = ParseKeywords(answer);
+        if (keywords.Length == 0)
+        {
+            return direct;
+        }
+
+        // A book found by many keywords, or by the words as said, comes first.
+        var votes = new Dictionary<string, (LibraryCard Card, int Votes)>(StringComparer.Ordinal);
+        void Count(IEnumerable<LibraryCard> cards, int weight)
+        {
+            foreach (LibraryCard card in cards)
+            {
+                votes[card.Path] = (card, votes.GetValueOrDefault(card.Path).Votes + weight);
+            }
+        }
+
+        Count(direct, 2);
+        foreach (string keyword in keywords)
+        {
+            Count(library.Search(keyword, count * 2), 1);
+        }
+
+        return votes.Values.OrderByDescending(v => v.Votes).Take(count).Select(v => v.Card).ToArray();
+    }
+
+    public static string[] ParseKeywords(string? answer) => answer is null
+        ? []
+        : answer.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line => line.TrimStart('-', '*', '•', ' ', '.', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ')').Trim(' ', '"', '«', '»', '،', ','))
+            .Where(line => line.Length is >= 2 and <= 60)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(MaxKeywords)
+            .ToArray();
+
+    public static bool IsMixed(string text) =>
+        text.Any(c => c is >= '\u0600' and <= '\u06FF') && text.Any(char.IsAsciiLetter);
+
+    /// <summary>The search found something, and the title itself holds every word asked for.</summary>
+    private static bool IsClear(IReadOnlyList<LibraryCard> found, string query)
+    {
+        if (found.Count == 0)
+        {
+            return false;
+        }
+
+        string title = ArabicFolding.Fold(found[0].Title);
+        return ArabicFolding.Fold(query).Split(' ', StringSplitOptions.RemoveEmptyEntries).All(t => title.Contains(t, StringComparison.Ordinal));
+    }
+}
+
 /// <summary>A numbered list that works by ear. Same-named books say where each one is.</summary>
 public static class BookListText
 {

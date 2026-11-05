@@ -72,6 +72,7 @@ internal sealed partial class WindowsToolExecutor : IToolExecutor
         if (books is not null)
         {
             books.ImageReader = ReadPageImageAsync;
+            books.KeywordReader = ReadKeywordsAsync;
         }
 
         _brain = brain;
@@ -287,7 +288,7 @@ internal sealed partial class WindowsToolExecutor : IToolExecutor
         ToolNames.DescribeScreen => DescribeScreenAsync(a, s, ct),
         ToolNames.OcrWindow => OcrWindowAsync(ct),
         ToolNames.ReadDocument => ReadDocumentAsync(a, s, ct),
-        ToolNames.FindBook => Task.FromResult(FindBook(a)),
+        ToolNames.FindBook => FindBookAsync(a, s, ct),
         ToolNames.Media => MediaAsync(a, s, ct),
         ToolNames.ListFolder => Task.Run(() => ListFolder(a), ct),
         ToolNames.FindFiles => Task.Run(() => FindFiles(a, s, ct), ct),

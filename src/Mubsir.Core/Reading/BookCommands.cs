@@ -31,12 +31,22 @@ public static class BookCommands
     private static readonly Dictionary<string, BookCommandKind> Exact = BuildExact();
     private static readonly string[][] Leading = Folded(CommandPhrases.LeadingFillers);
     private static readonly string[][] Trailing = Folded(CommandPhrases.TrailingFillers);
-    private static readonly string[][] PagePrefixes = Folded(["go to page", "open page", "jump to page", "turn to page", "page", "روح لصفحة", "روح لصفحه", "روح صفحة", "افتح صفحة", "ادخل على صفحة", "روح على صفحة", "صفحة", "الصفحة", "اذهب الى صفحة", "انتقل الى صفحة"]);
     private static readonly string[][] NotePrefixes = Folded(["take a note", "make a note", "add a note", "write a note", "note", "سجل ملاحظة", "اكتب ملاحظة", "خد ملاحظة", "ضيف ملاحظة", "ملاحظة"]);
-    private static readonly string[][] TimerPrefixes = Folded(["set a sleep timer for", "sleep timer for", "sleep timer", "read for", "keep reading for", "stop after", "stop in", "stop reading after", "stop reading in", "اقرأ لمدة", "اقرا لمدة", "اقرالي لمدة", "اقرأ لي لمدة", "اقف بعد", "وقف بعد", "وقف القراءة بعد", "اقف القراءة بعد", "اقرأ", "اقرا", "اقرالي"]);
-    private static readonly string[][] FindPrefixes = Folded(["search my books for", "find me the book", "find me a book", "find the book", "find a book", "find book", "give me the book", "give me a book", "i want the book", "i want a book", "do i have a book", "open the book", "دور لي على كتاب", "دورلي على كتاب", "دور على كتاب", "ابحث عن كتاب", "هات لي كتاب", "هاتلي كتاب", "هات كتاب", "عايز كتاب", "عاوز كتاب", "اريد كتاب", "فين كتاب", "افتح كتاب", "عندي كتاب"]);
-    private static readonly string[][] FindJoiners = Folded(["called", "named", "about", "on", "for", "عن", "بتاع", "بتاعت", "اسمه", "في"]);
     private static readonly string[][] PickPrefixes = Folded(["number", "open number", "read number", "open", "read", "the", "رقم", "افتح رقم", "اقرأ رقم", "افتح"]);
+
+    // Each word on its own, so a sentence can change language at any point: "روح page 40", "next صفحة".
+    private static readonly HashSet<string> PageWords = Words("page", "pages", "صفحة", "الصفحة", "صفحات");
+    private static readonly HashSet<string> NextWords = Words("next", "forward", "التالية", "الجاية", "جاية", "بعدها", "بعد", "تالية");
+    private static readonly HashSet<string> BackWords = Words("previous", "back", "السابقة", "سابقة", "قبلها", "قبل", "اللي فاتت", "فاتت", "ارجع", "رجعني");
+    private static readonly HashSet<string> GoWords = Words("go", "to", "open", "jump", "turn", "the", "روح", "ل", "على", "افتح", "ادخل", "اذهب", "الى", "انتقل", "خش");
+    private static readonly HashSet<string> SoftWords = Words("the", "a", "اللي", "دي", "ده", "this", "go", "to", "روح", "ل", "على", "الى", "please", "لو", "سمحت");
+    private static readonly HashSet<string> ContinueWords = Words("continue", "resume", "keep", "carry", "كمل", "تابع", "واصل", "استمر", "خليك");
+    private static readonly HashSet<string> ReadingWords = Words("reading", "read", "on", "book", "the", "my", "going", "القراءة", "قراءة", "القراية", "قراية", "الكتاب", "كتاب", "اقرا", "اقرأ", "في");
+    private static readonly HashSet<string> TimerWords = Words("read", "keep", "reading", "stop", "for", "after", "in", "set", "a", "sleep", "timer", "اقرا", "اقرأ", "اقرالي", "لمدة", "وقف", "اقف", "بعد", "القراءة", "مؤقت", "حط", "كمان");
+    private static readonly HashSet<string> FindVerbs = Words("find", "give", "search", "want", "open", "need", "get", "show", "look", "هات", "هاتلي", "عايز", "عاوز", "عايزة", "دور", "دورلي", "ابحث", "افتح", "فين", "اريد", "عندي", "شوف", "طلع");
+    private static readonly HashSet<string> FindFill = Words("me", "i", "for", "do", "have", "my", "a", "the", "one", "لي", "على", "عن", "ليا", "يا", "any");
+    private static readonly HashSet<string> BookWords = Words("book", "books", "كتاب", "الكتاب", "كتب", "الكتب");
+    private static readonly HashSet<string> FindJoinWords = Words("on", "about", "for", "called", "named", "of", "عن", "بتاع", "بتاعت", "اسمه", "في", "فيه", "بيتكلم", "بتتكلم", "the", "a", "ال", "اللي");
 
     private static readonly Dictionary<string, int> NumberWords = BuildNumbers();
     private static readonly Dictionary<string, int> Ordinals = new(StringComparer.Ordinal)
@@ -83,7 +93,7 @@ public static class BookCommands
             return new BookCommand(BookCommandKind.Pick, pick);
         }
 
-        if (Exact.TryGetValue(string.Join(' ', plain), out BookCommandKind kind))
+        if (Exact.TryGetValue(string.Join(' ', plain), out BookCommandKind kind) || Mixed(plain) is { } mixed && (kind = mixed) == mixed)
         {
             return new BookCommand(kind);
         }
@@ -93,23 +103,19 @@ public static class BookCommands
             return new BookCommand(BookCommandKind.Note, Text: string.Join(' ', raw[words[noteAt].Raw..]).TrimStart(':', ' ', '،', ','));
         }
 
-        if (AfterPrefix(plain, PagePrefixes) is { } pageAt && ParseNumber(plain[pageAt..]) is { } page)
+        if (AfterWords(plain, GoWords, PageWords) is { } pageAt && ParseNumber(plain[pageAt..]) is { } page)
         {
             return new BookCommand(BookCommandKind.GoToPage, page);
         }
 
-        if (AfterPrefix(plain, TimerPrefixes) is { } timerAt && ParseMinutes(plain[timerAt..]) is { } minutes)
+        if (AfterWords(plain, TimerWords, null) is { } timerAt && timerAt > 0 && ParseMinutes(plain[timerAt..]) is { } minutes)
         {
             return new BookCommand(BookCommandKind.SleepTimer, minutes);
         }
 
-        if (AfterPrefix(plain, FindPrefixes) is { } findAt)
+        if (FindFrom(plain) is { } findFrom)
         {
-            int from = AfterPrefix(plain[findAt..], FindJoiners) is { } joiner ? findAt + joiner : findAt;
-            if (from < plain.Length)
-            {
-                return new BookCommand(BookCommandKind.FindBook, Text: string.Join(' ', raw[words[from].Raw..]));
-            }
+            return new BookCommand(BookCommandKind.FindBook, Text: string.Join(' ', raw[words[findFrom].Raw..]));
         }
 
         return null;
@@ -152,6 +158,79 @@ public static class BookCommands
 
     private static readonly HashSet<string> MinuteUnits = new(new[] { "minute", "minutes", "min", "mins", "دقيقة", "دقايق", "دقائق" }.Select(ArabicFolding.Fold), StringComparer.Ordinal);
     private static readonly HashSet<string> HourUnits = new(new[] { "hour", "hours", "ساعة", "ساعات" }.Select(ArabicFolding.Fold), StringComparer.Ordinal);
+
+    /// <summary>Page and continue commands by what the words mean, whatever language each word is in.</summary>
+    private static BookCommandKind? Mixed(string[] words)
+    {
+        if (words.Length > 6)
+        {
+            return null;
+        }
+
+        if (words.Any(PageWords.Contains))
+        {
+            string[] rest = words.Where(w => !PageWords.Contains(w) && !SoftWords.Contains(w)).ToArray();
+            if (rest.Length > 0 && rest.All(NextWords.Contains))
+            {
+                return BookCommandKind.NextPage;
+            }
+
+            if (rest.Length > 0 && rest.All(BackWords.Contains))
+            {
+                return BookCommandKind.PreviousPage;
+            }
+
+            return null;
+        }
+
+        return ContinueWords.Contains(words[0]) && words.Skip(1).All(ReadingWords.Contains) ? BookCommandKind.Continue : null;
+    }
+
+    /// <summary>Where the subject starts in "find كتاب phonology" or "هات the book on النحو". Needs a word for
+    /// "book", and a verb too unless the sentence starts with the Arabic word, so "book a flight" isn't a search.</summary>
+    private static int? FindFrom(string[] words)
+    {
+        int at = 0;
+        bool verb = false;
+        while (at < words.Length && (FindVerbs.Contains(words[at]) || FindFill.Contains(words[at])))
+        {
+            verb |= FindVerbs.Contains(words[at]);
+            at++;
+        }
+
+        if (at >= words.Length || !BookWords.Contains(words[at]) || (!verb && !words[at].Any(c => c > '\u007F')))
+        {
+            return null;
+        }
+
+        at++;
+        while (at < words.Length && FindJoinWords.Contains(words[at]))
+        {
+            at++;
+        }
+
+        return at < words.Length ? at : null;
+    }
+
+    /// <summary>The word after any run of <paramref name="lead"/> words, with one <paramref name="must"/> word in it if given.</summary>
+    private static int? AfterWords(string[] words, HashSet<string> lead, HashSet<string>? must)
+    {
+        int at = 0;
+        bool seen = must is null;
+        while (at < words.Length && (lead.Contains(words[at]) || (must?.Contains(words[at]) == true) || IsJoinedPage(words[at], must)))
+        {
+            seen |= must?.Contains(words[at]) == true || IsJoinedPage(words[at], must);
+            at++;
+        }
+
+        return seen ? at : null;
+    }
+
+    /// <summary>Arabic writes "to page" as one word: "لصفحة".</summary>
+    private static bool IsJoinedPage(string word, HashSet<string>? must) =>
+        must is not null && word.Length > 1 && (word[0] == 'ل' || word[0] == 'ب') && must.Contains(word[1..]);
+
+    private static HashSet<string> Words(params string[] words) => new(words.Select(ArabicFolding.Fold), StringComparer.Ordinal);
 
     private static int? ParsePick(string[] words)
     {

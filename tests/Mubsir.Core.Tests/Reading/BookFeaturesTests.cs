@@ -37,6 +37,52 @@ public class BookFeaturesTests
     }
 
     [Theory]
+    [InlineData("روح page 40", BookCommandKind.GoToPage, 40)]
+    [InlineData("go to صفحة ٤٠", BookCommandKind.GoToPage, 40)]
+    [InlineData("روح لصفحة forty", BookCommandKind.GoToPage, 40)]
+    [InlineData("صفحة thirty four", BookCommandKind.GoToPage, 34)]
+    [InlineData("next صفحة", BookCommandKind.NextPage, null)]
+    [InlineData("الصفحة next", BookCommandKind.NextPage, null)]
+    [InlineData("page الجاية", BookCommandKind.NextPage, null)]
+    [InlineData("previous صفحة", BookCommandKind.PreviousPage, null)]
+    [InlineData("ارجع page", BookCommandKind.PreviousPage, null)]
+    [InlineData("كمل reading", BookCommandKind.Continue, null)]
+    [InlineData("continue الكتاب", BookCommandKind.Continue, null)]
+    [InlineData("read for عشر دقايق", BookCommandKind.SleepTimer, 10)]
+    [InlineData("اقرأ for ten minutes", BookCommandKind.SleepTimer, 10)]
+    [InlineData("وقف after 5 دقايق", BookCommandKind.SleepTimer, 5)]
+    public void Sentences_mixing_both_languages_are_understood(string said, BookCommandKind kind, int? number)
+    {
+        BookCommand? command = BookCommands.Parse(said);
+
+        Assert.NotNull(command);
+        Assert.Equal(kind, command.Kind);
+        Assert.Equal(number, command.Number);
+    }
+
+    [Theory]
+    [InlineData("find كتاب phonology", "phonology")]
+    [InlineData("هات the book on النحو", "النحو")]
+    [InlineData("عايز book عن grammar", "grammar")]
+    [InlineData("give me كتاب بتاع phonetics", "phonetics")]
+    [InlineData("هات الكتاب بتاع English grammar", "English grammar")]
+    [InlineData("كتاب phonology", "phonology")]
+    public void A_mixed_search_keeps_the_subject(string said, string wanted)
+    {
+        BookCommand? command = BookCommands.Parse(said);
+
+        Assert.Equal(BookCommandKind.FindBook, command!.Kind);
+        Assert.Equal(wanted, command.Text);
+    }
+
+    [Theory]
+    [InlineData("book a flight")]
+    [InlineData("open the page")]
+    [InlineData("find a flight to Cairo")]
+    [InlineData("read the next email")]
+    public void Mixed_rules_leave_other_requests_alone(string said) => Assert.Null(BookCommands.Parse(said));
+
+    [Theory]
     [InlineData("open chrome")]
     [InlineData("اقرأ الشاشة")]
     [InlineData("اكتب ايميل لمحمد")]
@@ -390,6 +436,16 @@ public class BookFeaturesTests
         string[] pages = ["Opening.", "Second.", "Third.", "Fourth."];
 
         Assert.Equal([3, 1, 2], PassageFinder.Find(pages, "what's this about?", 3).Select(p => p.Page));
+    }
+
+    [Fact]
+    public void An_arabic_question_about_an_english_book_needs_keywords()
+    {
+        string[] pages = ["An allophone is a variant of a phoneme."];
+
+        Assert.False(PassageFinder.Matches(pages, "يعني ايه الوحدة الصوتية"));
+        Assert.True(PassageFinder.Matches(pages, "يعني ايه allophone"));
+        Assert.Equal(1, PassageFinder.Find(pages, "يعني ايه الوحدة الصوتية allophone phoneme", 1)[0].Page);
     }
 
     [Fact]

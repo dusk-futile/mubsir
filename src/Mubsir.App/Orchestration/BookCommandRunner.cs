@@ -114,7 +114,8 @@ internal sealed class BookCommandRunner(AppServices app)
 
     private async Task FindAsync(BookAloud books, string query, Lang lang)
     {
-        IReadOnlyList<LibraryCard> found = books.Library.Search(query);
+        app.Speech.PlayEarcon(Earcon.Thinking);
+        IReadOnlyList<LibraryCard> found = await books.FindBooksAsync(query, lang, CancellationToken.None).ConfigureAwait(false);
         if (found.Count == 0)
         {
             int count = books.Library.Count;

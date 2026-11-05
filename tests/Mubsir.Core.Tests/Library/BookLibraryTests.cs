@@ -63,6 +63,63 @@ public class BookLibraryTests
     public void A_title_comes_from_the_best_place_available(string file, string? metadata, string? opening, string expected) =>
         Assert.Equal(expected, BookTitle.Guess(file, metadata, opening));
 
+    private static BookLibrary Shelf()
+    {
+        var library = new BookLibrary(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N")));
+        library.Put(Card(@"C:\a\intro.pdf", "Introducing Phonology"));
+        library.Put(Card(@"C:\a\aswat.pdf", "علم الأصوات"));
+        library.Put(Card(@"C:\a\cook.pdf", "Cooking"));
+        return library;
+    }
+
+    [Fact]
+    public async Task The_ai_keywords_find_books_in_both_languages()
+    {
+        IReadOnlyList<LibraryCard> found = await BookSearch.FindAsync(Shelf(), "كتاب فونولوجيا for my exam", _ => Task.FromResult<string?>("phonology\n- علم الأصوات\n1. phonetics"));
+
+        Assert.Equal(["Introducing Phonology", "علم الأصوات"], found.Select(c => c.Title).Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_clear_title_match_does_not_call_the_ai()
+    {
+        int calls = 0;
+        IReadOnlyList<LibraryCard> found = await BookSearch.FindAsync(Shelf(), "phonology", _ =>
+        {
+            calls++;
+            return Task.FromResult<string?>("x");
+        });
+
+        Assert.Equal(0, calls);
+        Assert.Equal("Introducing Phonology", found[0].Title);
+    }
+
+    [Fact]
+    public async Task A_mixed_sentence_always_asks_the_ai()
+    {
+        int calls = 0;
+        await BookSearch.FindAsync(Shelf(), "phonology بتاع الجامعة", _ =>
+        {
+            calls++;
+            return Task.FromResult<string?>("phonology");
+        });
+
+        Assert.Equal(1, calls);
+    }
+
+    [Fact]
+    public async Task When_the_ai_fails_or_is_off_the_plain_search_still_answers()
+    {
+        Assert.Equal("Cooking", (await BookSearch.FindAsync(Shelf(), "cooking recipes", _ => throw new HttpRequestException()))[0].Title);
+        Assert.Equal("Cooking", (await BookSearch.FindAsync(Shelf(), "cooking recipes", _ => Task.FromResult<string?>(null)))[0].Title);
+        Assert.Equal("Cooking", (await BookSearch.FindAsync(Shelf(), "cooking recipes", null))[0].Title);
+    }
+
+    [Theory]
+    [InlineData("1. phonology\n2) علم الأصوات\n- \"phonetics\"\n\n", new[] { "phonology", "علم الأصوات", "phonetics" })]
+    [InlineData("a\nphonology\nPHONOLOGY", new[] { "phonology" })]
+    public void Keywords_are_cleaned_up(string answer, string[] expected) => Assert.Equal(expected, BookSearch.ParseKeywords(answer));
+
     [Fact]
     public void A_spoken_list_is_numbered_and_tells_same_named_books_apart()
     {

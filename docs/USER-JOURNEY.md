@@ -158,7 +158,9 @@ I read the open-source Clicky (`farzaa/clicky`, MIT) and the community Windows p
 
 ## The walk as the code works today
 
-Written from the code on `feat/reading-direct`. Windows has compiled all of this and the book check runs it, but nobody has yet used it by ear on a real PC.
+Written from the code on `feat/reading-direct`. Nobody has yet used it by ear on a real PC.
+
+Owner's priority (2026-11-05): reliability and working in mixed Arabic and English come first. Privacy and locked books aren't priorities. Book commands understand a sentence that changes language at any word, and when a book search isn't a clear title match, or the sentence is mixed, the AI gives keywords in both languages. If the AI fails, the plain search still answers.
 
 | Moment | What he does | What Mubsir does | What it reads or sends |
 | --- | --- | --- | --- |
@@ -167,7 +169,7 @@ Written from the code on `feat/reading-direct`. Windows has compiled all of this
 | Very first run | Presses Enter | Explains what goes to the cloud and asks once. Enter is required, not voice | Nothing until he agrees |
 | Any request | Holds Right Ctrl, talks, lets go | Speech stops, sound, recording, sound | His voice and the app's name go to Google to become text |
 | A book command | "Next page", "كمل", "mark this", "read for 10 minutes" | Handled on the PC, then reads on by itself if talking is what interrupted it | Nothing more |
-| "Give me the book on phonology" | Says it | Searches the library cards. One match opens; several are read as a numbered list, and he says a number | Nothing more. Cards are built in the background from each file's first 3 pages and stay on the PC |
+| "هات كتاب phonology" | Says it, in any mix | Searches the library cards, with AI keywords in both languages unless the title clearly matches. One match opens; several are read as a numbered list, and he says a number | The request, for keywords. Cards are built in the background from each file's first 3 pages |
 | Reading | Listens | Says the page, reads word for word, saves his place only when a sentence starts playing, and queues one page ahead | Nothing. No AI at all |
 | A broken page | Listens | Local OCR first. If that fails, one image to the AI, at most 3 in a row and 10 a book a day. Otherwise "This page is hard to read" | One page image, only when he has reached it, never in private mode |
 | "What's an allophone?" | Asks mid-book | Finds up to 5 passages on the PC and sends only those, then removes any quote that isn't really in the book | About 2,000 tokens of the book |
@@ -184,16 +186,15 @@ Written from the code on `feat/reading-direct`. Windows has compiled all of this
 | Page out of range | "There are only 312 pages. Which one?" | Built |
 | Number out of range | "There are only 3. Which one?" | Built |
 | Same-named books | Each is read with its folder | Built |
-| Locked PDF | "This book is locked with a password, so I can't read it" | Built; asking for the password isn't |
+| Locked PDF | "This book is locked with a password, so I can't read it" | Built; asking for the password is dropped |
 | Book moved | Found by its contents, once the library has seen it | Built |
 | Book deleted | "That book is no longer on this PC". The bookmark stays | Built |
 | Admin window | Says it can't read it | Built |
 | PC locked mid-book | Speech is held and comes back on unlock | Built |
 | Shared PC | Private mode or `GreetWithLastBook` keeps the greeting quiet | Built; the setting has no voice command yet |
 | The AI is slow | A sound after 1.5 seconds; Ctrl always stops | Built |
-| Headphones unplugged | Should pause so a private book doesn't play aloud | **Not built** |
 | A pop-up steals focus | Should be read first | **Not checked** |
-| Subject in another language | "فونولوجيا" won't match an English title locally. The AI's `find_book` can try both | Local search can't |
+| Subject in another language | "فونولوجيا" finds an English title through AI keywords | Needs internet; offline, only the words as said are searched |
 
 ## What each next feature would cost to run
 

@@ -62,7 +62,17 @@ internal sealed class BookAloud : IBookVoice
     /// <summary>Set by the executor. The one function that sends a page image to the AI.</summary>
     public Func<byte[], Lang, CancellationToken, Task<string?>>? ImageReader { get; set; }
 
+    /// <summary>Set by the executor. Asks the AI for search keywords, or null if it can't be asked.</summary>
+    public Func<string, Lang, CancellationToken, Task<string?>>? KeywordReader { get; set; }
+
     public long Generation => _speech.Generation;
+
+    /// <summary>Finds a book, with the AI's keywords when the plain search isn't clear. Works without the AI too.</summary>
+    public Task<IReadOnlyList<LibraryCard>> FindBooksAsync(string query, Lang lang, CancellationToken ct)
+    {
+        Func<string, Task<string?>>? ask = KeywordReader is { } read && _cloudAllowed() ? prompt => read(prompt, lang, ct) : null;
+        return BookSearch.FindAsync(Library, query, ask);
+    }
 
     public IReadOnlyList<SpokenSentence> Say(string text, Lang lang)
     {

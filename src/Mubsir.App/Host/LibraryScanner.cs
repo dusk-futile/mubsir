@@ -12,7 +12,7 @@ internal sealed class LibraryScanner(BookLibrary library, DocumentReader documen
 {
     private const long MinBookBytes = 20 * 1024;
     private const int SaveEvery = 25;
-    private static readonly TimeSpan FirstWait = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan FirstWait = TimeSpan.FromSeconds(15);
     private static readonly TimeSpan BetweenFiles = TimeSpan.FromMilliseconds(500);
     private static readonly TimeSpan BetweenScans = TimeSpan.FromHours(6);
     private static readonly HashSet<string> SkippedFolders = new(StringComparer.OrdinalIgnoreCase)

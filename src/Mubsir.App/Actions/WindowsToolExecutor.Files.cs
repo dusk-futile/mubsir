@@ -17,6 +17,7 @@ internal sealed partial class WindowsToolExecutor
     private const int MaxOcrPagesPerRead = 3;
     private const int MaxOcrPagesForQuestion = 10;
     private static readonly TimeSpan NestedBrainTimeout = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan KeywordTimeout = TimeSpan.FromSeconds(6);
     private static readonly TimeSpan FindBudget = TimeSpan.FromSeconds(10);
 
     private async Task<(string, bool)> DescribeScreenAsync(AgentAction a, ExecutorState s, CancellationToken ct)
@@ -150,7 +151,13 @@ internal sealed partial class WindowsToolExecutor
 
             // Only the few passages the question is about leave this PC, and invented quotes don't come back.
             int here = requestedPage ?? (path is null ? 1 : _positions.Get(path)?.Page ?? 1);
-            IReadOnlyList<Passage> passages = PassageFinder.Find(pages, question, here);
+            string searchFor = question;
+            if (BookSearch.IsMixed(question) || !PassageFinder.Matches(pages, question))
+            {
+                searchFor += " " + string.Join(' ', BookSearch.ParseKeywords(await ReadKeywordsAsync(BookSearch.KeywordPrompt + question, lang, ct).ConfigureAwait(false)));
+            }
+
+            IReadOnlyList<Passage> passages = PassageFinder.Find(pages, searchFor, here);
             if (passages.Count == 0)
             {
                 return Error("nothing readable was found in the document");
@@ -200,20 +207,35 @@ internal sealed partial class WindowsToolExecutor
         return Ok($"Reading aloud to the user from page {Math.Clamp(startPage, 1, pages.Count)} of {pages.Count}.");
     }
 
-    private (string, bool) FindBook(AgentAction a)
+    private async Task<(string, bool)> FindBookAsync(AgentAction a, ExecutorState s, CancellationToken ct)
     {
         if (_books is null || Arg(a, "query") is not { } query)
         {
             return Error("the library is not available");
         }
 
-        IReadOnlyList<LibraryCard> cards = _books.Library.Search(query);
+        IReadOnlyList<LibraryCard> cards = await _books.FindBooksAsync(query, s.Task.Lang, ct).ConfigureAwait(false);
         if (cards.Count == 0)
         {
             return Ok($"No book matched, out of {_books.Library.Count} found on this PC so far.");
         }
 
         return Ok(string.Join('\n', cards.Select(c => $"{c.Title} | {c.Pages} pages | {c.Path}")));
+    }
+
+    private async Task<string?> ReadKeywordsAsync(string prompt, Lang lang, CancellationToken ct)
+    {
+        using var quick = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        quick.CancelAfter(KeywordTimeout);
+        try
+        {
+            var (answer, error) = await AskBrainAsync(prompt, null, lang, quick.Token).ConfigureAwait(false);
+            return error is null ? answer : null;
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            return null;
+        }
     }
 
     /// <summary>The only place a page image is sent to the AI. The budget in <see cref="PageImageBudget"/> guards it.</summary>

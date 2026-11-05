@@ -9,7 +9,9 @@ Measured 2026-11-05 on branch `feat/reading-direct`, macOS, SDK 10.0.401. Window
 
 | Test | Sample | Value | Target | Result |
 | --- | --- | --- | --- | --- |
-| Core unit tests, all | 137 tests | 137 pass | all pass | Pass |
+| Core unit tests, all | 168 tests | 168 pass | all pass | Pass |
+| Mixed Arabic and English commands and searches | 20 sentences | 20 understood | all | Pass |
+| Book search when the AI fails, returns nothing or is off | 3 runs | plain search still answers | still answers | Pass |
 | Notch opening to listening, overshoot | spring model | 9.6 px before, 0.8 px after | under 2.5 px | Pass |
 | Notch opening to listening, time to within 2 px | spring model | 0.28 s before, 0.34 s after | under 0.36 s | Pass |
 | Page images for a clean book | 100 pages | 0 | 0 | Pass |
