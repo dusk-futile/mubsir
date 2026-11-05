@@ -1,11 +1,6 @@
 # Mubsir — instructions for coding sessions
 
-Where `docs/PLAN.md` and older docs disagree with "Owner decisions" below, the decisions win.
-
-Read this first, then `docs/HANDOFF.md` (where we are and what's next), `docs/CONVERSATION-SUMMARY.md`
-(everything the owner asked for and decided), then `docs/PLAN.md` (the full plan).
-Before building reading or memory, read `docs/USER-JOURNEY.md` (the blind user's journey, code gaps, token options).
-Brand options: `docs/BRAND.md`. When building, follow `docs/EXECUTION.md` (order of work, tests, numbers to report in `docs/RESULTS.md`).
+Read this first, then `docs/PRODUCT.md` (what the app is), `docs/HANDOFF.md` (where we are and what's next) and `docs/WINDOWS-TEST.md` (the full test). `docs/BRAND.md` has the brand. Older plans are in `docs/archive/`. Where they disagree with "Owner decisions" below, the decisions win.
 
 ## What this is
 
@@ -17,14 +12,14 @@ Mubsir (مُبصِر) is a free assistive voice agent for Windows. It can do any
 
 ## Owner decisions (don't re-ask)
 
-- **Decided 2026-11-05, replacing the owner-paid server:** the app is completely free and each user pastes their own keys. Claude Haiku 5.5 is the recommended brain. Fish Audio is for hearing and voice. Gemini is an optional alternative for hearing. The setup window suggests costs. There is no account, server or relay.
+- **Decided 2026-11-05, replacing the owner-paid server:** the app is completely free and each user pastes their own keys. Claude Haiku 5.5 is the recommended brain. Fish Audio is for hearing and the Arabic voice. Gemini is an optional alternative for hearing. The setup window suggests costs. There is no account, server or relay.
 - Reliability first. Everything heavy is in the back end, and the interface is clean, simple and light for weak PCs. Everything on screen must have a purpose, including Hudhud.
 - Target: a full app for the Microsoft Store, as well as the zip.
 - Testing happens on the owner's Windows PC, with Antigravity agents doing the checking to save tokens (`docs/WINDOWS-TEST.md`).
 - Distributed as a zip and later the Store. No API keys in the zip.
 - Windows only (10 22H2 and 11), must stay light on 4 GB RAM PCs.
-- Voice: Fish Audio through the user's own key, with Windows voices as the automatic fallback. Arabic books use Fish by default, English books the free voice, and both can be changed (decided 2026-11-05). Audio already heard is kept, so hearing it again is free.
-- Reading must handle any symbol (IPA, maths, Arabic tashkeel); see PLAN §6 "Reading anything".
+- Voice (decided 2026-11-05): Fish Audio is for Arabic only, through the user's own key. English is Ryan, a free Piper voice on the PC, at 90% speed. Windows voices are the automatic fallback. Audio already heard is kept, so hearing it again is free.
+- Reading must handle any symbol (IPA, maths, Arabic tashkeel).
 - Full access including passwords and payments. Dangerous actions (level 3) need **Right Ctrl pressed
   four times**; passwords are typed locally from the Secrets Vault and never sent to the AI.
 - Repo stays **public** (making it private erases its stars). Never commit keys or secrets.
@@ -54,6 +49,7 @@ Mubsir (مُبصِر) is a free assistive voice agent for Windows. It can do any
 - `nvda-addon/` — NVDA Bridge add-on (Python, GPL-2.0).
 - `scripts/` — `setup.ps1` installer script, `pack-msix.ps1` (Store package), `build-addon.py`, `build-icons.py`, and
   `overlay-smoke.ps1` and `setup-shots.ps1` (run on a Windows desktop in CI; their screenshots are the `overlay-shots` artifact).
+- `docs/archive/` — old plans, kept for history.
 - `packaging/` — the Store package's manifest. `docs/STORE.md` says what's left to submit it.
 
 ## Build

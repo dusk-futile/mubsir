@@ -29,6 +29,8 @@
   <ItemGroup>
     <PackageReference Include="Anthropic" Version="12.55.0" />
     <PackageReference Include="Interop.UIAutomationClient" Version="10.19041.0" />
+    <PackageReference Include="org.k2fsa.sherpa.onnx" Version="1.12.40" />
+    <PackageReference Include="org.k2fsa.sherpa.onnx.runtime.win-x64" Version="1.12.40" />
     <PackageReference Include="PdfPig" Version="0.1.16" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.12" />
   </ItemGroup>

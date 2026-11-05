@@ -90,7 +90,8 @@ internal sealed class MubsirHost
         }
 
         using var fishVoice = new FishVoice(secrets, settings, _log, ledger, OnCostChanged);
-        using var speech = new SpeechService(nvda, oneCore, settings, _log, _clock, fishVoice, quiet);
+        using var localVoice = new LocalVoice(_log);
+        using var speech = new SpeechService(nvda, oneCore, settings, _log, _clock, fishVoice, quiet, localVoice);
         using var recorder = new WaveInRecorder(_log);
         var input = new InputStateMachine(InputSettingsFrom(settings.Settings), _clock);
         var actions = Channel.CreateUnbounded<InputAction>(new UnboundedChannelOptions { SingleReader = true });
@@ -129,6 +130,8 @@ internal sealed class MubsirHost
         app.Screen = screen;
         app.Ears = Create("ears", () => new EarsRouter(new GeminiEars(secrets, settings, _log), new FishEars(secrets, _log, ledger, OnCostChanged), secrets, settings, _log));
         app.Sessions = new SessionArchive(settings.Settings.SessionsFolder ?? AppPaths.DefaultChatsDir, () => _clock.UtcNow.ToLocalTime());
+        localVoice.Installed += () => app.SayNow(AppPhrase.LocalVoiceReady);
+        localVoice.TooSlow += () => app.SayNow(AppPhrase.LocalVoiceTooSlow);
         fishVoice.KeyRejected += status => app.SayNow(status == 402 ? AppPhrase.FishNoCredit : AppPhrase.FishKeyRejected);
         using var companion = settings.Settings.ShowNotch ? new CompanionBridge(speech, recorder, settings, _log) : null;
         app.Companion = companion;
@@ -182,6 +185,7 @@ internal sealed class MubsirHost
 
         using var scanStopping = new CancellationTokenSource();
         scanner?.Start(scanStopping.Token);
+        _ = Task.Run(() => localVoice.InstallAsync(scanStopping.Token));
         using var foreground = new ForegroundWatcher(app, mubsir.Tasks, hook);
         foreground.Start();
         using var session = new SessionWatcher(app, mubsir.Tasks, hook);

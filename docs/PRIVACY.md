@@ -10,7 +10,7 @@ You choose these services by giving Mubsir your own keys. Each one has its own p
 | --- | --- | --- |
 | Fish Audio, or Google Gemini if you added that key | Your recorded voice. With Gemini, also the name of the app you're in and of the focused item. | To turn speech into text |
 | Anthropic (Claude) | Your request, and the screen or document text it needs. Sometimes a picture of the screen or a page, if you allowed it. | To answer and to act |
-| Fish Audio | The sentences Mubsir says to you, unless you use the free Windows voice | To make the voice |
+| Fish Audio | The Arabic sentences Mubsir says to you, unless you use the free Windows voice. English speech is made on your PC | To make the voice |
 
 Hearing a request is off until you've agreed on first start. Saying "private mode" stops everything being sent.
 

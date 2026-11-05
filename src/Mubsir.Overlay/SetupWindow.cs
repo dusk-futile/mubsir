@@ -52,10 +52,6 @@ public interface ISetupDriver
 
     void SetFishVoiceId(string? voiceId);
 
-    string? GetFishVoiceIdArabic();
-
-    void SetFishVoiceIdArabic(string? voiceId);
-
     void TestVoice(Lang lang);
 
     void ReportProblem();
@@ -69,17 +65,16 @@ public interface ISetupDriver
 /// </summary>
 public sealed class SetupWindow : Window
 {
-    private ComboBox VoiceList(string name, Lang lang, string? current, Action<string?> choose)
+    private ComboBox VoiceList(string? current, Action<string?> choose)
     {
-        var list = new ComboBox { FontFamily = Font, FontSize = 13, Margin = new Thickness(0, 0, 0, 10) };
-        AutomationProperties.SetName(list, name);
-        list.Items.Add(name + ": " + T("الافتراضي", "default"));
-        foreach (var voice in Mubsir.Core.Speech.VoiceCatalog.For(lang))
+        var list = new ComboBox { FontFamily = Font, FontSize = 13, Margin = new Thickness(0, 4, 0, 6) };
+        AutomationProperties.SetName(list, T("صوت العربية", "Arabic voice"));
+        foreach (var voice in Mubsir.Core.Speech.VoiceCatalog.Arabic)
         {
-            list.Items.Add(name + " " + voice.Number + ": " + voice.Name);
+            list.Items.Add(voice.Number + ": " + voice.Name);
             if (voice.Id == current)
             {
-                list.SelectedIndex = voice.Number;
+                list.SelectedIndex = voice.Number - 1;
             }
         }
 
@@ -88,7 +83,7 @@ public sealed class SetupWindow : Window
             list.SelectedIndex = 0;
         }
 
-        list.SelectionChanged += (_, _) => choose(list.SelectedIndex == 0 ? null : Mubsir.Core.Speech.VoiceCatalog.Get(lang, list.SelectedIndex)?.Id);
+        list.SelectionChanged += (_, _) => choose(Mubsir.Core.Speech.VoiceCatalog.Get(list.SelectedIndex + 1)?.Id);
         return list;
     }
 
@@ -199,7 +194,7 @@ public sealed class SetupWindow : Window
         Add(Words(T("انسخ المفتاح من الموقع وهنا هيتحفظ لوحده.", "Copy a key on the website and it's picked up here by itself."), 14, Quiet));
         Button first = KeyRow(KeyKind.Anthropic, T("Claude: العقل", "Claude: the brain"),
             T("مطلوب. هنستخدم Haiku 5.5، الأسرع والأرخص والأكثر اعتمادية للمهام دي.", "Required. Mubsir uses Haiku 5.5: the fastest, cheapest and most reliable fit for this."));
-        KeyRow(KeyKind.FishAudio, T("Fish Audio: الصوت والسمع", "Fish Audio: voice and hearing"),
+        KeyRow(KeyKind.FishAudio, T("Fish Audio: السمع وصوت العربي", "Fish Audio: hearing and the Arabic voice"),
             T("بيحول كلامك لنص وبيتكلم بصوت طبيعي. لو فشل، صوت ويندوز المجاني بيكمل.", "Turns your speech into text and speaks in a natural voice. If it fails, the free Windows voice takes over."));
         AddCosts();
 
@@ -357,7 +352,7 @@ public sealed class SetupWindow : Window
         Begin(T("قبل ما نبدأ", "Before we start"));
         string text = T(
             "لما تتكلم، صوتك بيروح لخدمة السمع، وطلبك مع نص الشاشة اللازم بيروح لـ Claude، وردودي بتروح لـ Fish Audio عشان تتحول لصوت. كلمات المرور والبطاقات والأكواد مش بتتبعت، وصفحات البنوك الذكاء الاصطناعي بيقف فيها. قول الوضع الخاص في أي وقت عشان توقف كل إرسال.",
-            "When you talk, your voice goes to the hearing service, your request and the screen text it needs go to Claude, and my replies go to Fish Audio to become a voice. Passwords, cards and codes aren't sent, and the AI stops on bank pages. Say private mode at any time to stop everything being sent.");
+            "When you talk, your voice goes to the hearing service, your request and the screen text it needs go to Claude, and my Arabic replies go to Fish Audio to become a voice. Passwords, cards and codes aren't sent, and the AI stops on bank pages. Say private mode at any time to stop everything being sent.");
         Add(Words(text, 15, Ink));
         Button agree = MainButton(T("موافق", "I agree"), () =>
         {
@@ -483,7 +478,7 @@ public sealed class SetupWindow : Window
 
         // Keys
         KeyRow(KeyKind.Anthropic, "Claude", T("العقل", "The brain"));
-        KeyRow(KeyKind.FishAudio, "Fish Audio", T("الصوت والسمع", "Voice and hearing"));
+        KeyRow(KeyKind.FishAudio, "Fish Audio", T("السمع وصوت العربي", "Hearing and the Arabic voice"));
         KeyRow(KeyKind.Gemini, "Google Gemini", T("اختياري، للسمع", "Optional, for hearing"));
 
         // Talk key
@@ -543,9 +538,9 @@ public sealed class SetupWindow : Window
         Add(brainBox);
 
         // Fish voice id & testing
-        Add(Words(T("معرف صوت Fish Audio (Voice ID)", "Fish Audio Voice ID"), 14, Ink, FontWeights.SemiBold));
-        Add(Words(T("سيبه فاضي، أو اكتب معرف صوت من حسابك في Fish Audio.",
-            "Leave it empty, or enter a voice ID from Fish Audio."), 12.5, Quiet));
+        Add(Words(T("صوت العربية (Fish Audio)", "Arabic voice (Fish Audio)"), 14, Ink, FontWeights.SemiBold));
+        Add(Words(T("اختار من القايمة، أو اكتب معرف صوت من حسابك في Fish Audio.",
+            "Pick from the list, or enter a voice ID from Fish Audio."), 12.5, Quiet));
         var voiceIdBox = new TextBox
         {
             Text = _driver.GetFishVoiceId() ?? string.Empty,
@@ -558,6 +553,12 @@ public sealed class SetupWindow : Window
         AutomationProperties.SetName(voiceIdBox, T("معرف صوت Fish Audio", "Fish Audio voice ID"));
         voiceIdBox.LostFocus += (_, _) => _driver.SetFishVoiceId(voiceIdBox.Text);
         voiceIdBox.TextChanged += (_, _) => _driver.SetFishVoiceId(voiceIdBox.Text);
+        var voiceList = VoiceList(_driver.GetFishVoiceId(), id =>
+        {
+            _driver.SetFishVoiceId(id);
+            voiceIdBox.Text = id ?? string.Empty;
+        });
+        Add(voiceList);
         Add(voiceIdBox);
 
         var voiceTestPanel = new WrapPanel { Margin = new Thickness(0, 0, 0, 10) };
@@ -573,13 +574,6 @@ public sealed class SetupWindow : Window
         }));
         Add(voiceTestPanel);
 
-        Add(VoiceList(T("صوت العربية", "Arabic voice"), Lang.Arabic, _driver.GetFishVoiceIdArabic(), _driver.SetFishVoiceIdArabic));
-        Add(VoiceList(T("صوت الإنجليزية", "English voice"), Lang.English, _driver.GetFishVoiceId(), id =>
-        {
-            _driver.SetFishVoiceId(id);
-            voiceIdBox.Text = id ?? string.Empty;
-        }));
-
         // NVDA Add-on installation
         Add(Words(T("إضافة NVDA Bridge", "NVDA Bridge Add-on"), 14, Ink, FontWeights.SemiBold));
         Add(Words(T("لتشغيل جسر NVDA مع مبصر، اضغط هنا لتثبيت الإضافة في NVDA.", "To connect NVDA with Mubsir, click here to install the bridge add-on in NVDA."), 12.5, Quiet));
@@ -589,9 +583,8 @@ public sealed class SetupWindow : Window
         Add(Words(T("خيارات عامة", "General options"), 14, Ink, FontWeights.SemiBold));
         Option("ShowNotch", T("أظهر الشريط اللي فوق الشاشة (بعد إعادة التشغيل)", "Show the notch at the top of the screen (after a restart)"));
         Option("ShowHudhud", T("أظهر الهدهد (بعد إعادة التشغيل)", "Show Hudhud (after a restart)"));
-        Option("UseFishVoice", T("اتكلم بصوت Fish Audio", "Talk in the Fish Audio voice"));
-        Option("ReadArabicBooksWithFish", T("اقرأ الكتب العربية بالصوت المختار (10 صفحات بحوالي 50 سنت)", "Read Arabic books in the chosen voice (about $0.50 for 10 pages)"));
-        Option("ReadBooksWithFish", T("اقرأ الكتب الإنجليزية بالصوت المختار (10 صفحات بحوالي 30 سنت)", "Read English books in the chosen voice (about $0.30 for 10 pages)"));
+        Option("UseFishVoice", T("اتكلم عربي بصوت Fish Audio", "Speak Arabic in the Fish Audio voice"));
+        Option("ReadArabicBooksWithFish", T("اقرأ الكتب العربية بصوت Fish (10 صفحات بحوالي 50 سنت)", "Read Arabic books in the Fish voice (about $0.50 for 10 pages)"));
         Option("TeachMovesMouse", T("وأنا بعلم، حرك الماوس للمكان الصح", "When teaching, move the mouse to the right place"));
         Option("ReadFullTashkeel", T("اقرأ التشكيل كاملاً (لو مقفول، متروك للصوت)", "Read Arabic diacritics fully (when off, left to the voice)"));
         Option("SaveSessions", T("احفظ المحادثات في فولدر على جهازي", "Save chats in a folder on this PC"));

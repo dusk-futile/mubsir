@@ -143,13 +143,12 @@ internal sealed partial class WindowsToolExecutor
     {
         if (Voices is null || _settings is null || !Voices.HasKey)
         {
-            return Error("choosing a voice needs a Fish Audio key");
+            return Error("choosing an Arabic voice needs a Fish Audio key");
         }
 
-        Lang voiceLang = Arg(a, "language") == "english" ? Lang.English : Lang.Arabic;
         if (ToolArgs.Int(a.Args, "number") is not { } number)
         {
-            foreach (FishVoiceChoice each in VoiceCatalog.For(voiceLang))
+            foreach (FishVoiceChoice each in VoiceCatalog.Arabic)
             {
                 string says = s.Task.Lang == Lang.Arabic ? "صوت رقم " + each.Number : "Voice " + each.Number;
                 if (_speech is not null)
@@ -163,27 +162,25 @@ internal sealed partial class WindowsToolExecutor
                 }
             }
 
-            return Ok($"All {VoiceCatalog.For(voiceLang).Count} samples played. Ask which number they want.");
+            return Ok($"All {VoiceCatalog.Arabic.Count} samples played. Ask which number they want.");
         }
 
-        if (number == 0 && ToolArgs.Bool(a.Args, "save") == true)
+        bool save = ToolArgs.Bool(a.Args, "save") == true;
+        if (number == 0 && save)
         {
-            _settings.Update(old => voiceLang == Lang.Arabic ? old with { ReadArabicBooksWithFish = false } : old with { ReadBooksWithFish = false });
-            return Ok($"{voiceLang} books now use the free voice, which costs nothing.");
+            _settings.Update(old => old with { ReadArabicBooksWithFish = false });
+            return Ok("Arabic books now use the free Windows voice, which costs nothing.");
         }
 
-        if (VoiceCatalog.Get(voiceLang, number) is not { } voice)
+        if (VoiceCatalog.Get(number) is not { } voice)
         {
-            return Error($"there are only {VoiceCatalog.For(voiceLang).Count} voices");
+            return Error($"there are only {VoiceCatalog.Arabic.Count} voices");
         }
 
-        if (ToolArgs.Bool(a.Args, "save") == true)
+        if (save)
         {
-            _settings.Update(old => voiceLang == Lang.Arabic
-                ? old with { FishVoiceIdArabic = voice.Id, ReadArabicBooksWithFish = true }
-                : old with { FishVoiceId = voice.Id, ReadBooksWithFish = true });
-            string cost = voiceLang == Lang.Arabic ? "$0.50" : "$0.30";
-            return Ok($"Voice {number} ({voice.Name}) is saved for {voiceLang}, including books. Reading 10 pages for the first time costs about {cost}. Hearing them again is free. Number 0 is the free voice for books.");
+            _settings.Update(old => old with { FishVoiceIdArabic = voice.Id, ReadArabicBooksWithFish = true });
+            return Ok($"Voice {number} ({voice.Name}) is saved, including for books. Reading 10 pages for the first time costs about $0.50. Hearing them again is free. Number 0 is the free voice for Arabic books.");
         }
 
         await Voices.PlaySampleAsync(voice.Sample, SampleLength, ct).ConfigureAwait(false);

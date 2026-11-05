@@ -63,11 +63,8 @@ public sealed record MubsirSettings
 
     public bool ShowHudhud { get; set; } = true;
 
-    /// <summary>Speak through Fish Audio when it has a key. Otherwise, or if it fails, the free Windows voice speaks.</summary>
+    /// <summary>Speak Arabic through Fish Audio when it has a key. Otherwise, or if it fails, the free Windows voice speaks. English always uses the free voice.</summary>
     public bool UseFishVoice { get; set; } = true;
-
-    /// <summary>English books through the paid voice. They read well for free, so it's off.</summary>
-    public bool ReadBooksWithFish { get; set; }
 
     /// <summary>Arabic books through the paid voice, about $0.50 for 10 pages. The free Arabic voices are much weaker, so it's on.</summary>
     public bool ReadArabicBooksWithFish { get; set; } = true;
@@ -77,9 +74,6 @@ public sealed record MubsirSettings
 
     /// <summary>Read Arabic diacritics fully instead of leaving them to the voice.</summary>
     public bool ReadFullTashkeel { get; set; } = true;
-
-    /// <summary>The Fish Audio voice id for English. Empty uses the first voice in the catalog.</summary>
-    public string? FishVoiceId { get; set; }
 
     /// <summary>The Fish Audio voice id for Arabic. Empty uses the first voice in the catalog.</summary>
     public string? FishVoiceIdArabic { get; set; }

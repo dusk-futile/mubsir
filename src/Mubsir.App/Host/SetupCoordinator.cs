@@ -115,7 +115,6 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
             "ShowNotch" => s.ShowNotch,
             "ShowHudhud" => s.ShowHudhud,
             "UseFishVoice" => s.UseFishVoice,
-            "ReadBooksWithFish" => s.ReadBooksWithFish,
             "ReadArabicBooksWithFish" => s.ReadArabicBooksWithFish,
             "TeachMovesMouse" => s.TeachMovesMouse,
             "ReadFullTashkeel" => s.ReadFullTashkeel,
@@ -129,7 +128,6 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
         "ShowNotch" => s with { ShowNotch = value },
         "ShowHudhud" => s with { ShowHudhud = value },
         "UseFishVoice" => s with { UseFishVoice = value },
-        "ReadBooksWithFish" => s with { ReadBooksWithFish = value },
         "ReadArabicBooksWithFish" => s with { ReadArabicBooksWithFish = value },
         "TeachMovesMouse" => s with { TeachMovesMouse = value },
         "ReadFullTashkeel" => s with { ReadFullTashkeel = value },
@@ -215,16 +213,9 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
         Say((lang == Lang.Arabic ? "العقل المختار: " : "Chosen brain: ") + name, lang);
     }
 
-    public string? GetFishVoiceId() => app.Settings.Settings.FishVoiceId;
+    public string? GetFishVoiceId() => app.Settings.Settings.FishVoiceIdArabic;
 
     public void SetFishVoiceId(string? voiceId)
-    {
-        app.Settings.Update(s => s with { FishVoiceId = string.IsNullOrWhiteSpace(voiceId) ? null : voiceId.Trim() });
-    }
-
-    public string? GetFishVoiceIdArabic() => app.Settings.Settings.FishVoiceIdArabic;
-
-    public void SetFishVoiceIdArabic(string? voiceId)
     {
         app.Settings.Update(s => s with { FishVoiceIdArabic = string.IsNullOrWhiteSpace(voiceId) ? null : voiceId.Trim() });
     }

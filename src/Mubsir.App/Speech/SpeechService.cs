@@ -20,6 +20,7 @@ internal sealed class SpeechService : IDisposable
     private readonly NvdaController _nvda;
     private readonly OneCoreSpeech _oneCore;
     private readonly FishVoice? _fish;
+    private readonly LocalVoice? _local;
     private readonly NvdaQuiet? _quiet;
     private readonly SettingsProvider _settings;
     private readonly IEventLog _log;
@@ -45,11 +46,12 @@ internal sealed class SpeechService : IDisposable
     private long _nvdaCallStartedAt;
     private long _nvdaCallBudgetMs;
 
-    public SpeechService(NvdaController nvda, OneCoreSpeech oneCore, SettingsProvider settings, IEventLog log, IClock clock, FishVoice? fish = null, NvdaQuiet? quiet = null)
+    public SpeechService(NvdaController nvda, OneCoreSpeech oneCore, SettingsProvider settings, IEventLog log, IClock clock, FishVoice? fish = null, NvdaQuiet? quiet = null, LocalVoice? local = null)
     {
         _nvda = nvda;
         _oneCore = oneCore;
         _fish = fish;
+        _local = local;
         _quiet = quiet;
         _settings = settings;
         _log = log;
@@ -288,8 +290,22 @@ internal sealed class SpeechService : IDisposable
         _signal.Set();
     }
 
+    /// <summary>Any Arabic in a sentence means the Arabic voice says it, so an English voice never has to read Arabic letters.</summary>
+    private static Lang LangOf(Job job) => job.Lang == Lang.Arabic || job.Sentence.PlainText.Any(c => c is >= '\u0600' and <= '\u06FF' or >= '\u0750' and <= '\u077F') ? Lang.Arabic : Lang.English;
+
+    private ISentenceVoice? VoiceFor(Job job)
+    {
+        Lang lang = LangOf(job);
+        if (_fish is { } fish && fish.CanSpeak(job.IsBook, lang))
+        {
+            return fish;
+        }
+
+        return _local is { } local && local.CanSpeak(job.IsBook, lang) ? local : null;
+    }
+
     /// <summary>Runs once a sentence starts playing, so its own ready audio has already been used.</summary>
-    private void GetNextReady(FishVoice fish, Job job)
+    private void GetNextReady(Job job)
     {
         try
         {
@@ -299,9 +315,9 @@ internal sealed class SpeechService : IDisposable
                 next = _queue.First?.Value;
             }
 
-            if (next is not null && next.Generation == job.Generation)
+            if (next is not null && next.Generation == job.Generation && VoiceFor(next) is { } voice)
             {
-                fish.GetReady(next.Sentence.PlainText, next.Lang, _rate, next.IsBook);
+                voice.GetReady(next.Sentence.PlainText, LangOf(next), _rate, next.IsBook);
             }
         }
         catch (Exception e) when (e is not OutOfMemoryException)
@@ -352,6 +368,7 @@ internal sealed class SpeechService : IDisposable
 
         _oneCore.Stop();
         _fish?.Stop();
+        _local?.Stop();
     }
 
     private LangTagStyle TagStyle() =>
@@ -463,7 +480,7 @@ internal sealed class SpeechService : IDisposable
                 _nvda.SpeakText(warn);
             }
         }
-        else if (_fish is { } fish && fish.CanSpeak(job.IsBook, job.Lang))
+        else if (VoiceFor(job) is { } fish)
         {
             if (nvdaRunning)
             {
@@ -476,11 +493,11 @@ internal sealed class SpeechService : IDisposable
             try
             {
                 // SpeakAsync has its own limits. This one means a hang can only ever cost one sentence.
-                Task<bool> speaking = fish.SpeakAsync(job.Sentence.PlainText, job.Lang, _rate, 
+                Task<bool> speaking = fish.SpeakAsync(job.Sentence.PlainText, LangOf(job), _rate, 
                     () =>
                     {
                         History.MarkSpoken(job.Sentence.HistoryIndex);
-                        _ = Task.Run(() => GetNextReady(fish, job));
+                        _ = Task.Run(() => GetNextReady(job));
                     },
                     isBook: job.IsBook);
                 TimeSpan most = TimeSpan.FromSeconds(75) + TimeSpan.FromMilliseconds(job.Sentence.PlainText.Length * 250L);
@@ -496,7 +513,7 @@ internal sealed class SpeechService : IDisposable
             }
             catch (Exception e) when (e is not OutOfMemoryException)
             {
-                _log.Failure("fish_sentence", e);
+                _log.Failure("voice_sentence", e);
             }
             finally
             {

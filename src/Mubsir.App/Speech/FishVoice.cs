@@ -22,7 +22,7 @@ internal sealed class FishVoice(
     CostLedger? ledger = null,
     Action? onCostRecorded = null,
     FishVoiceCache? cache = null,
-    HttpMessageHandler? handler = null) : IDisposable
+    HttpMessageHandler? handler = null) : IDisposable, ISentenceVoice
 {
     private const string Endpoint = "https://api.fish.audio/v1/tts";
     private const int MaxChars = 2000;
@@ -78,11 +78,12 @@ internal sealed class FishVoice(
         return !stopped.IsCancellationRequested;
     }
 
-    public bool CanSpeak(bool isBook, Lang lang = Lang.English)
+    /// <summary>Fish speaks Arabic only. English has its own free voice.</summary>
+    public bool CanSpeak(bool isBook, Lang lang)
     {
         MubsirSettings s = settings.Settings;
-        bool bookOff = isBook && !(lang == Lang.Arabic ? s.ReadArabicBooksWithFish : s.ReadBooksWithFish);
-        if (!s.UseFishVoice || s.PrivateMode || bookOff || DateTime.UtcNow < _restUntil)
+        bool bookOff = isBook && !s.ReadArabicBooksWithFish;
+        if (lang != Lang.Arabic || !s.UseFishVoice || s.PrivateMode || bookOff || DateTime.UtcNow < _restUntil)
         {
             return false;
         }
@@ -92,7 +93,7 @@ internal sealed class FishVoice(
     }
 
     /// <summary>True if the sentence was heard, or was stopped by the user. False if another voice should say it.</summary>
-    public async Task<bool> SpeakAsync(string text, Lang lang, int rate, Action started, bool isBook = false)
+    public async Task<bool> SpeakAsync(string text, Lang lang, int rate, Action started, bool isBook)
     {
         string? key = secrets.Get(SecretNames.Fish);
         if (key is null || string.IsNullOrWhiteSpace(text) || text.Length > MaxChars)
@@ -107,7 +108,7 @@ internal sealed class FishVoice(
         }
 
         double speed = Math.Clamp(0.5 + (rate / 100.0), 0.5, 2.0);
-        string voice = VoiceFor(lang);
+        string voice = VoiceFor();
         FishVoiceCache store = isBook ? _bookCache : _cache;
         bool canCache = !settings.Settings.PrivateMode && text.Length <= store.Limit;
 
@@ -161,7 +162,7 @@ internal sealed class FishVoice(
         }
 
         double speed = Math.Clamp(0.5 + (rate / 100.0), 0.5, 2.0);
-        string voice = VoiceFor(lang);
+        string voice = VoiceFor();
         FishVoiceCache store = isBook ? _bookCache : _cache;
         bool canCache = text.Length <= store.Limit;
         if (canCache && store.Has(text, voice, speed))
@@ -244,8 +245,7 @@ internal sealed class FishVoice(
         return bytes;
     }
 
-    private string VoiceFor(Lang lang) =>
-        (lang == Lang.Arabic ? settings.Settings.FishVoiceIdArabic : settings.Settings.FishVoiceId) ?? VoiceCatalog.Default(lang == Lang.Arabic ? Lang.Arabic : Lang.English).Id;
+    private string VoiceFor() => settings.Settings.FishVoiceIdArabic ?? VoiceCatalog.Default.Id;
 
     private sealed record ReadySentence(string Text, Lang Lang, bool IsBook, Task<byte[]?> Audio);
 

@@ -294,6 +294,7 @@ internal static class BookCheck
         }
 
         Line("Arabic voice: " + (oneCore.HasArabicVoice ? "yes" : "no"));
+        await RealLocalVoice(temp);
         using var settings = new SettingsProvider(log, Path.Combine(temp, "settings.json"), Path.Combine(temp, "profile.json"));
         using var speech = new SpeechService(new NvdaController(), oneCore, settings, log, SystemClock.Instance);
         var positions = new ReadingPositions(Path.Combine(temp, "voice.json"));
@@ -483,5 +484,29 @@ internal static class BookCheck
                 return index < _queue.Count ? _queue[index] : null;
             }
         }
+    }
+
+    /// <summary>Downloads Ryan for real, makes a sentence and says how fast this PC made it.</summary>
+    private static async Task RealLocalVoice(string temp)
+    {
+        const string Test = "free English voice";
+        using var voice = new LocalVoice(NullEventLog.Instance, Path.Combine(temp, "voices"));
+        if (!await voice.InstallAsync(CancellationToken.None))
+        {
+            Fail(Test, "the download or unpacking failed");
+            return;
+        }
+
+        const string Sentence = "The study of speech sounds begins with a simple question about what the mouth does.";
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        byte[]? wav = voice.Make(Sentence, 50);
+        if (wav is null || wav.Length < 1000)
+        {
+            Fail(Test, "it made no sound");
+            return;
+        }
+
+        Line($"  made {wav.Length / 44100.0:F1} s of speech in {clock.Elapsed.TotalSeconds:F1} s");
+        Pass(Test);
     }
 }

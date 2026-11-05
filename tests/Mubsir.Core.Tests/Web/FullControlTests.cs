@@ -184,26 +184,32 @@ public class FullControlTests
     [Fact]
     public void Every_voice_has_a_number_an_id_and_no_signed_link()
     {
-        foreach (Lang lang in new[] { Lang.Arabic, Lang.English })
+        IReadOnlyList<FishVoiceChoice> voices = VoiceCatalog.Arabic;
+        Assert.Equal(Enumerable.Range(1, voices.Count), voices.Select(v => v.Number));
+        Assert.All(voices, v =>
         {
-            IReadOnlyList<FishVoiceChoice> voices = VoiceCatalog.For(lang);
-            Assert.Equal(Enumerable.Range(1, voices.Count), voices.Select(v => v.Number));
-            Assert.All(voices, v =>
-            {
-                Assert.Equal(32, v.Id.Length);
-                Assert.StartsWith("https://platform.r2.fish.audio/", v.Sample, StringComparison.Ordinal);
-                Assert.DoesNotContain("?", v.Sample, StringComparison.Ordinal);
-            });
-        }
+            Assert.Equal(32, v.Id.Length);
+            Assert.StartsWith("https://platform.r2.fish.audio/", v.Sample, StringComparison.Ordinal);
+            Assert.DoesNotContain("?", v.Sample, StringComparison.Ordinal);
+        });
     }
 
     [Fact]
-    public void The_owners_chosen_voices_are_the_ones_offered_with_the_first_as_default()
+    public void The_owners_chosen_arabic_voices_are_offered_with_the_narrator_first()
     {
-        Assert.Equal(["Natasha", "Sarah", "Selene", "Ethan"], VoiceCatalog.For(Lang.English).Select(v => v.Name));
-        Assert.Equal(6, VoiceCatalog.For(Lang.Arabic).Count);
-        Assert.Equal("Natasha", VoiceCatalog.Default(Lang.English).Name);
-        Assert.Equal("راوي عربي", VoiceCatalog.Default(Lang.Arabic).Name);
+        Assert.Equal(6, VoiceCatalog.Arabic.Count);
+        Assert.Equal("راوي عربي", VoiceCatalog.Default.Name);
+    }
+
+    [Fact]
+    public void A_sound_file_has_a_correct_header_and_clamps_loud_samples()
+    {
+        byte[] wav = WavFile.FromSamples([0f, 2f, -2f], 22050);
+        Assert.Equal(44 + 6, wav.Length);
+        Assert.Equal("RIFF", System.Text.Encoding.ASCII.GetString(wav, 0, 4));
+        Assert.Equal(22050, BitConverter.ToInt32(wav, 24));
+        Assert.Equal(short.MaxValue, BitConverter.ToInt16(wav, 46));
+        Assert.Equal(-short.MaxValue, BitConverter.ToInt16(wav, 48));
     }
 
     [Theory]

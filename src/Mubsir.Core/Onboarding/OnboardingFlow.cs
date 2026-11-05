@@ -233,8 +233,8 @@ public sealed class OnboardingFlow
         (string ar, string en) = FirstSuggestion(goal, _subject);
         if (noSight)
         {
-            ar += " وتقدر تقول غير الصوت عشان تختار صوت العربي وصوت الإنجليزي.";
-            en += " You can also say change the voice to pick one for Arabic and one for English.";
+            ar += " وتقدر تقول غير الصوت عشان تختار صوت العربي.";
+            en += " You can also say change the voice to pick the Arabic voice.";
         }
 
         return new PersonalPlan(

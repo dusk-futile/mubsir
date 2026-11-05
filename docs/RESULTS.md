@@ -1,6 +1,6 @@
 # Results
 
-Measured numbers for each phase (`docs/EXECUTION.md` → "Tests and the numbers to report").
+Measured numbers for each phase (`docs/archive/EXECUTION.md` → "Tests and the numbers to report").
 Every row: date, commit, sample size, value, target, pass or fail.
 
 ## Full PC control, numbered results, book descriptions, IPA, voices
@@ -19,11 +19,12 @@ Local voices, one 10 to 15 second passage each, on an Intel i3-8100 (4 cores, 3.
 | --- | --- | --- | --- | --- | --- |
 | Kokoro multi-lang v1.0, int8 | 182 MB | 2 | 0.5 to 0.6x | 418 MB | Too slow to read live |
 | Kokoro multi-lang v1.0, int8 | 182 MB | 4 | 0.3x | 333 MB | Too slow to read live |
+| Piper Ryan, English, high, the app's voice, at 90% speed | 133 MB | 2 | 2.2x | 326 MB | Fast enough here, check on a weak PC |
 | Piper Amy, English, medium | 79 MB | 2 | 9.2x | 294 MB | Fast enough |
 | Piper Ryan, English, medium | 78 MB | 2 | 12.1x | 232 MB | Fast enough |
 | Piper Kareem, Arabic, medium | 78 MB | 2 | 7.9x | 315 MB | Fast enough |
 
-Sherpa-onnx 2.0 could not phonemize Kokoro v0.19 or Piper here, so Piper ran on 1.12.40. Piper needs espeak-ng, which is GPL: check the licence before shipping it. No local voice is in the app yet.
+Sherpa-onnx 2.0 could not phonemize Kokoro v0.19 or Piper here, so Piper ran on 1.12.40. Piper needs espeak-ng, which is GPL-3.0. Ryan is now in the app as `LocalVoice`. The Windows run of `--book-check` proves the engine works there, and nobody has heard it there yet.
 
 ## Own-keys app, setup, teaching and audit fixes
 

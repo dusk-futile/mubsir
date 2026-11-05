@@ -43,7 +43,7 @@ On first start it asks a few questions, and each answer changes how it behaves. 
 - **It works the whole PC.** Opens apps, sites and files, searches and reads you numbered results, clicks what it can see, scrolls, fills in fields, plays YouTube, manages files, and installs a program when you ask and press a key.
 - **It reads what's really there.** Web pages, Word, PDFs and scanned Arabic books.
 - **It reads any symbol.** Phonetic writing such as /ʃɪp/ is said sound by sound, and maths and Greek are named.
-- **You pick the voice.** Say "غير الصوت", hear each one, and say its number.
+- **You pick the Arabic voice.** Say "غير الصوت", hear each one, and say its number.
 - **It speaks your language.** Egyptian, Gulf, Levantine, Libyan, Maghrebi and MSA, with English mixed in mid-sentence.
 - **You stay in control.** One key stops anything, instantly. Sending, paying and deleting need your OK. On bank pages the AI switches off, and you press Pay yourself.
 - **It's light.** Everything on screen has a job and can be turned off. It's built for 4 GB PCs.
@@ -61,17 +61,18 @@ Mubsir is free, and it runs on your own keys, so you pay the AI services only fo
 | Key | What it's for | |
 | --- | --- | --- |
 | [Claude](https://console.anthropic.com/settings/keys) | The brain | Required. Mubsir uses Haiku 5.5: the fastest, cheapest and most reliable fit for this. |
-| [Fish Audio](https://fish.audio/app/api-keys) | Hearing you and a natural voice | Required for hearing, unless you add a [Google Gemini](https://aistudio.google.com/apikey) key instead. If its voice fails, the free Windows voice takes over. |
+| [Fish Audio](https://fish.audio/app/api-keys) | Hearing you and the Arabic voice | Required for hearing, unless you add a [Google Gemini](https://aistudio.google.com/apikey) key instead. If its voice fails, the free Windows voice takes over. |
 
-**What it might cost a month.** These are estimates from today's prices, not quotes:
+English speech is free: Ryan, a natural voice that runs on your PC, downloads once in the background. Arabic speech uses Fish Audio.
 
-| Use | With the Fish voice | With the free Windows voice |
+**What it might cost a month.** These are estimates for 20 spoken requests a day, not quotes:
+
+| | English | Arabic |
 | --- | --- | --- |
-| Light, 20 requests a day | about $4 | about $1 |
-| Normal, 60 requests a day | about $12 | about $4 |
-| Heavy, 150 requests a day | about $30 | about $9 |
+| Requests | about $1.20 | about $3.90 |
+| 10 book pages a day | free | about $15 |
 
-Opening a book costs nothing, and the voice is only paid for as you listen. Arabic books use your chosen Fish voice, about $0.50 for 10 pages, and hearing them again is free. English books use the free Windows voice until you pick a Fish voice for English, about $0.30 for 10 pages. You can change both.
+Opening a book costs nothing. Arabic is only paid for as you listen, about $0.50 for 10 pages, and hearing it again is free. Arabic books can use the free Windows voice instead.
 
 1. Download the latest zip from [Releases](https://github.com/dusk-futile/mubsir/releases) and extract it.
 2. Right-click `setup.ps1` → **Run with PowerShell**, as administrator. It adds Arabic speech and the Mubsir Bridge add-on for NVDA, and starts Mubsir when you sign in.
@@ -113,7 +114,7 @@ Conversations are saved as plain files you can open, one a day, in `Documents\Mu
 
 ## Privacy
 
-- Mubsir only sends something when you ask for it, and only to the services you gave keys for: your voice to Fish Audio or Google for transcription, your request and the screen text it needs to Anthropic, and the replies it speaks to Fish Audio.
+- Mubsir only sends something when you ask for it, and only to the services you gave keys for: your voice to Fish Audio or Google for transcription, your request and the screen text it needs to Anthropic, and the Arabic it speaks to Fish Audio. English speech stays on your PC.
 - Passwords, card numbers and one-time codes are never sent. Bank and payment pages are handled locally.
 - Say "private mode on" to keep everything on your PC.
 - Logs contain timings and error codes only, never what you said or read.
@@ -136,4 +137,4 @@ On Windows, `Mubsir.exe --overlay-demo` shows the normal-mode notch and Hudhud o
 
 ## License
 
-[MIT](LICENSE). The NVDA add-on in `nvda-addon/` is GPL-2.0, like NVDA itself, and NVDA's controller client is LGPL-2.1.
+[MIT](LICENSE). The NVDA add-on in `nvda-addon/` is GPL-2.0, like NVDA itself, and NVDA's controller client is LGPL-2.1. The English voice uses [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) (Apache-2.0) with espeak-ng (GPL-3.0). Its voice model, Ryan from [Piper](https://github.com/rhasspy/piper), is trained on [RyanSpeech](https://www.kaggle.com/datasets/roholazandie/ryanspeech), CC BY-NC-SA 4.0, so it can't be used commercially.
