@@ -20,9 +20,10 @@ public static class VoiceCatalog
     public static FishVoiceChoice? Get(Lang lang, int number) => For(lang).FirstOrDefault(v => v.Number == number);
 
     private static readonly FishVoiceChoice[] English = [
-        new(1, Lang.English, "933563129e564b19a115bedd57b7406a", "Sarah", Samples + "task/4e204945670c460c86fdab57512cb308.mp3"),
-        new(2, Lang.English, "b347db033a6549378b48d00acb0d06cd", "Selene", Samples + "task/fcf629b4a0b343558f461338ba1b9da4.mp3"),
-        new(3, Lang.English, "536d3a5e000945adb7038665781a4aca", "Ethan", Samples + "task/bdd677ed767744fc91f166468786264b.mp3"),
+        new(1, Lang.English, "f80f728df4c243bca79cd8dd0b57cac4", "Natasha", Samples + "task/890e11b18768451e86c9fd6c164b52ff.mp3"),
+        new(2, Lang.English, "933563129e564b19a115bedd57b7406a", "Sarah", Samples + "task/4e204945670c460c86fdab57512cb308.mp3"),
+        new(3, Lang.English, "b347db033a6549378b48d00acb0d06cd", "Selene", Samples + "task/fcf629b4a0b343558f461338ba1b9da4.mp3"),
+        new(4, Lang.English, "536d3a5e000945adb7038665781a4aca", "Ethan", Samples + "task/bdd677ed767744fc91f166468786264b.mp3"),
     ];
 
     private static readonly FishVoiceChoice[] Arabic = [
@@ -30,5 +31,6 @@ public static class VoiceCatalog
         new(2, Lang.Arabic, "05bf47f4aad948e1a7167a56e1d21c22", "حنان", Samples + "task/86d9c88488ae4406a73fd780db3f65b9.mp3"),
         new(3, Lang.Arabic, "14f1000b77d547eeb5f03b474dd29e0f", "أسماء", Samples + "task/7181ceaaf4214b00be3c8302f6b49f56.mp3"),
         new(4, Lang.Arabic, "10c5c2a37a284a81bb0cf3c53955d795", "شاب سعودي", Samples + "task/214291316a0a4d9084bbb15532049f5e.mp3"),
+        new(5, Lang.Arabic, "ccbfe8a2690e4ca99e91a059c38f30dc", "مصري", Samples + "task/0ac9f317345a4db3a8d4a7f9d38408e8.mp3"),
     ];
 }

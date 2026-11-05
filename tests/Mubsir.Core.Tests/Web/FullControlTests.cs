@@ -200,9 +200,9 @@ public class FullControlTests
     [Fact]
     public void The_owners_chosen_voices_are_the_ones_offered_with_the_first_as_default()
     {
-        Assert.Equal(["Sarah", "Selene", "Ethan"], VoiceCatalog.For(Lang.English).Select(v => v.Name));
-        Assert.Equal(4, VoiceCatalog.For(Lang.Arabic).Count);
-        Assert.Equal("Sarah", VoiceCatalog.Default(Lang.English).Name);
+        Assert.Equal(["Natasha", "Sarah", "Selene", "Ethan"], VoiceCatalog.For(Lang.English).Select(v => v.Name));
+        Assert.Equal(5, VoiceCatalog.For(Lang.Arabic).Count);
+        Assert.Equal("Natasha", VoiceCatalog.Default(Lang.English).Name);
         Assert.Equal("فاطمة", VoiceCatalog.Default(Lang.Arabic).Name);
     }
 
