@@ -183,13 +183,13 @@ internal sealed class UtteranceFlow
 
         if (CommandGrammar.TryParseName(localCommand, out LocalCommand fromEars))
         {
-            await _local.RunAsync(fromEars, localArgument, text, lang, _appStopping).ConfigureAwait(false);
+            await _local.RunAsync(fromEars, localArgument, text, lang, _appStopping, context).ConfigureAwait(false);
             return;
         }
 
         if (CommandGrammar.Match(text) is { } match)
         {
-            await _local.RunAsync(match.Command, match.ArgumentText ?? match.Argument, text, lang, _appStopping).ConfigureAwait(false);
+            await _local.RunAsync(match.Command, match.ArgumentText ?? match.Argument, text, lang, _appStopping, context).ConfigureAwait(false);
             return;
         }
 

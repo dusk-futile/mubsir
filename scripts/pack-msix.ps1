@@ -4,6 +4,15 @@ $ErrorActionPreference = 'Stop'
 $layout = Join-Path $Out 'layout'
 New-Item -ItemType Directory -Force -Path (Join-Path $layout 'Assets') | Out-Null
 Copy-Item -Recurse -Force (Join-Path $Publish '*') $layout
+$hasAddon = (Get-ChildItem -LiteralPath $layout -Filter '*.nvda-addon' -File -ErrorAction SilentlyContinue).Count -gt 0
+if (-not $hasAddon) {
+    $existing = Get-ChildItem -Path 'dist', $PSScriptRoot, (Join-Path $PSScriptRoot '..') -Filter '*.nvda-addon' -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($existing) {
+        Copy-Item -Force $existing.FullName $layout
+    } else {
+        python (Join-Path $PSScriptRoot 'build-addon.py') --out-dir $layout
+    }
+}
 Copy-Item -Force 'packaging/AppxManifest.xml' (Join-Path $layout 'AppxManifest.xml')
 Add-Type -AssemblyName System.Drawing
 $source = [System.Drawing.Image]::FromFile((Resolve-Path 'assets/brand/png/mubsir-512.png'))

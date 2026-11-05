@@ -1,6 +1,9 @@
+using Mubsir.App.Actions;
 using Mubsir.App.Native;
 using Mubsir.Core.Agent;
 using Mubsir.Core.Common;
+using Mubsir.Core.Context;
+using Mubsir.Core.Cost;
 using Mubsir.Core.Localization;
 using Mubsir.Core.Logging;
 using Mubsir.Core.Policy;
@@ -22,6 +25,7 @@ internal sealed class LocalCommandRunner
     private readonly TaskRunner _tasks;
     private readonly Action _stopAll;
     private readonly Action _saveReport;
+    private readonly AppLauncher _apps = new();
 
     public LocalCommandRunner(AppServices app, ReadingController reading, Confirmer confirmer, TaskRunner tasks, Action stopAll, Action saveReport)
     {
@@ -33,11 +37,20 @@ internal sealed class LocalCommandRunner
         _saveReport = saveReport;
     }
 
-    public async Task RunAsync(LocalCommand command, string? argument, string utterance, Lang lang, CancellationToken ct)
+    public async Task RunAsync(
+        LocalCommand command,
+        string? argument,
+        string utterance,
+        Lang lang,
+        CancellationToken ct,
+        Task<(ScreenContext Screen, BuiltContext Built)?>? context = null)
     {
         _app.Log.Event(LogKind.Hotkey, tool: "local_" + command.ToString().ToLowerInvariant());
         switch (command)
         {
+            case LocalCommand.OpenApp:
+                await RunOpenAppAsync(argument, utterance, lang, context, ct).ConfigureAwait(false);
+                break;
             case LocalCommand.ReadScreen:
                 await _reading.ReadWindowAsync(ct).ConfigureAwait(false);
                 break;
@@ -98,7 +111,53 @@ internal sealed class LocalCommandRunner
                 SayKey(StringKey.PrivateModeOff, lang);
                 break;
             case LocalCommand.Settings:
-                SpeakSettings(lang);
+                if (_app.OpenSetup is { } openSetup)
+                {
+                    openSetup();
+                    Say(lang == Lang.Arabic ? "تم فتح الإعدادات." : "Settings opened.", lang);
+                }
+                else
+                {
+                    SpeakSettings(lang);
+                }
+                break;
+            case LocalCommand.FishVoiceOn:
+                _app.Settings.Update(s => s with { UseFishVoice = true });
+                Say(lang == Lang.Arabic ? "تم تشغيل صوت فيش." : "Fish voice turned on.", lang);
+                break;
+            case LocalCommand.FishVoiceOff:
+                _app.Settings.Update(s => s with { UseFishVoice = false });
+                Say(lang == Lang.Arabic ? "تم إيقاف صوت فيش." : "Fish voice turned off.", lang);
+                break;
+            case LocalCommand.ReadBooksWithFishOn:
+                _app.Settings.Update(s => s with { ReadBooksWithFish = true });
+                Say(lang == Lang.Arabic ? "تم تشغيل قراءة الكتب بصوت فيش." : "Reading books with Fish voice turned on.", lang);
+                break;
+            case LocalCommand.ReadBooksWithFishOff:
+                _app.Settings.Update(s => s with { ReadBooksWithFish = false });
+                Say(lang == Lang.Arabic ? "تم إيقاف قراءة الكتب بصوت فيش." : "Reading books with Fish voice turned off.", lang);
+                break;
+            case LocalCommand.NotchOn:
+                _app.Settings.Update(s => s with { ShowNotch = true });
+                Say(lang == Lang.Arabic ? "تم تشغيل شريط الشاشة." : "Screen notch turned on.", lang);
+                break;
+            case LocalCommand.NotchOff:
+                _app.Settings.Update(s => s with { ShowNotch = false });
+                Say(lang == Lang.Arabic ? "تم إيقاف شريط الشاشة." : "Screen notch turned off.", lang);
+                break;
+            case LocalCommand.SaveChatsOn:
+                _app.Settings.Update(s => s with { SaveSessions = true });
+                Say(lang == Lang.Arabic ? "تم تشغيل حفظ المحادثات." : "Saved chats turned on.", lang);
+                break;
+            case LocalCommand.SaveChatsOff:
+                _app.Settings.Update(s => s with { SaveSessions = false });
+                Say(lang == Lang.Arabic ? "تم إيقاف حفظ المحادثات." : "Saved chats turned off.", lang);
+                break;
+            case LocalCommand.OpenChatsFolder:
+                OpenChatsFolder(lang);
+                break;
+            case LocalCommand.Undo:
+                UndoLastFileOp(lang);
                 break;
             case LocalCommand.SaveReport:
                 _saveReport();
@@ -106,6 +165,9 @@ internal sealed class LocalCommandRunner
             case LocalCommand.KeyExplorer:
                 _app.Input.SetKeyExplorer(true);
                 SayKey(StringKey.KeyExplorerIntro, lang);
+                break;
+            case LocalCommand.Spending:
+                SpeakSpending(lang);
                 break;
             case LocalCommand.BatteryStatus when SpeakBatteryLocally(lang):
                 break;
@@ -249,7 +311,7 @@ internal sealed class LocalCommandRunner
         }
     }
 
-    private void ChangeRate(int delta, Lang lang)
+    internal void ChangeRate(int delta, Lang lang)
     {
         int before = _app.Speech.Rate;
         int after = Math.Clamp(before + delta, 0, 100);
@@ -268,6 +330,60 @@ internal sealed class LocalCommandRunner
         }
 
         Say(text, lang);
+    }
+
+    private async Task RunOpenAppAsync(
+        string? argument,
+        string utterance,
+        Lang lang,
+        Task<(ScreenContext Screen, BuiltContext Built)?>? context,
+        CancellationToken ct)
+    {
+        var target = string.IsNullOrWhiteSpace(argument)
+            ? null
+            : await Task.Run(() => _apps.Resolve(argument), ct).ConfigureAwait(false);
+
+        if (target is null)
+        {
+            if (_tasks.IsAvailable)
+            {
+                await _tasks.ProcessAsync(utterance, context, ct).ConfigureAwait(false);
+                return;
+            }
+
+            _app.Speech.PlayEarcon(Earcon.Error);
+            Say(Strings.Get(StringKey.AppNotFound, lang, argument ?? string.Empty), lang);
+            return;
+        }
+
+        await RunToolCommandAsync(LocalCommand.OpenApp, argument, utterance, lang, ct).ConfigureAwait(false);
+    }
+
+    private void OpenChatsFolder(Lang lang)
+    {
+        try
+        {
+            string folder = _app.Sessions?.Folder ?? AppPaths.DefaultChatsDir;
+            Directory.CreateDirectory(folder);
+            AppLauncher.ShellOpen(folder);
+            Say(lang == Lang.Arabic ? "تم فتح مجلد المحادثات." : "Opened chats folder.", lang);
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            _app.Log.Failure("open_chats", e);
+            Say(AppText.Get(AppPhrase.ActionFailed, lang), lang);
+        }
+    }
+
+    private void UndoLastFileOp(Lang lang)
+    {
+        var (success, msg) = FileOps.UndoLast(lang);
+        if (!success)
+        {
+            _app.Speech.PlayEarcon(Earcon.Error);
+        }
+
+        Say(msg, lang);
     }
 
     private bool SpeakBatteryLocally(Lang lang)
@@ -297,6 +413,34 @@ internal sealed class LocalCommandRunner
 
         Say(text, lang);
         return true;
+    }
+
+    private void SpeakSpending(Lang lang)
+    {
+        var ledger = _app.Ledger;
+        decimal monthToDate = ledger.MonthToDateUsd;
+        decimal limit = ledger.LimitUsd;
+        bool ar = lang == Lang.Arabic;
+
+        var breakdown = ledger.GetSpendingByService();
+        var active = breakdown.Where(kv => kv.Value > 0m).ToList();
+
+        if (active.Count == 0 || monthToDate <= 0m)
+        {
+            SayKey(StringKey.SpendingZero, lang, limit);
+            return;
+        }
+
+        var parts = new List<string>(active.Count);
+        foreach ((string service, decimal cost) in active)
+        {
+            (string enName, string arName) = CostLedger.ServiceDisplayName(service);
+            string name = ar ? arName : enName;
+            parts.Add(ar ? $"{name} {cost:0.##} دولار" : $"{name} {cost:0.##} dollars");
+        }
+
+        string list = string.Join(ar ? "، و" : ", ", parts);
+        SayKey(StringKey.SpendingBreakdown, lang, list, monthToDate, limit);
     }
 
     private void SpeakSettings(Lang lang)

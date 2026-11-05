@@ -29,6 +29,8 @@ public static class VirtualKeys
     public const int NUMPAD4 = 0x64;
     public const int NUMPAD6 = 0x66;
     public const int NUMPAD8 = 0x68;
+    public const int ADD = 0x6B;
+    public const int SUBTRACT = 0x6D;
     public const int F1 = 0x70;
     public const int NUMLOCK = 0x90;
     public const int SCROLL = 0x91;
@@ -38,7 +40,9 @@ public static class VirtualKeys
     public const int RCONTROL = 0xA3;
     public const int LMENU = 0xA4;
     public const int RMENU = 0xA5;
+    public const int OEM_PLUS = 0xBB;
     public const int OEM_PERIOD = 0xBE;
+    public const int OEM_MINUS = 0xBD;
 
     public static bool IsCtrl(int vk) => vk is CONTROL or LCONTROL or RCONTROL;
 
@@ -54,13 +58,16 @@ public static class VirtualKeys
 public static class ScanCodes
 {
     public const int Escape = 0x01;
+    public const int Minus = 0x0C;
+    public const int EqualsKey = 0x0D;
     public const int Enter = 0x1C;
     public const int Ctrl = 0x1D;
     public const int LeftShift = 0x2A;
     public const int Period = 0x34;
 
     public const int PageUp = 0x49;
-
+    public const int NumpadMinus = 0x4A;
+    public const int NumpadPlus = 0x4E;
     public const int PageDown = 0x51;
     public const int RightShift = 0x36;
     public const int Alt = 0x38;

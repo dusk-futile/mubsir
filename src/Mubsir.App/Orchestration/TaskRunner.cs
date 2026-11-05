@@ -50,6 +50,8 @@ internal sealed class TaskRunner
         }
     }
 
+    public bool IsAvailable => _loop is not null && _app.HasBrain && !_app.Settings.Settings.PrivateMode;
+
     public async Task ProcessAsync(string text, Task<(ScreenContext Screen, BuiltContext Built)?>? context, CancellationToken ct)
     {
         MubsirSettingsSnapshot s = Snapshot();

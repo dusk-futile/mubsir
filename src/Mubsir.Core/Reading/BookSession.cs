@@ -149,7 +149,18 @@ public sealed class BookSession(IBookVoice voice, Action stopVoice, ReadingPosit
                 return _lang == Lang.Arabic ? "مقدرش أحفظ علامة لنص من الشاشة، لازم يكون ملف." : "I can only keep notes for a file, not for text on the screen.";
             }
 
-            notes.Add(_path, _page, _offset, text, DateTimeOffset.UtcNow);
+            bool saved = notes.Add(_path, _page, _offset, text, DateTimeOffset.UtcNow);
+            if (!saved)
+            {
+                return (_lang == Lang.Arabic, text is null) switch
+                {
+                    (true, true) => "لم أستطع حفظ العلامة.",
+                    (true, false) => "لم أستطع حفظ الملاحظة.",
+                    (false, true) => "I couldn't save the bookmark.",
+                    _ => "I couldn't save the note.",
+                };
+            }
+
             return (_lang == Lang.Arabic, text is null) switch
             {
                 (true, true) => $"علمت صفحة {_page}.",

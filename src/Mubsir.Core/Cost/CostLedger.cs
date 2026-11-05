@@ -178,6 +178,110 @@ public sealed class CostLedger
         }
     }
 
+    public IReadOnlyDictionary<string, decimal> ByModel
+    {
+        get
+        {
+            lock (_gate)
+            {
+                Rollover();
+                return new Dictionary<string, decimal>(_byModel, StringComparer.OrdinalIgnoreCase);
+            }
+        }
+    }
+
+    public decimal AddFishVoice(long utf8Bytes)
+    {
+        if (utf8Bytes <= 0)
+        {
+            return 0m;
+        }
+
+        lock (_gate)
+        {
+            Rollover();
+            decimal cost = (utf8Bytes * PriceTable.FishVoicePerMillionBytes) / 1_000_000m;
+            _monthToDate += cost;
+            _requests++;
+            _byModel["fish-voice"] = _byModel.GetValueOrDefault("fish-voice") + cost;
+            return cost;
+        }
+    }
+
+    public decimal AddFishHearing(TimeSpan duration)
+    {
+        if (duration <= TimeSpan.Zero)
+        {
+            return 0m;
+        }
+
+        lock (_gate)
+        {
+            Rollover();
+            decimal cost = ((decimal)duration.TotalMilliseconds * PriceTable.FishHearingPerHour) / 3_600_000m;
+            _monthToDate += cost;
+            _requests++;
+            _byModel["fish-hearing"] = _byModel.GetValueOrDefault("fish-hearing") + cost;
+            return cost;
+        }
+    }
+
+    public IReadOnlyDictionary<string, decimal> GetSpendingByService()
+    {
+        lock (_gate)
+        {
+            Rollover();
+            var result = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+            foreach ((string model, decimal cost) in _byModel)
+            {
+                string service = MapModelToService(model);
+                result[service] = result.GetValueOrDefault(service) + cost;
+            }
+
+            return result;
+        }
+    }
+
+    public static string MapModelToService(string model)
+    {
+        if (string.IsNullOrWhiteSpace(model))
+        {
+            return "Other";
+        }
+
+        string trimmed = model.Trim();
+        if (trimmed.StartsWith("claude", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Claude";
+        }
+
+        if (trimmed.StartsWith("gemini", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Gemini";
+        }
+
+        if (trimmed.Equals("fish-voice", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Fish voice";
+        }
+
+        if (trimmed.Equals("fish-hearing", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Fish hearing";
+        }
+
+        return trimmed;
+    }
+
+    public static (string En, string Ar) ServiceDisplayName(string service) => service switch
+    {
+        "Claude" => ("Claude", "كلود"),
+        "Gemini" => ("Gemini", "جيميني"),
+        "Fish voice" => ("Fish voice", "صوت فيش"),
+        "Fish hearing" => ("Fish hearing", "سمع فيش"),
+        _ => (service, service),
+    };
+
     public void AllowExtra(decimal usd = 1m)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(usd);

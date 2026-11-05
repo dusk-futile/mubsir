@@ -20,12 +20,14 @@ internal sealed class SpeechService : IDisposable
     private readonly NvdaController _nvda;
     private readonly OneCoreSpeech _oneCore;
     private readonly FishVoice? _fish;
+    private readonly NvdaQuiet? _quiet;
     private readonly SettingsProvider _settings;
     private readonly IEventLog _log;
     private readonly IClock _clock;
     private readonly ConcurrentDictionary<Earcon, nint> _earcons = new();
     private readonly Timer _watchdog;
 
+    private int _warnedNvdaWithoutBridge;
     private long _generation;
     private Job? _current;
     private bool _busy;
@@ -43,11 +45,12 @@ internal sealed class SpeechService : IDisposable
     private long _nvdaCallStartedAt;
     private long _nvdaCallBudgetMs;
 
-    public SpeechService(NvdaController nvda, OneCoreSpeech oneCore, SettingsProvider settings, IEventLog log, IClock clock, FishVoice? fish = null)
+    public SpeechService(NvdaController nvda, OneCoreSpeech oneCore, SettingsProvider settings, IEventLog log, IClock clock, FishVoice? fish = null, NvdaQuiet? quiet = null)
     {
         _nvda = nvda;
         _oneCore = oneCore;
         _fish = fish;
+        _quiet = quiet;
         _settings = settings;
         _log = log;
         _clock = clock;
@@ -238,7 +241,8 @@ internal sealed class SpeechService : IDisposable
         {
             try
             {
-                IReadOnlyList<TextRun> runs = SpeechTextPipeline.Prepare(item.Text, lang);
+                bool fullTashkeel = _settings.Settings.ReadFullTashkeel;
+                IReadOnlyList<TextRun> runs = SpeechTextPipeline.Prepare(item.Text, lang, new SpeechOptions(ReadFullTashkeel: fullTashkeel));
                 string ssml = SsmlBuilder.Build(runs, SpeechComposer.MarkName(item.Index), style);
                 sentences.Add(new ComposedSentence(item.Index, ssml, string.Concat(runs.Select(r => r.Text)), runs));
             }
@@ -424,13 +428,33 @@ internal sealed class SpeechService : IDisposable
             return;
         }
 
-        if (_fish is { } fish && fish.CanSpeak(job.IsBook))
+        bool nvdaRunning = UseNvdaNow();
+        bool bridgeInstalled = nvdaRunning && NvdaQuiet.IsAddonInstalled();
+
+        if (nvdaRunning && !bridgeInstalled && _settings.Settings.UseFishVoice)
         {
+            if (Interlocked.CompareExchange(ref _warnedNvdaWithoutBridge, 1, 0) == 0)
+            {
+                string warn = job.Lang == Lang.Arabic
+                    ? "برنامج إن في دي إيه يعمل بدون إضافة مبصر، سأتحدث بصوت إن في دي إيه لتجنب تداخل الأصوات."
+                    : "NVDA is running without the Mubsir Bridge add-on, so I'm using NVDA's voice to avoid double speech.";
+                _nvda.SpeakText(warn);
+            }
+        }
+        else if (_fish is { } fish && fish.CanSpeak(job.IsBook))
+        {
+            if (nvdaRunning)
+            {
+                _nvda.CancelSpeech();
+                TimeSpan est = TimeSpan.FromSeconds(2) + TimeSpan.FromMilliseconds(job.Sentence.PlainText.Length * 100L);
+                _quiet?.QuietFor(est);
+            }
+
             bool heard = false;
             try
             {
                 // SpeakAsync has its own limits. This one means a hang can only ever cost one sentence.
-                Task<bool> speaking = fish.SpeakAsync(job.Sentence.PlainText, job.Lang, _rate, () => History.MarkSpoken(job.Sentence.HistoryIndex));
+                Task<bool> speaking = fish.SpeakAsync(job.Sentence.PlainText, job.Lang, _rate, () => History.MarkSpoken(job.Sentence.HistoryIndex), isBook: job.IsBook);
                 TimeSpan most = TimeSpan.FromSeconds(75) + TimeSpan.FromMilliseconds(job.Sentence.PlainText.Length * 250L);
                 if (speaking.Wait(most))
                 {
@@ -445,6 +469,13 @@ internal sealed class SpeechService : IDisposable
             catch (Exception e) when (e is not OutOfMemoryException)
             {
                 _log.Failure("fish_sentence", e);
+            }
+            finally
+            {
+                if (nvdaRunning)
+                {
+                    _quiet?.Clear();
+                }
             }
 
             if (heard || myId != _workerId || job.Generation != Interlocked.Read(ref _generation))

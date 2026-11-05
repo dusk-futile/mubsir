@@ -36,11 +36,11 @@ internal sealed class MemoryStore
         }
     }
 
-    public void Append(string fact)
+    public bool Append(string fact)
     {
         if (string.IsNullOrWhiteSpace(fact) || _settings.Settings.SharedPcMode)
         {
-            return;
+            return false;
         }
 
         lock (_gate)
@@ -52,11 +52,12 @@ internal sealed class MemoryStore
             {
                 Dpapi.WriteFile(_path, next);
                 _cache = next;
+                return true;
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or CryptographicException)
             {
                 _log.Failure("memory_write", e);
-                _cache = next;
+                return false;
             }
         }
     }

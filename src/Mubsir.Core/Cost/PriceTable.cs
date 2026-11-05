@@ -16,6 +16,8 @@ public sealed record ModelPrice(
 public static class PriceTable
 {
     public const decimal WebSearchPerCall = 0.01m;
+    public const decimal FishVoicePerMillionBytes = 15m;
+    public const decimal FishHearingPerHour = 0.36m;
 
     private const decimal TokensPerUnit = 1_000_000m;
 

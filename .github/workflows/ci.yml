@@ -72,6 +72,10 @@ jobs:
           cache: true
           cache-dependency-path: '**/packages.lock.json'
 
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13'
+
       - name: Restore (locked)
         run: dotnet restore src/Mubsir.App
 
@@ -80,6 +84,9 @@ jobs:
 
       - name: Publish win-x64
         run: dotnet publish src/Mubsir.App -c Release -r win-x64 --no-restore -o publish
+
+      - name: Build the NVDA add-on
+        run: python scripts/build-addon.py --out-dir publish
 
       - name: Overlay smoke test
         shell: pwsh

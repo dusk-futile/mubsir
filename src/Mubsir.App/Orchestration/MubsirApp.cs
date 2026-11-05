@@ -180,6 +180,10 @@ internal sealed class MubsirApp : IDisposable
             case ConfirmRepeat:
                 _confirmer.Signal(ConfirmSignal.Repeat);
                 break;
+            case ConfirmIgnoredEarly:
+                _app.Speech.PlayEarcon(Earcon.Error);
+                _app.Speech.Speak(Strings.Get(StringKey.ConfirmPressAgain, _app.UiLang), UtteranceKind.System, _app.UiLang, interrupt: false);
+                break;
             case PausedNotice:
                 _app.SayFailure(FailureState.Paused);
                 break;
@@ -236,6 +240,34 @@ internal sealed class MubsirApp : IDisposable
             case LayerCommand.Help:
                 _app.SayNow(StringKey.LayerHelp);
                 break;
+            case LayerCommand.Faster:
+                ChangeReadingSpeed(+10);
+                break;
+            case LayerCommand.Slower:
+                ChangeReadingSpeed(-10);
+                break;
+        }
+    }
+
+    private void ChangeReadingSpeed(int delta)
+    {
+        if (_app.Books?.Session.IsActive == true)
+        {
+            int before = _app.Speech.Rate;
+            int after = Math.Clamp(before + delta, 0, 100);
+            if (after == before)
+            {
+                _app.Speech.PlayEarcon(Earcon.Error);
+                return;
+            }
+
+            _app.Speech.Rate = after;
+            _app.Settings.Update(s => s with { SpeechRate = after });
+            _app.Speech.PlayEarcon(Earcon.LayerOpen);
+        }
+        else
+        {
+            _local.ChangeRate(delta, _app.UiLang);
         }
     }
 
@@ -333,6 +365,18 @@ internal sealed class MubsirApp : IDisposable
             {
                 _app.Speech.PlayEarcon(Earcon.Ready);
                 _app.Say(StringKey.Ready);
+            }
+
+            if (_app.Settings.SettingsResetToDefaults)
+            {
+                _app.Speech.PlayEarcon(Earcon.Error);
+                _app.Speech.Speak(Strings.Get(StringKey.SettingsCorruptedReset, _app.UiLang), UtteranceKind.System, _app.UiLang, interrupt: false);
+            }
+
+            if (_app.Settings.ProfileResetToDefaults)
+            {
+                _app.Speech.PlayEarcon(Earcon.Error);
+                _app.Speech.Speak(Strings.Get(StringKey.ProfileCorruptedReset, _app.UiLang), UtteranceKind.System, _app.UiLang, interrupt: false);
             }
 
             _app.Log.Event(LogKind.Startup, latencyMs: coldStartMs);

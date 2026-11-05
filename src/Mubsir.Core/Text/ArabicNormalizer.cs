@@ -58,6 +58,46 @@ public static class ArabicNormalizer
         return sb.ToString();
     }
 
+    public static bool IsTashkeel(char c) =>
+        (c is >= '\u064B' and <= '\u0655') || c == '\u0670';
+
+    public static string StripTashkeel(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        if (text.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        int first = -1;
+        for (int i = 0; i < text.Length; i++)
+        {
+            if (IsTashkeel(text[i]))
+            {
+                first = i;
+                break;
+            }
+        }
+
+        if (first < 0)
+        {
+            return text;
+        }
+
+        var sb = new StringBuilder(text.Length);
+        sb.Append(text, 0, first);
+        for (int i = first; i < text.Length; i++)
+        {
+            char c = text[i];
+            if (!IsTashkeel(c))
+            {
+                sb.Append(c);
+            }
+        }
+
+        return sb.ToString();
+    }
+
     public static bool LooksReversed(string line)
     {
         ArgumentNullException.ThrowIfNull(line);

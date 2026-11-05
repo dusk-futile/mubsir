@@ -22,6 +22,7 @@ public sealed class InputStateMachine
     private static readonly ConfirmAccepted ConfirmAcceptedAction = new();
     private static readonly ConfirmRejected ConfirmRejectedAction = new();
     private static readonly ConfirmRepeat ConfirmRepeatAction = new();
+    private static readonly ConfirmIgnoredEarly ConfirmIgnoredEarlyAction = new();
     private static readonly PausedNotice PausedNoticeAction = new();
     private static readonly ResumeFromPaused ResumeFromPausedAction = new();
     private static readonly KeyExplorerExited KeyExplorerExitedAction = new();
@@ -361,21 +362,34 @@ public sealed class InputStateMachine
 
     private static bool IsPeriod(in KeyEvent e) => e.ScanCode == ScanCodes.Period && !e.Extended;
 
-    private static LayerCommand? MapLayerCommand(in KeyEvent e) => (e.ScanCode, e.Extended) switch
+    private static LayerCommand? MapLayerCommand(in KeyEvent e)
     {
-        (ScanCodes.Space, false) => LayerCommand.ReadFromHere,
-        (ScanCodes.Left, true) => LayerCommand.PreviousSentence,
-        (ScanCodes.Right, true) => LayerCommand.NextSentence,
-        (ScanCodes.Up, true) => LayerCommand.PreviousParagraph,
-        (ScanCodes.Down, true) => LayerCommand.NextParagraph,
-        (ScanCodes.PageUp, true) => LayerCommand.PreviousPage,
-        (ScanCodes.PageDown, true) => LayerCommand.NextPage,
-        (ScanCodes.Period, false) => LayerCommand.Repeat,
-        (ScanCodes.Enter, _) => LayerCommand.TypeRequest,
-        (ScanCodes.Escape, _) => LayerCommand.StopTask,
-        (ScanCodes.F1, _) => LayerCommand.Help,
-        _ => null,
-    };
+        if (e.VirtualKey is VirtualKeys.OEM_PLUS or VirtualKeys.ADD || (e.ScanCode is ScanCodes.EqualsKey or ScanCodes.NumpadPlus && !e.Extended))
+        {
+            return LayerCommand.Faster;
+        }
+
+        if (e.VirtualKey is VirtualKeys.OEM_MINUS or VirtualKeys.SUBTRACT || (e.ScanCode is ScanCodes.Minus or ScanCodes.NumpadMinus && !e.Extended))
+        {
+            return LayerCommand.Slower;
+        }
+
+        return (e.ScanCode, e.Extended) switch
+        {
+            (ScanCodes.Space, false) => LayerCommand.ReadFromHere,
+            (ScanCodes.Left, true) => LayerCommand.PreviousSentence,
+            (ScanCodes.Right, true) => LayerCommand.NextSentence,
+            (ScanCodes.Up, true) => LayerCommand.PreviousParagraph,
+            (ScanCodes.Down, true) => LayerCommand.NextParagraph,
+            (ScanCodes.PageUp, true) => LayerCommand.PreviousPage,
+            (ScanCodes.PageDown, true) => LayerCommand.NextPage,
+            (ScanCodes.Period, false) => LayerCommand.Repeat,
+            (ScanCodes.Enter, _) => LayerCommand.TypeRequest,
+            (ScanCodes.Escape, _) => LayerCommand.StopTask,
+            (ScanCodes.F1, _) => LayerCommand.Help,
+            _ => null,
+        };
+    }
 
     private static bool KeepsLayerOpenWhileReading(LayerCommand command) => command is LayerCommand.ReadFromHere
         or LayerCommand.PreviousSentence
@@ -384,7 +398,9 @@ public sealed class InputStateMachine
         or LayerCommand.NextParagraph
         or LayerCommand.PreviousPage
         or LayerCommand.NextPage
-        or LayerCommand.Repeat;
+        or LayerCommand.Repeat
+        or LayerCommand.Faster
+        or LayerCommand.Slower;
 
     private static LayerKey[] CreateLayerKeyActions()
     {
@@ -492,6 +508,10 @@ public sealed class InputStateMachine
             {
                 _confirmPending = false;
                 a.Add(ConfirmAcceptedAction);
+            }
+            else
+            {
+                a.Add(ConfirmIgnoredEarlyAction);
             }
 
             return true;

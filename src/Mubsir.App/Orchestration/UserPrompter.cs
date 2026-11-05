@@ -1,4 +1,5 @@
 using Mubsir.Core.Common;
+using Mubsir.Core.Localization;
 using Mubsir.Core.Logging;
 using Mubsir.Core.Speech;
 using Mubsir.Core.Text;
@@ -52,6 +53,12 @@ internal sealed class UserPrompter
             if (finished != waiter.Task)
             {
                 _app.Log.Event(LogKind.Confirmation, LogOutcome.TimedOut, tool: "ask_user");
+                if (!string.IsNullOrWhiteSpace(question))
+                {
+                    Lang lang = ScriptSegmenter.DominantLanguage(question, _app.UiLang);
+                    _app.Speech.Speak(Strings.Get(StringKey.AskUserTimedOut, lang), UtteranceKind.System, lang);
+                }
+
                 return null;
             }
 

@@ -29,6 +29,8 @@ public static class AppPaths
 
     public static string NvdaQuietFile => Path.Combine(DataDir, "nvda-quiet.json");
 
+    public static string VoiceCacheDir => Path.Combine(DataDir, "voice-cache");
+
     public static string DefaultChatsDir => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Mubsir", "Chats");
 
     public static string ReportsDir => Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);

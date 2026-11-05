@@ -13,6 +13,8 @@ public sealed class ReadingPositions(string file)
 {
     private const int MaxEntries = 200;
 
+    public event Action? SaveFailed;
+
     private readonly object _gate = new();
     private readonly Dictionary<string, (long Length, DateTime Written, string? Print)> _prints = new(StringComparer.Ordinal);
     private Dictionary<string, ReadingPosition>? _items;
@@ -34,7 +36,7 @@ public sealed class ReadingPositions(string file)
         }
     }
 
-    public void Set(string path, int page, int offset, int pages = 0)
+    public bool Set(string path, int page, int offset, int pages = 0)
     {
         lock (_gate)
         {
@@ -56,7 +58,7 @@ public sealed class ReadingPositions(string file)
                 }
             }
 
-            Save(items);
+            return Save(items);
         }
     }
 
@@ -133,7 +135,7 @@ public sealed class ReadingPositions(string file)
         return _items ??= new Dictionary<string, ReadingPosition>(StringComparer.Ordinal);
     }
 
-    private void Save(Dictionary<string, ReadingPosition> items)
+    private bool Save(Dictionary<string, ReadingPosition> items)
     {
         try
         {
@@ -141,9 +143,12 @@ public sealed class ReadingPositions(string file)
             var tmp = file + ".tmp";
             File.WriteAllText(tmp, JsonSerializer.Serialize(new PositionsFileModel { Items = items }, PositionsJson.Default.PositionsFileModel));
             File.Move(tmp, file, overwrite: true);
+            return true;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
+            SaveFailed?.Invoke();
+            return false;
         }
     }
 }

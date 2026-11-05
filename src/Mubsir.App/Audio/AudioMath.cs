@@ -54,6 +54,27 @@ internal static class AudioMath
         return count == 0 ? 0 : Math.Min(1, Math.Sqrt(Math.Sqrt((double)sum / count) / 32768) * 1.4);
     }
 
+    public static TimeSpan GetWavDuration(ReadOnlySpan<byte> wav)
+    {
+        if (wav.Length >= 44 && wav[..4].SequenceEqual("RIFF"u8) && wav.Slice(8, 4).SequenceEqual("WAVE"u8))
+        {
+            int byteRate = BinaryPrimitives.ReadInt32LittleEndian(wav.Slice(28, 4));
+            int dataLength = BinaryPrimitives.ReadInt32LittleEndian(wav.Slice(40, 4));
+            if (byteRate > 0 && dataLength > 0)
+            {
+                int actualData = Math.Min(dataLength, wav.Length - 44);
+                return TimeSpan.FromSeconds((double)actualData / byteRate);
+            }
+        }
+
+        if (wav.Length > 44)
+        {
+            return TimeSpan.FromSeconds((wav.Length - 44.0) / 32000.0);
+        }
+
+        return TimeSpan.Zero;
+    }
+
     public static AudioLevels Analyze(ReadOnlySpan<byte> pcm, int sampleRate)
     {
         int samplesPerFrame = Math.Max(1, sampleRate * FrameMs / 1000);

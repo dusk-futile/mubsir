@@ -2,7 +2,11 @@ using Mubsir.Core.Common;
 
 namespace Mubsir.Core.Text;
 
-public sealed record SpeechOptions(bool TransliterateArabizi = true, bool SpeakEmoji = true, VerbalizeMode Mode = VerbalizeMode.Normal);
+public sealed record SpeechOptions(
+    bool TransliterateArabizi = true,
+    bool SpeakEmoji = true,
+    VerbalizeMode Mode = VerbalizeMode.Normal,
+    bool ReadFullTashkeel = true);
 
 public static class SpeechTextPipeline
 {
@@ -14,6 +18,10 @@ public static class SpeechTextPipeline
         options ??= Defaults;
 
         string s = ArabicNormalizer.NormalizePresentationForms(text);
+        if (!options.ReadFullTashkeel && options.Mode != VerbalizeMode.Spell)
+        {
+            s = ArabicNormalizer.StripTashkeel(s);
+        }
         switch (options.Mode)
         {
             case VerbalizeMode.Math:

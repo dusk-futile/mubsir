@@ -13,6 +13,8 @@ public enum LayerCommand
     TypeRequest,
     StopTask,
     Help,
+    Faster,
+    Slower,
 }
 
 public abstract record InputAction;
@@ -44,6 +46,8 @@ public sealed record ConfirmAccepted : InputAction;
 public sealed record ConfirmRejected : InputAction;
 
 public sealed record ConfirmRepeat : InputAction;
+
+public sealed record ConfirmIgnoredEarly : InputAction;
 
 public sealed record PausedNotice : InputAction;
 

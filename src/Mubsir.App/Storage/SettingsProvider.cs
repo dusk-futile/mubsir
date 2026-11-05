@@ -26,6 +26,9 @@ internal sealed class SettingsProvider : IDisposable
         _profile = LoadProfile();
     }
 
+    public bool SettingsResetToDefaults { get; private set; }
+    public bool ProfileResetToDefaults { get; private set; }
+
     public event Action? Changed;
 
     public MubsirSettings Settings
@@ -171,6 +174,7 @@ internal sealed class SettingsProvider : IDisposable
 
         _log.Error("settings_malformed");
         AtomicFile.QuarantineQuietly(_settingsPath);
+        SettingsResetToDefaults = true;
         var fresh = new MubsirSettings();
         WriteSettings(fresh);
         return fresh;
@@ -199,6 +203,7 @@ internal sealed class SettingsProvider : IDisposable
         }
 
         AtomicFile.QuarantineQuietly(_profilePath);
+        ProfileResetToDefaults = true;
         return new UserProfile();
     }
 

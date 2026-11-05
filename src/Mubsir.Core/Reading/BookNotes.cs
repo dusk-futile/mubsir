@@ -14,7 +14,9 @@ public sealed class BookNotes(string file)
     private readonly object _gate = new();
     private Dictionary<string, List<BookNote>>? _items;
 
-    public void Add(string path, int page, int offset, string? text, DateTimeOffset at)
+    public event Action? SaveFailed;
+
+    public bool Add(string path, int page, int offset, string? text, DateTimeOffset at)
     {
         lock (_gate)
         {
@@ -31,10 +33,19 @@ public sealed class BookNotes(string file)
                 notes.RemoveAt(0);
             }
 
-            string temp = file + ".tmp";
-            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(file))!);
-            File.WriteAllText(temp, JsonSerializer.Serialize(items, ReadingJson.Default.DictionaryStringListBookNote));
-            File.Move(temp, file, overwrite: true);
+            try
+            {
+                string temp = file + ".tmp";
+                Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(file))!);
+                File.WriteAllText(temp, JsonSerializer.Serialize(items, ReadingJson.Default.DictionaryStringListBookNote));
+                File.Move(temp, file, overwrite: true);
+                return true;
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                SaveFailed?.Invoke();
+                return false;
+            }
         }
     }
 

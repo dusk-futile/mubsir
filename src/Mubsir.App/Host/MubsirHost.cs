@@ -1,4 +1,4 @@
-using Mubsir.Core.Library;
+using System.Diagnostics;
 using System.Threading.Channels;
 using Mubsir.App.Actions;
 using Mubsir.App.Screen.Documents;
@@ -10,10 +10,14 @@ using Mubsir.Core.Common;
 using Mubsir.Core.Config;
 using Mubsir.Core.Cost;
 using Mubsir.Core.Input;
+using Mubsir.Core.Library;
+using Mubsir.Core.Localization;
 using Mubsir.Core.Logging;
 using Mubsir.Core.Policy;
 using Mubsir.Core.Reading;
 using Mubsir.Core.Sessions;
+using Mubsir.Core.Setup;
+using Mubsir.Core.Speech;
 
 namespace Mubsir.App.Host;
 
@@ -72,14 +76,25 @@ internal sealed class MubsirHost
         var state = new AppStateStore(_log);
 
         var nvda = new NvdaController();
+        var quiet = new NvdaQuiet(_clock, _log);
         using var oneCore = new OneCoreSpeech(_log);
-        using var fishVoice = new FishVoice(secrets, settings, _log);
-        using var speech = new SpeechService(nvda, oneCore, settings, _log, _clock, fishVoice);
+        AppServices? appRef = null;
+        void OnCostChanged()
+        {
+            costStore.Save(ledger);
+            if (ledger.TryClaimWarningAnnouncement())
+            {
+                costStore.Save(ledger);
+                appRef?.Say(StringKey.BudgetWarning80, ledger.MonthToDateUsd);
+            }
+        }
+
+        using var fishVoice = new FishVoice(secrets, settings, _log, ledger, OnCostChanged);
+        using var speech = new SpeechService(nvda, oneCore, settings, _log, _clock, fishVoice, quiet);
         using var recorder = new WaveInRecorder(_log);
         var input = new InputStateMachine(InputSettingsFrom(settings.Settings), _clock);
         var actions = Channel.CreateUnbounded<InputAction>(new UnboundedChannelOptions { SingleReader = true });
 
-        AppServices? appRef = null;
         var report = new DiagnosticsReport(_log, settings, _clock, () => SystemFacts.Collect(
             () => nvda.IsRunning(),
             () => appRef?.HasSecret(SecretNames.Anthropic) ?? false,
@@ -94,7 +109,7 @@ internal sealed class MubsirHost
             Memory = memory,
             Speech = speech,
             Nvda = nvda,
-            Quiet = new NvdaQuiet(_clock, _log),
+            Quiet = quiet,
             Recorder = recorder,
             Input = input,
             Policy = new PolicyEngine(),
@@ -112,7 +127,7 @@ internal sealed class MubsirHost
         LibraryScanner? scanner = null;
         UiaScreenReader? screen = Create("screen", () => new UiaScreenReader(_log));
         app.Screen = screen;
-        app.Ears = Create("ears", () => new EarsRouter(new GeminiEars(secrets, settings, _log), new FishEars(secrets, _log), secrets, settings, _log));
+        app.Ears = Create("ears", () => new EarsRouter(new GeminiEars(secrets, settings, _log), new FishEars(secrets, _log, ledger, OnCostChanged), secrets, settings, _log));
         app.Sessions = new SessionArchive(settings.Settings.SessionsFolder ?? AppPaths.DefaultChatsDir, () => _clock.UtcNow.ToLocalTime());
         fishVoice.KeyRejected += status => app.SayNow(status == 402 ? AppPhrase.FishNoCredit : AppPhrase.FishKeyRejected);
         using var companion = settings.Settings.ShowNotch ? new CompanionBridge(speech, recorder, settings, _log) : null;
@@ -121,10 +136,29 @@ internal sealed class MubsirHost
         if (screen is not null)
         {
             var positions = new ReadingPositions(AppPaths.PositionsFile);
+            var notes = new BookNotes(AppPaths.BookNotesFile);
+            positions.SaveFailed += () =>
+            {
+                speech.PlayEarcon(Earcon.Error);
+                speech.Speak(
+                    Strings.Get(StringKey.BookmarkSaveFailed, settings.Profile.PreferredLanguage),
+                    UtteranceKind.System,
+                    settings.Profile.PreferredLanguage,
+                    interrupt: false);
+            };
+            notes.SaveFailed += () =>
+            {
+                speech.PlayEarcon(Earcon.Error);
+                speech.Speak(
+                    Strings.Get(StringKey.NoteSaveFailed, settings.Profile.PreferredLanguage),
+                    UtteranceKind.System,
+                    settings.Profile.PreferredLanguage,
+                    interrupt: false);
+            };
             var documents = new DocumentReader(screen, _log);
             var library = new BookLibrary(AppPaths.LibraryFile);
             var books = new BookAloud(
-                speech, positions, new BookNotes(AppPaths.BookNotesFile), library, documents, new PageImageBudget(AppPaths.PageRepairsFile),
+                speech, positions, notes, library, documents, new PageImageBudget(AppPaths.PageRepairsFile),
                 () => !settings.Settings.PrivateMode && settings.Profile.CloudConsentGiven && !settings.Settings.MubsirPaused,
                 input.SetReading, _log);
             app.Books = books;
@@ -157,6 +191,7 @@ internal sealed class MubsirHost
         nvdaWatcher.Start();
 
         using var setup = new SetupCoordinator(app, secrets, prompter);
+        app.OpenSetup = () => setup.Open();
         using var tray = new TrayIcon(
             new TrayActions(
                 () => mubsir.IsPaused,
@@ -196,10 +231,34 @@ internal sealed class MubsirHost
 
         if (settings.Profile.PreferredLanguage == Lang.Arabic && !nvda.IsRunning() && speech.ArabicVoiceMissing && !secrets.Has(SecretNames.Fish))
         {
-            app.Speech.Speak(AppText.Get(AppPhrase.NoArabicVoice, Lang.English), Mubsir.Core.Speech.UtteranceKind.System, Lang.English);
+            _ = Task.Run(async () =>
+            {
+                string prompt = "Arabic speech isn't installed on this PC, so I can't speak Arabic yet. Shall I open Windows speech settings so you can add it?";
+                ConfirmOutcome answer = await confirmer.ConfirmAsync(prompt, CancellationToken.None).ConfigureAwait(false);
+                if (answer == ConfirmOutcome.Accepted)
+                {
+                    try
+                    {
+                        Process.Start(new ProcessStartInfo("ms-settings:speech") { UseShellExecute = true });
+                    }
+                    catch (Exception e) when (e is not OutOfMemoryException)
+                    {
+                        _log.Failure("open_speech_settings", e);
+                    }
+                }
+            });
         }
 
         setup.OpenIfNeeded();
+
+        if (settings.Settings.OnboardingDone)
+        {
+            _ = Task.Run(async () =>
+            {
+                await TestSavedKeysInBackgroundAsync(secrets, app, _log).ConfigureAwait(false);
+            });
+        }
+
         int code = NativeWindow.RunMessageLoop();
 
         _log.Event(LogKind.Shutdown, code == 0 ? LogOutcome.Ok : LogOutcome.Failed);
@@ -219,6 +278,56 @@ internal sealed class MubsirHost
         {
             _log.Failure(what + "_create", e);
             return null;
+        }
+    }
+
+    private static async Task TestSavedKeysInBackgroundAsync(SecretStore secrets, AppServices app, IEventLog log)
+    {
+        var keysToTest = new List<(KeyKind Kind, string Key, string Name)>();
+        string? anthropic = secrets.Get(SecretNames.Anthropic);
+        if (!string.IsNullOrWhiteSpace(anthropic))
+        {
+            keysToTest.Add((KeyKind.Anthropic, anthropic, "Claude"));
+        }
+
+        string? fish = secrets.Get(SecretNames.Fish);
+        if (!string.IsNullOrWhiteSpace(fish))
+        {
+            keysToTest.Add((KeyKind.FishAudio, fish, "Fish Audio"));
+        }
+
+        string? gemini = secrets.Get(SecretNames.Gemini);
+        if (!string.IsNullOrWhiteSpace(gemini))
+        {
+            keysToTest.Add((KeyKind.Gemini, gemini, "Gemini"));
+        }
+
+        if (keysToTest.Count == 0)
+        {
+            return;
+        }
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        Lang lang = app.UiLang;
+        bool ar = lang == Lang.Arabic;
+
+        foreach (var (kind, key, name) in keysToTest)
+        {
+            KeyTest test = await KeyTester.TestAsync(kind, key, cts.Token).ConfigureAwait(false);
+            if (test == KeyTest.Wrong)
+            {
+                string msg = ar
+                    ? $"مفتاح {name} المحفوظ غير صحيح. اتأكد إنك نسخته كله."
+                    : $"The saved {name} key doesn't work. Check you copied all of it.";
+                app.Speech.Speak(msg, Mubsir.Core.Speech.UtteranceKind.System, lang);
+            }
+            else if (test == KeyTest.NoCredit)
+            {
+                string msg = ar
+                    ? $"حساب {name} مفيش فيه رصيد كافٍ. لازم تشحن الحساب."
+                    : $"The {name} account has no credit. It needs topping up.";
+                app.Speech.Speak(msg, Mubsir.Core.Speech.UtteranceKind.System, lang);
+            }
         }
     }
 

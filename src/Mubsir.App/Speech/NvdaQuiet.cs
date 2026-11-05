@@ -48,6 +48,34 @@ internal sealed class NvdaQuiet
         }
     }
 
+    public static bool IsAddonInstalled()
+    {
+        try
+        {
+            string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            string addonDir = Path.Combine(appData, "nvda", "addons", "mubsirBridge");
+            if (Directory.Exists(addonDir))
+            {
+                return true;
+            }
+
+            string pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            string sysAddon = Path.Combine(pf, "NVDA", "systemConfig", "addons", "mubsirBridge");
+            if (Directory.Exists(sysAddon))
+            {
+                return true;
+            }
+
+            string pfx86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+            string sysAddonX86 = Path.Combine(pfx86, "NVDA", "systemConfig", "addons", "mubsirBridge");
+            return Directory.Exists(sysAddonX86);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private void Write(long until)
     {
         try

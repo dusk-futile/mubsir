@@ -68,7 +68,9 @@ public static partial class Strings
         [StringKey.UpdateRolledBack] = (
             "لم ينجح التحديث، فعدت إلى الإصدار السابق.",
             "The update didn't work, so I went back to the previous version."),
-        [StringKey.CrashRecovered] = ("حدث خطأ، ومُبصِر جاهز مرة أخرى.", "Something went wrong, and Mubsir is ready again."),
+        [StringKey.CrashRecovered] = (
+            "أُعيد تشغيل مُبصِر بعد حدوث خطأ، وتوقفت آخر مهمة.",
+            "Mubsir restarted after a crash, and the last task was stopped."),
         [StringKey.UacDuringTask] = (
             "ظهرت نافذة أذونات من Windows. إذا لم تطلب هذا، فاختر لا.",
             "A Windows permission prompt appeared. If you didn't ask for this, choose No."),
@@ -80,6 +82,7 @@ public static partial class Strings
             + "النقطة لإعادة آخر جملة، ومرتين لإعادة آخر إجابة كاملة. "
             + "إدخال لكتابة طلب. "
             + "Escape لإيقاف المهمة الحالية. "
+            + "زائد وناقص لتغيير سرعة القراءة. "
             + "F1 للمساعدة ومستكشف المفاتيح.",
             "To open the command layer, press Right Control twice quickly, then: "
             + "Space to read from here. "
@@ -88,6 +91,7 @@ public static partial class Strings
             + "Period to repeat the last sentence; press it twice for the whole last answer. "
             + "Enter to type a request. "
             + "Escape to stop the current task. "
+            + "Plus and minus to change reading speed. "
             + "F1 for help and the key explorer."),
         [StringKey.KeyExplorerIntro] = (
             "مستكشف المفاتيح: اضغط أي مفتاح لتسمع وظيفته. اضغط Escape للخروج.",
@@ -123,6 +127,12 @@ public static partial class Strings
         [StringKey.BudgetStatus] = (
             "استخدمت هذا الشهر {0:0.##} دولار من {1:0.##} دولار.",
             "This month you have used {0:0.##} of {1:0.##} dollars."),
+        [StringKey.SpendingZero] = (
+            "لم تصرف شيئًا هذا الشهر من ميزانيتك البالغة {0:0.##} دولار.",
+            "You haven't spent anything this month from your {0:0.##} dollar budget."),
+        [StringKey.SpendingBreakdown] = (
+            "صرفت هذا الشهر: {0}. الإجمالي {1:0.##} من {2:0.##} دولار.",
+            "This month you spent: {0}. Total {1:0.##} of {2:0.##} dollars."),
         [StringKey.NothingToRead] = ("لا يوجد نص لأقرأه هنا.", "There is no text to read here."),
         [StringKey.Done] = ("تم.", "Done."),
         [StringKey.KeyHelpTalkAndLayer] = (
@@ -146,6 +156,20 @@ public static partial class Strings
             "Enter: in the command layer, type a request. When I ask you to confirm, it means yes."),
         [StringKey.KeyHelpF1] = ("F1: في طبقة الأوامر للمساعدة ومستكشف المفاتيح.", "F1: in the command layer, help and the key explorer."),
         [StringKey.KeyHelpNvdaKey] = ("مفتاح NVDA، ولا يستخدمه مُبصِر.", "The NVDA key. Mubsir does not use it."),
+        [StringKey.ConnectionDropped] = ("انقطع الاتصال.", "The connection dropped."),
+        [StringKey.AskUserTimedOut] = ("توقفت عن الانتظار.", "I stopped waiting."),
+        [StringKey.RememberSaveFailed] = ("لم أستطع حفظ هذه المعلومة.", "I couldn't save that fact."),
+        [StringKey.BookmarkSaveFailed] = ("لم أستطع حفظ مكان القراءة.", "I couldn't save the reading place."),
+        [StringKey.NoteSaveFailed] = ("لم أستطع حفظ الملاحظة.", "I couldn't save the note."),
+        [StringKey.SettingsCorruptedReset] = (
+            "كانت الإعدادات تالفة، فأعدت ضبطها إلى الإعدادات الافتراضية.",
+            "Settings were corrupted, so I reset them to defaults."),
+        [StringKey.ProfileCorruptedReset] = (
+            "كان الملف الشخصي تالفًا، فأعدت ضبطه إلى الإعدادات الافتراضية.",
+            "Your profile was corrupted, so I reset it to defaults."),
+        [StringKey.ConfirmPressAgain] = (
+            "اضغط إدخال مرة أخرى للتأكيد.",
+            "Press Enter again to confirm."),
     };
 
     public static string Get(StringKey key, Lang lang, params object[] args)

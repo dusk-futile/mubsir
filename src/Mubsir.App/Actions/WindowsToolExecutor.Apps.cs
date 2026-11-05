@@ -3,7 +3,10 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Mubsir.App.Actions.Interop;
 using Mubsir.App.Screen.Interop;
+using Mubsir.Core.Common;
+using Mubsir.Core.Localization;
 using Mubsir.Core.Policy;
+using Mubsir.Core.Speech;
 
 namespace Mubsir.App.Actions;
 
@@ -305,7 +308,15 @@ internal sealed partial class WindowsToolExecutor
             return Error("memory is not available");
         }
 
-        _memory.Append(fact.Length > 500 ? fact[..500] : fact);
+        bool saved = _memory.Append(fact.Length > 500 ? fact[..500] : fact);
+        if (!saved)
+        {
+            Lang lang = _settings?.Profile.PreferredLanguage ?? Lang.English;
+            _speech?.PlayEarcon(Earcon.Error);
+            _speech?.Speak(Strings.Get(StringKey.RememberSaveFailed, lang), UtteranceKind.System, lang);
+            return Error("could not save to memory");
+        }
+
         return Ok("Remembered.");
     }
 

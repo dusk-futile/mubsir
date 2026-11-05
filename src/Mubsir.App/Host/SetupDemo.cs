@@ -1,4 +1,6 @@
 using Mubsir.Core.Common;
+using Mubsir.Core.Config;
+using Mubsir.Core.Input;
 using Mubsir.Core.Onboarding;
 using Mubsir.Core.Setup;
 using Mubsir.Overlay;
@@ -56,5 +58,39 @@ internal static class SetupDemo
         }
 
         public bool GetOption(string name) => name is "ShowNotch" or "SaveSessions";
+
+        public void InstallNvdaAddon()
+        {
+        }
+
+        public KeyIdentity GetTalkKey() => KeyIdentity.RightCtrl;
+
+        public void SetTalkKey(KeyIdentity key)
+        {
+        }
+
+        public string GetBrainModel() => MubsirSettings.DefaultBrainModel;
+
+        public void SetBrainModel(string model)
+        {
+        }
+
+        public string? GetFishVoiceId() => null;
+
+        public void SetFishVoiceId(string? voiceId)
+        {
+        }
+
+        public void TestVoice(Lang lang)
+        {
+        }
+
+        public void ReportProblem()
+        {
+        }
+
+        public void ExportTodayChat()
+        {
+        }
     }
 }

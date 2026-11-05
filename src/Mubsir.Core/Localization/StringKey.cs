@@ -76,6 +76,8 @@ public enum StringKey
     SettingsMenu,
 
     BudgetStatus,
+    SpendingZero,
+    SpendingBreakdown,
     NothingToRead,
     Done,
 
@@ -92,4 +94,13 @@ public enum StringKey
     KeyHelpEnter,
     KeyHelpF1,
     KeyHelpNvdaKey,
+
+    ConnectionDropped,
+    AskUserTimedOut,
+    RememberSaveFailed,
+    BookmarkSaveFailed,
+    NoteSaveFailed,
+    SettingsCorruptedReset,
+    ProfileCorruptedReset,
+    ConfirmPressAgain,
 }

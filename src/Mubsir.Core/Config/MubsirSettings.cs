@@ -69,6 +69,9 @@ public sealed record MubsirSettings
     /// <summary>Whole books through the paid voice. A 300-page Arabic book costs about $18, so it's off.</summary>
     public bool ReadBooksWithFish { get; set; }
 
+    /// <summary>Read Arabic diacritics fully instead of leaving them to the voice.</summary>
+    public bool ReadFullTashkeel { get; set; } = true;
+
     /// <summary>A Fish Audio voice id. Empty uses Fish's default.</summary>
     public string? FishVoiceId { get; set; }
 

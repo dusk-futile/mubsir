@@ -5,6 +5,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Mubsir.Core.Common;
+using Mubsir.Core.Input;
 using Mubsir.Core.Onboarding;
 using Mubsir.Core.Setup;
 
@@ -36,6 +37,26 @@ public interface ISetupDriver
     void SetOption(string name, bool value);
 
     bool GetOption(string name);
+
+    void InstallNvdaAddon();
+
+    KeyIdentity GetTalkKey();
+
+    void SetTalkKey(KeyIdentity key);
+
+    string GetBrainModel();
+
+    void SetBrainModel(string model);
+
+    string? GetFishVoiceId();
+
+    void SetFishVoiceId(string? voiceId);
+
+    void TestVoice(Lang lang);
+
+    void ReportProblem();
+
+    void ExportTodayChat();
 }
 
 /// <summary>
@@ -432,21 +453,130 @@ public sealed class SetupWindow : Window
     private void ShowSettings()
     {
         Begin(T("الإعدادات", "Settings"));
+
+        // Keys
         KeyRow(KeyKind.Anthropic, "Claude", T("العقل", "The brain"));
         KeyRow(KeyKind.FishAudio, "Fish Audio", T("الصوت والسمع", "Voice and hearing"));
         KeyRow(KeyKind.Gemini, "Google Gemini", T("اختياري، للسمع", "Optional, for hearing"));
+
+        // Talk key
+        Add(Words(T("مفتاح الكلام", "Talk key"), 14, Ink, FontWeights.SemiBold));
+        Add(Words(T("اضغط مع الاستمرار على المفتاح ده عشان تتكلم، أو اضغط ضغطة واحدة عشان توقف الكلام.", "Hold this key to talk, or tap it once to stop speech."), 12.5, Quiet));
+        var talkKeyBox = new ComboBox { FontFamily = Font, FontSize = 13, Height = 32, Margin = new Thickness(0, 4, 0, 10) };
+        AutomationProperties.SetName(talkKeyBox, T("اختر مفتاح الكلام", "Choose talk key"));
+        var keyOptions = new[]
+        {
+            (Key: KeyIdentity.RightCtrl, Label: T("Control اليمين (Right Ctrl)", "Right Ctrl (default)")),
+            (Key: KeyIdentity.Apps, Label: T("زر التطبيقات (Apps key)", "Applications key (Apps)")),
+            (Key: KeyIdentity.ScrollLock, Label: T("قفل التمرير (Scroll Lock)", "Scroll Lock")),
+        };
+        foreach (var opt in keyOptions)
+        {
+            talkKeyBox.Items.Add(new ComboBoxItem { Content = opt.Label, Tag = opt.Key });
+        }
+
+        KeyIdentity currentTalk = _driver.GetTalkKey();
+        int talkIdx = Array.FindIndex(keyOptions, o => o.Key == currentTalk);
+        talkKeyBox.SelectedIndex = talkIdx >= 0 ? talkIdx : 0;
+        talkKeyBox.SelectionChanged += (_, _) =>
+        {
+            if (talkKeyBox.SelectedItem is ComboBoxItem item && item.Tag is KeyIdentity chosen)
+            {
+                _driver.SetTalkKey(chosen);
+            }
+        };
+        Add(talkKeyBox);
+
+        // Brain choice
+        Add(Words(T("عقل الذكاء الاصطناعي", "Brain model"), 14, Ink, FontWeights.SemiBold));
+        Add(Words(T("Claude Haiku 5.5 هو الأسرع والأوفر للمهام اليومية. Claude Sonnet 5.5 للمهام المعقدة ولكن تكلفته 20 ضعف.",
+            "Claude Haiku 5.5 is fastest and cheapest for daily tasks. Claude Sonnet 5.5 is for harder tasks but costs 20x more."), 12.5, Quiet));
+        var brainBox = new ComboBox { FontFamily = Font, FontSize = 13, Height = 32, Margin = new Thickness(0, 4, 0, 10) };
+        AutomationProperties.SetName(brainBox, T("اختر عقل الذكاء الاصطناعي", "Choose brain model"));
+        var brainOptions = new[]
+        {
+            (Model: "claude-haiku-5-5", Label: T("Claude Haiku 5.5 (موصى به، سريع ورخيص)", "Claude Haiku 5.5 (recommended, fast and cheap)")),
+            (Model: "claude-sonnet-5-5", Label: T("Claude Sonnet 5.5 (للمهام الأصعب، تكلفة أعلى 20 ضعف)", "Claude Sonnet 5.5 (for harder tasks - 20x higher cost)")),
+        };
+        foreach (var opt in brainOptions)
+        {
+            brainBox.Items.Add(new ComboBoxItem { Content = opt.Label, Tag = opt.Model });
+        }
+
+        string currentBrain = _driver.GetBrainModel();
+        int brainIdx = Array.FindIndex(brainOptions, o => string.Equals(o.Model, currentBrain, StringComparison.OrdinalIgnoreCase));
+        brainBox.SelectedIndex = brainIdx >= 0 ? brainIdx : 0;
+        brainBox.SelectionChanged += (_, _) =>
+        {
+            if (brainBox.SelectedItem is ComboBoxItem item && item.Tag is string chosen)
+            {
+                _driver.SetBrainModel(chosen);
+            }
+        };
+        Add(brainBox);
+
+        // Fish voice id & testing
+        Add(Words(T("معرف صوت Fish Audio (Voice ID)", "Fish Audio Voice ID"), 14, Ink, FontWeights.SemiBold));
+        Add(Words(T("سيبه فاضي لاستخدام الصوت الافتراضي، أو اكتب معرف صوت من حسابك في Fish Audio.",
+            "Leave empty for the default voice, or enter a voice ID from Fish Audio."), 12.5, Quiet));
+        var voiceIdBox = new TextBox
+        {
+            Text = _driver.GetFishVoiceId() ?? string.Empty,
+            Height = 32,
+            FontFamily = Font,
+            FontSize = 13,
+            VerticalContentAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 4, 0, 6),
+        };
+        AutomationProperties.SetName(voiceIdBox, T("معرف صوت Fish Audio", "Fish Audio voice ID"));
+        voiceIdBox.LostFocus += (_, _) => _driver.SetFishVoiceId(voiceIdBox.Text);
+        voiceIdBox.TextChanged += (_, _) => _driver.SetFishVoiceId(voiceIdBox.Text);
+        Add(voiceIdBox);
+
+        var voiceTestPanel = new WrapPanel { Margin = new Thickness(0, 0, 0, 10) };
+        voiceTestPanel.Children.Add(SmallButton(T("جرب الصوت بالعربية", "Test voice in Arabic"), () =>
+        {
+            _driver.SetFishVoiceId(voiceIdBox.Text);
+            _driver.TestVoice(Lang.Arabic);
+        }));
+        voiceTestPanel.Children.Add(SmallButton(T("جرب الصوت بالإنجليزية", "Test voice in English"), () =>
+        {
+            _driver.SetFishVoiceId(voiceIdBox.Text);
+            _driver.TestVoice(Lang.English);
+        }));
+        Add(voiceTestPanel);
+
+        // NVDA Add-on installation
+        Add(Words(T("إضافة NVDA Bridge", "NVDA Bridge Add-on"), 14, Ink, FontWeights.SemiBold));
+        Add(Words(T("لتشغيل جسر NVDA مع مبصر، اضغط هنا لتثبيت الإضافة في NVDA.", "To connect NVDA with Mubsir, click here to install the bridge add-on in NVDA."), 12.5, Quiet));
+        Add(SmallButton(T("تثبيت إضافة Mubsir Bridge لـ NVDA", "Install Mubsir Bridge NVDA add-on"), _driver.InstallNvdaAddon));
+
+        // Options
+        Add(Words(T("خيارات عامة", "General options"), 14, Ink, FontWeights.SemiBold));
         Option("ShowNotch", T("أظهر الشريط اللي فوق الشاشة (بعد إعادة التشغيل)", "Show the notch at the top of the screen (after a restart)"));
         Option("ShowHudhud", T("أظهر الهدهد (بعد إعادة التشغيل)", "Show Hudhud (after a restart)"));
         Option("UseFishVoice", T("اتكلم بصوت Fish Audio", "Talk in the Fish Audio voice"));
         Option("ReadBooksWithFish", T("اقرأ الكتب بصوت Fish Audio (الكتاب الكبير ممكن يتكلف 18 دولار)", "Read books in the Fish Audio voice (a long book can cost about $18)"));
         Option("TeachMovesMouse", T("وأنا بعلم، حرك الماوس للمكان الصح", "When teaching, move the mouse to the right place"));
+        Option("ReadFullTashkeel", T("اقرأ التشكيل كاملاً (لو مقفول، متروك للصوت)", "Read Arabic diacritics fully (when off, left to the voice)"));
         Option("SaveSessions", T("احفظ المحادثات في فولدر على جهازي", "Save chats in a folder on this PC"));
-        Add(SmallButton(T("افتح فولدر المحادثات", "Open the chats folder"), _driver.OpenChats));
+
+        // Chats and Export
+        var chatsPanel = new WrapPanel { Margin = new Thickness(0, 8, 0, 4) };
+        chatsPanel.Children.Add(SmallButton(T("افتح فولدر المحادثات", "Open the chats folder"), _driver.OpenChats));
+        chatsPanel.Children.Add(SmallButton(T("تصدير محادثة اليوم بصيغة Word (.docx)", "Export today's chat as Word (.docx)"), _driver.ExportTodayChat));
+        Add(chatsPanel);
+
+        // Report a problem
+        var helpPanel = new WrapPanel { Margin = new Thickness(0, 4, 0, 8) };
+        helpPanel.Children.Add(SmallButton(T("أبلغ عن مشكلة (يفتح صفحة GitHub)", "Report a problem (opens GitHub)"), _driver.ReportProblem));
+        Add(helpPanel);
     }
 
     private void Option(string name, string label)
     {
         var box = new CheckBox { Content = label, IsChecked = _driver.GetOption(name), Margin = new Thickness(0, 8, 0, 0), FontFamily = Font, FontSize = 14, Foreground = Ink };
+        AutomationProperties.SetName(box, label);
         box.Click += (_, _) => _driver.SetOption(name, box.IsChecked == true);
         Add(box);
     }
@@ -467,6 +597,7 @@ public sealed class SetupWindow : Window
     private static Button MainButton(string text, Action click)
     {
         var button = new Button { Content = text, MinHeight = 40, Margin = new Thickness(0, 8, 0, 0), Padding = new Thickness(14, 6, 14, 6), FontFamily = Font, FontSize = 14 };
+        AutomationProperties.SetName(button, text);
         button.Click += (_, _) => click();
         return button;
     }
@@ -474,6 +605,7 @@ public sealed class SetupWindow : Window
     private static Button SmallButton(string text, Action click)
     {
         var button = new Button { Content = text, MinHeight = 30, Margin = new Thickness(0, 2, 8, 2), Padding = new Thickness(10, 3, 10, 3), FontFamily = Font, FontSize = 13 };
+        AutomationProperties.SetName(button, text);
         button.Click += (_, _) => click();
         return button;
     }

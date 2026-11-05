@@ -60,6 +60,8 @@ internal sealed class AppServices
 
     public IToolExecutor? Executor { get; set; }
 
+    public Action? OpenSetup { get; set; }
+
     public Lang UiLang => Settings.Profile.PreferredLanguage;
 
     public bool HasEars => Ears is { HasAnyKey: true };

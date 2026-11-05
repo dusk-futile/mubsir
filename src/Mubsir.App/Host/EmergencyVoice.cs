@@ -13,6 +13,8 @@ internal static class EmergencyVoice
             var nvda = new NvdaController();
             if (nvda.IsRunning() && nvda.SpeakText(text) == 0)
             {
+                int durationMs = Math.Clamp(text.Length * 70, 2000, (int)maxWait.TotalMilliseconds);
+                Thread.Sleep(durationMs);
                 return;
             }
 

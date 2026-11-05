@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using Mubsir.Core.Common;
 using Mubsir.Core.Config;
+using Mubsir.Core.Cost;
 using Mubsir.Core.Logging;
 using Windows.Media.Core;
 using Windows.Media.Playback;
@@ -13,7 +14,14 @@ namespace Mubsir.App.Speech;
 /// Fish Audio's voice. It never leaves the user in silence: any failure returns false and the free Windows voice
 /// speaks instead. After a failure it rests, and a key that's wrong or out of credit rests until it's changed.
 /// </summary>
-internal sealed class FishVoice(SecretStore secrets, SettingsProvider settings, IEventLog log, HttpMessageHandler? handler = null) : IDisposable
+internal sealed class FishVoice(
+    SecretStore secrets,
+    SettingsProvider settings,
+    IEventLog log,
+    CostLedger? ledger = null,
+    Action? onCostRecorded = null,
+    FishVoiceCache? cache = null,
+    HttpMessageHandler? handler = null) : IDisposable
 {
     private const string Endpoint = "https://api.fish.audio/v1/tts";
     private const int MaxChars = 2000;
@@ -22,6 +30,7 @@ internal sealed class FishVoice(SecretStore secrets, SettingsProvider settings, 
     private static readonly TimeSpan RestAfterFailure = TimeSpan.FromSeconds(60);
 
     private readonly HttpClient _http = new(handler ?? new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) }) { Timeout = Timeout.InfiniteTimeSpan };
+    private readonly FishVoiceCache _cache = cache ?? new FishVoiceCache(log);
     private readonly object _gate = new();
     private CancellationTokenSource _stop = new();
     private MediaPlayer? _player;
@@ -45,7 +54,7 @@ internal sealed class FishVoice(SecretStore secrets, SettingsProvider settings, 
     }
 
     /// <summary>True if the sentence was heard, or was stopped by the user. False if another voice should say it.</summary>
-    public async Task<bool> SpeakAsync(string text, Lang lang, int rate, Action started)
+    public async Task<bool> SpeakAsync(string text, Lang lang, int rate, Action started, bool isBook = false)
     {
         string? key = secrets.Get(SecretNames.Fish);
         if (key is null || string.IsNullOrWhiteSpace(text) || text.Length > MaxChars)
@@ -59,6 +68,28 @@ internal sealed class FishVoice(SecretStore secrets, SettingsProvider settings, 
             stopped = _stop.Token;
         }
 
+        double speed = Math.Clamp(0.5 + (rate / 100.0), 0.5, 2.0);
+        string? voice = settings.Settings.FishVoiceId;
+        bool canCache = !isBook && !settings.Settings.PrivateMode && text.Length <= FishVoiceCache.MaxChars;
+
+        if (canCache && _cache.TryGet(text, voice, speed, out byte[] cachedAudio))
+        {
+            try
+            {
+                var cachedStream = new MemoryStream(cachedAudio);
+                return await PlayAsync(cachedStream, started, TimeSpan.FromSeconds(30) + TimeSpan.FromMilliseconds(text.Length * 250L), stopped).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (stopped.IsCancellationRequested)
+            {
+                return true;
+            }
+            catch (Exception e) when (e is not OutOfMemoryException)
+            {
+                log.Fail(LogKind.Speech, "fish_cached_play_" + MetaLog.Code(e));
+                // Fall back to fetching if playing from cache failed
+            }
+        }
+
         try
         {
             using var firstAudio = CancellationTokenSource.CreateLinkedTokenSource(stopped);
@@ -66,7 +97,7 @@ internal sealed class FishVoice(SecretStore secrets, SettingsProvider settings, 
             using var request = new HttpRequestMessage(HttpMethod.Post, Endpoint);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
             request.Headers.TryAddWithoutValidation("model", "s2.1-pro");
-            request.Content = new StringContent(Body(text, lang, rate, settings.Settings.FishVoiceId), System.Text.Encoding.UTF8, "application/json");
+            request.Content = new StringContent(Body(text, lang, rate, voice), System.Text.Encoding.UTF8, "application/json");
             using HttpResponseMessage response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, firstAudio.Token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
@@ -81,6 +112,16 @@ internal sealed class FishVoice(SecretStore secrets, SettingsProvider settings, 
             {
                 Rest(key, HttpStatusCode.NoContent);
                 return false;
+            }
+
+            // Count costs for text actually sent over the network
+            int utf8Bytes = System.Text.Encoding.UTF8.GetByteCount(text);
+            ledger?.AddFishVoice(utf8Bytes);
+            onCostRecorded?.Invoke();
+
+            if (canCache)
+            {
+                _cache.Put(text, voice, speed, audio.ToArray());
             }
 
             audio.Position = 0;

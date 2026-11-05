@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Mubsir.Core.Common;
 using Mubsir.Core.Text;
 
 namespace Mubsir.App.Actions;
@@ -211,6 +212,106 @@ internal static class FileOps
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
+        }
+    }
+
+    public static (bool Success, string Message) UndoLast(Lang lang)
+    {
+        try
+        {
+            if (!File.Exists(AppPaths.UndoJournalFile))
+            {
+                return (false, lang == Lang.Arabic ? "لا يوجد ما يمكن التراجع عنه." : "Nothing to undo.");
+            }
+
+            string[] lines = File.ReadAllLines(AppPaths.UndoJournalFile);
+            if (lines.Length == 0)
+            {
+                return (false, lang == Lang.Arabic ? "لا يوجد ما يمكن التراجع عنه." : "Nothing to undo.");
+            }
+
+            int targetIndex = -1;
+            UndoEntry? target = null;
+            for (int i = lines.Length - 1; i >= 0; i--)
+            {
+                var line = lines[i].Trim();
+                if (line.Length == 0)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    var entry = JsonSerializer.Deserialize(line, UndoJson.Default.UndoEntry);
+                    if (entry is not null && entry.Op is "move" or "rename" or "copy")
+                    {
+                        targetIndex = i;
+                        target = entry;
+                        break;
+                    }
+                }
+                catch (JsonException)
+                {
+                }
+            }
+
+            if (targetIndex < 0 || target is null)
+            {
+                return (false, lang == Lang.Arabic ? "لا يوجد ما يمكن التراجع عنه." : "Nothing to undo.");
+            }
+
+            string op = target.Op;
+            string from = target.From;
+            string? to = target.To;
+
+            if (op is "move" or "rename")
+            {
+                if (string.IsNullOrWhiteSpace(to) || (!File.Exists(to) && !Directory.Exists(to)))
+                {
+                    return (false, lang == Lang.Arabic ? "الملف لم يعد موجوداً في موقعه الجديد للتراجع." : "The file is no longer at the new location to undo.");
+                }
+
+                if (File.Exists(from) || Directory.Exists(from))
+                {
+                    return (false, lang == Lang.Arabic ? "يوجد ملف بالفعل في الموقع الأصلي، لا يمكن الكتابة فوقه." : "A file already exists at the original location; cannot overwrite it.");
+                }
+
+                if (File.Exists(to))
+                {
+                    File.Move(to, from, overwrite: false);
+                }
+                else
+                {
+                    Directory.Move(to, from);
+                }
+            }
+            else if (op == "copy")
+            {
+                if (string.IsNullOrWhiteSpace(to) || (!File.Exists(to) && !Directory.Exists(to)))
+                {
+                    return (false, lang == Lang.Arabic ? "النسخة لم تعد موجودة للتراجع عنها." : "The copied file no longer exists to undo.");
+                }
+
+                // The copy may have been changed since, so it goes to the Recycle Bin where it can be got back.
+                if (SystemTools.Recycle([to]) is not null)
+                {
+                    return (false, lang == Lang.Arabic ? "فشل التراجع عن العملية." : "Undo failed.");
+                }
+            }
+
+            var remaining = lines.Where((_, idx) => idx != targetIndex).ToArray();
+            File.WriteAllLines(AppPaths.UndoJournalFile, remaining);
+
+            string name = Path.GetFileName(op == "copy" ? to! : from);
+            string msg = lang == Lang.Arabic
+                ? (op == "move" ? $"تم التراجع عن نقل {name}." : op == "rename" ? $"تم التراجع عن إعادة تسمية {name}." : $"تم التراجع عن نسخ {name}.")
+                : (op == "move" ? $"Undid moving {name}." : op == "rename" ? $"Undid renaming {name}." : $"Undid copying {name}.");
+
+            return (true, msg);
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            return (false, lang == Lang.Arabic ? "فشل التراجع عن العملية." : "Undo failed.");
         }
     }
 

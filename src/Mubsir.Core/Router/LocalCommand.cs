@@ -39,6 +39,17 @@ public enum LocalCommand
     Settings,
     SaveReport,
     KeyExplorer,
+    Spending,
+    FishVoiceOn,
+    FishVoiceOff,
+    ReadBooksWithFishOn,
+    ReadBooksWithFishOff,
+    NotchOn,
+    NotchOff,
+    SaveChatsOn,
+    SaveChatsOff,
+    OpenChatsFolder,
+    Undo,
 }
 
 public sealed record CommandMatch(LocalCommand Command, string? Argument, double Confidence)

@@ -2,13 +2,15 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Mubsir.App.Audio;
 using Mubsir.Core.Agent;
+using Mubsir.Core.Cost;
 using Mubsir.Core.Logging;
 
 namespace Mubsir.App.Brain;
 
 /// <summary>Speech to text with the same Fish Audio key as the voice. It gets no language hint, so mixed sentences stay mixed.</summary>
-internal sealed class FishEars(SecretStore secrets, IEventLog log, HttpMessageHandler? handler = null) : IDisposable
+internal sealed class FishEars(SecretStore secrets, IEventLog log, CostLedger? ledger = null, Action? onCostRecorded = null, HttpMessageHandler? handler = null) : IDisposable
 {
     private const string Endpoint = "https://api.fish.audio/v1/asr";
     private const string Model = "transcribe-1-pro";
@@ -46,6 +48,11 @@ internal sealed class FishEars(SecretStore secrets, IEventLog log, HttpMessageHa
                     ? new EarsException(BrainErrorKind.Auth, "http_402")
                     : GeminiEars.MapStatus(response.StatusCode);
             }
+
+            // Hearing at $0.36 per hour of audio
+            TimeSpan duration = AudioMath.GetWavDuration(wav);
+            ledger?.AddFishHearing(duration);
+            onCostRecorded?.Invoke();
 
             await using Stream body = await response.Content.ReadAsStreamAsync(timeout.Token).ConfigureAwait(false);
             using JsonDocument json = await JsonDocument.ParseAsync(body, cancellationToken: timeout.Token).ConfigureAwait(false);
