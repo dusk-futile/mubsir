@@ -8,7 +8,7 @@ CI builds an unsigned package, `Mubsir.msix` (artifact `mubsir-msix`), so the ma
 2. Reserve the name. Partner Center gives the real `Name` and `Publisher`; put them in `packaging/AppxManifest.xml`.
 3. Publish `docs/PRIVACY.md` at a public URL, which the listing requires. The file's GitHub link works.
 4. In the submission, justify `runFullTrust`: an assistive agent needs keyboard hooks, UI Automation and synthetic input.
-5. Choose the age rating. Check the current AI-content and children's rules before submitting, since teaching mode can be used by a child.
+5. Choose the age rating. Check the current AI-content and children's rules before submitting.
 
 ## Likely review questions (from the audit; unconfirmed until a real submission)
 

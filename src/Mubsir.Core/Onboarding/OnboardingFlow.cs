@@ -28,8 +28,6 @@ public sealed record OnboardingStep(string Id, string Arabic, string English, IR
 public sealed record PersonalPlan(
     UserKind Kind,
     Lang Language,
-    bool StartInTeachMode,
-    bool SimpleWords,
     Verbosity Verbosity,
     int SpeechRate,
     bool ShowHudhud,
@@ -51,7 +49,6 @@ public sealed record PersonalPlan(
         settings.SpeechRate = SpeechRate;
         settings.ShowHudhud = ShowHudhud;
         settings.UseNvda = UseNvda;
-        settings.StartInTeachMode = StartInTeachMode;
         settings.DescribeBooks = DescribeBooks;
         settings.OnboardingDone = true;
     }
@@ -69,7 +66,6 @@ public sealed record PersonalPlan(
         {
             Name = string.IsNullOrWhiteSpace(Name) ? profile.Name : Name,
             PreferredLanguage = Language,
-            ReplyStyle = SimpleWords ? ReplyStyle.SimpleMsa : profile.ReplyStyle,
             TopTasks = tasks.Count > 0 ? tasks : profile.TopTasks,
             Needs = string.IsNullOrWhiteSpace(Subject) ? profile.Needs : Subject,
         };
@@ -93,7 +89,6 @@ public sealed class OnboardingFlow
     private static readonly OnboardingStep AskSight = new("sight", "بتستخدم الكمبيوتر إزاي؟", "How do you use your computer?", [
         new("blind", "بسمعه ومش بشوف الشاشة", "by listening, I can't see the screen", "كفيف", "كفيفه", "مش بشوف", "مابشوفش", "مش شايف", "اعمى", "بسمع", "بالسمع", "blind", "listening", "cant see", "can not see", "screen reader", "nvda"),
         new("lowvision", "بشوف بصعوبة", "I see it with difficulty", "ضعيف", "ضعف", "بصعوبه", "مكبر", "صغير", "low vision", "difficulty", "partly", "barely", "magnif", "large text"),
-        new("sighted", "بشوف الشاشة عادي", "I see the screen fine", "عادي", "كويس", "بشوف", "شايف", "fine", "normal", "see", "ok"),
     ]);
 
     private static readonly OnboardingStep AskBlindGoal = new("blind_goal", "أكتر حاجة تحب تعملها إيه؟", "What do you want to do most?", [
@@ -119,19 +114,6 @@ public sealed class OnboardingFlow
     private static readonly OnboardingStep AskMessagesApp = new("subject_messages", "بتستخدم إيه أكتر: واتساب، إيميل، ولا حاجة تانية؟", "Which do you use most: WhatsApp, email, or something else?", [], Free: true);
 
     private static readonly OnboardingStep AskWorkApps = new("subject_work", "بتشتغل على أي برامج؟ قولهم، أو قول خلاص.", "Which programs do you work in? Name them, or say skip.", [], Free: true);
-
-    private static readonly OnboardingStep AskSightedGoal = new("sighted_goal", "عايز مبصر يساعدك في إيه؟", "What do you want Mubsir for?", [
-        new("learn", "يعلمني برنامج خطوة بخطوة", "teach me a program step by step", "علمني", "تعلم", "اتعلم", "يعلمني", "learn", "teach", "tutor"),
-        new("handsfree", "ينفذ شغلي بصوتي", "do my work by voice", "ينفذ", "صوتي", "بصوتي", "شغل", "اسرع", "hands", "voice", "work", "faster", "do"),
-        new("help", "يساعدني لأني مش خبير كمبيوتر", "help me, I'm new to computers", "مش خبير", "مش بعرف", "مبعرفش", "جديد", "كبير", "new", "help", "beginner", "older", "not good"),
-    ]);
-
-    private static readonly OnboardingStep AskWho = new("learner_age", "مين اللي هيتعلم؟", "Who is learning?", [
-        new("child", "طفل", "a child", "طفل", "ابني", "بنتي", "صغير", "child", "kid", "son", "daughter"),
-        new("adult", "أنا", "me, an adult", "انا", "كبير", "طالب", "me", "adult", "myself", "student", "i am"),
-    ]);
-
-    private static readonly OnboardingStep AskLearnWhat = new("subject_learn", "عايز تتعلم إيه؟ مثلا مونتاج فيديو أو إكسل.", "What do you want to learn? For example video editing or Excel.", [], Free: true);
 
     private static readonly OnboardingStep AskName = new("name", "أناديك بإيه؟ أو قول خلاص.", "What should I call you? Or say skip.", [], Free: true);
 
@@ -202,46 +184,23 @@ public sealed class OnboardingFlow
 
     public PersonalPlan Plan()
     {
-        string sight = Get("sight") ?? (_facts.ScreenReaderRunning ? "blind" : "sighted");
-        string goal = Get("blind_goal") ?? Get("sighted_goal") ?? "web";
-        bool child = Get("learner_age") == "child";
-        UserKind kind = sight switch
-        {
-            "blind" => UserKind.Blind,
-            "lowvision" => UserKind.LowVision,
-            _ => goal switch
-            {
-                "learn" => child ? UserKind.ChildLearner : UserKind.Learner,
-                "help" => UserKind.Beginner,
-                _ => UserKind.HandsFree,
-            },
-        };
+        string goal = Get("blind_goal") ?? "web";
+        UserKind kind = Get("sight") == "lowvision" ? UserKind.LowVision : UserKind.Blind;
         bool noSight = kind == UserKind.Blind;
-        bool teach = goal == "learn";
-        Verbosity verbosity = kind switch
-        {
-            UserKind.Blind or UserKind.HandsFree => Verbosity.Brief,
-            UserKind.Beginner or UserKind.ChildLearner or UserKind.Learner => Verbosity.Detailed,
-            _ => Verbosity.Normal,
-        };
+        Verbosity verbosity = noSight ? Verbosity.Brief : Verbosity.Normal;
         int rate = Get("speed") switch
         {
             "fast" => 70,
             "slow" => 35,
-            _ => kind is UserKind.Beginner or UserKind.ChildLearner ? 42 : MubsirSettings.DefaultSpeechRate,
+            _ => MubsirSettings.DefaultSpeechRate,
         };
         (string ar, string en) = FirstSuggestion(goal, _subject);
-        if (noSight)
-        {
-            ar += " وتقدر تقول غير الصوت عشان تختار صوت العربي.";
-            en += " You can also say change the voice to pick the Arabic voice.";
-        }
+        ar += " وتقدر تقول غير الصوت عشان تختار صوت العربي.";
+        en += " You can also say change the voice to pick the Arabic voice.";
 
         return new PersonalPlan(
             kind,
             _language,
-            teach,
-            kind is UserKind.ChildLearner or UserKind.Beginner,
             verbosity,
             rate,
             ShowHudhud: !noSight,
@@ -259,20 +218,15 @@ public sealed class OnboardingFlow
         "books" => (subject is null ? "جرب تقول: دور لي على كتاب." : $"جرب تقول: دور لي على كتاب عن {subject}.", subject is null ? "Try saying: find me a book." : $"Try saying: find me a book on {subject}."),
         "messages" => ("جرب تقول: مين بعتلي رسالة؟", "Try saying: who messaged me?"),
         "work" => ("جرب تقول: اقرأ لي الشاشة.", "Try saying: read my screen."),
-        "learn" => (subject is null ? "جرب تقول: علمني حاجة جديدة." : $"جرب تقول: علمني {subject}.", subject is null ? "Try saying: teach me something." : $"Try saying: teach me {subject}."),
-        "help" => ("جرب تقول: إيه اللي على الشاشة؟", "Try saying: what's on my screen?"),
-        "handsfree" => ("جرب تقول: افتح لي الكروم ودور على الأخبار.", "Try saying: open Chrome and search for the news."),
         _ => ("جرب تقول: افتح يوتيوب.", "Try saying: open YouTube."),
     };
 
     private static string DefaultFor(OnboardingStep step) => step.Id switch
     {
         "language" => "arabic",
-        "sight" => "sighted",
+        "sight" => "blind",
         "blind_goal" => "web",
         "describe_books" => "no",
-        "sighted_goal" => "handsfree",
-        "learner_age" => "adult",
         "speed" => "normal",
         _ => step.Options[0].Id,
     };
@@ -323,7 +277,7 @@ public sealed class OnboardingFlow
             case "name":
                 _name = answer.Length == 0 ? null : answer;
                 break;
-            case "subject_books" or "subject_messages" or "subject_work" or "subject_learn":
+            case "subject_books" or "subject_messages" or "subject_work":
                 _subject = answer.Length == 0 ? null : answer;
                 break;
         }
@@ -336,12 +290,7 @@ public sealed class OnboardingFlow
     {
         // A running screen reader answers the sight question for us.
         "language" => _facts.ScreenReaderRunning ? AfterBlind() : AskSight,
-        "sight" => answer switch
-        {
-            "blind" => AfterBlind(),
-            "lowvision" => AskBlindGoal,
-            _ => AskSightedGoal,
-        },
+        "sight" => answer == "blind" ? AfterBlind() : AskBlindGoal,
         "blind_goal" => answer switch
         {
             "books" => AskStudyPlace,
@@ -352,9 +301,6 @@ public sealed class OnboardingFlow
         "subject_books" => AskDescribeBooks,
         "describe_books" or "subject_messages" or "subject_work" => Get("sight") == "lowvision" ? AskName : AskBlindSpeed,
         "speed" => AskName,
-        "sighted_goal" => answer == "learn" ? AskWho : AskName,
-        "learner_age" => AskLearnWhat,
-        "subject_learn" => AskName,
         _ => null,
     };
 

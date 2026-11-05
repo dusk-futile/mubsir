@@ -2,7 +2,12 @@
 
 Update this file at the end of every session. Newest on top. Older entries are in `docs/archive/HANDOFF-OLD.md`.
 
-# Latest session, 2026-11-05 (fourth part)
+# Latest session, 2026-11-05 (fifth part)
+
+- **Only blind and low-vision users now.** The owner is building this for their grandfather and will add their own keys. Sighted, beginner, hands-free, learner and child options are gone from `UserKind`, the first conversation and the prompt. The notch, Hudhud and the rest of the UI are unchanged. Anyone can still ask to be taught.
+- CI failed because restoring the whole solution changed Core's and Overlay's lock files. Only App's lock file should hold the Windows packages.
+
+# Earlier, 2026-11-05 (fourth part)
 
 - **Voices decided:** Fish for Arabic only, with the Arabic narrator as default and 6 to choose from (`VoiceCatalog`). English is Ryan high from Piper at 90% speed, free, on the PC (`Speech/LocalVoice.cs`, via sherpa-onnx 1.12.40). Version 2.0 of sherpa-onnx can't phonemize Piper, so don't upgrade it without checking. It downloads in the background, with a pinned hash, unpacked with Windows `tar`. Unloads after 3 idle minutes. If it's too slow on a PC, the Windows voice takes over and the person is told.
 - **Licences:** the Ryan model's data is CC BY-NC-SA 4.0, so it can't be used if Mubsir ever becomes commercial. Norman (public domain data) is the swap. espeak-ng is GPL-3.0, so the release that includes it is effectively GPL-3.0. The source is public. Have someone qualified confirm before the Store.

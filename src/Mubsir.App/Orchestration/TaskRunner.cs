@@ -159,16 +159,10 @@ internal sealed class TaskRunner
         }
     }
 
-    /// <summary>A child stays in teaching. Anyone else can ask for it, or leave it, in their own words.</summary>
-    private bool TeachingFor(string text)
+    /// <summary>Anyone can ask for teaching, or leave it, in their own words.</summary>
+    private static bool TeachingFor(string text)
     {
-        var settings = _app.Settings.Settings;
-        if (settings.UserKind == Mubsir.Core.Config.UserKind.ChildLearner)
-        {
-            return true;
-        }
-
-        return !TeachMode.IsEnd(text) && (settings.StartInTeachMode || TeachMode.IsRequest(text));
+        return !TeachMode.IsEnd(text) && TeachMode.IsRequest(text);
     }
 
     private void SaveChat(string who, string? text)

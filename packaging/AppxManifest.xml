@@ -28,7 +28,7 @@
     <Application Id="Mubsir" Executable="Mubsir.exe" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
         DisplayName="Mubsir"
-        Description="A free assistive voice agent for Windows, in Arabic and English."
+        Description="A free voice agent for blind and low-vision people, in Arabic and English."
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png" />

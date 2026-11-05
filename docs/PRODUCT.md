@@ -1,8 +1,8 @@
 # What Mubsir is
 
-Mubsir (مُبصِر) is a free Windows app that lets a blind person use a whole PC by voice, in Arabic, English or both in one sentence. It reads anything, does what they ask on the PC, and tells them what happened. It runs alongside the NVDA screen reader and doesn't replace it.
+Mubsir (مُبصِر) is a free Windows app that lets a blind or low-vision person use a whole PC by voice, in Arabic, English or both in one sentence. It reads anything, does what they ask on the PC, and tells them what happened. It runs alongside the NVDA screen reader and doesn't replace it.
 
-Blind users come first. People with low vision, beginners, learners and anyone who wants their hands free can use it too, and the first conversation adapts to them.
+It's made only for people who can't see the screen or see it with difficulty. The first conversation adapts to which.
 
 ## How someone uses it
 
@@ -28,7 +28,7 @@ They hold **Right Ctrl**, say what they want and let go. Pressing **Ctrl** stops
 - Settings can be changed by voice, including speed and the Arabic voice. "صرفت كام" says the month's spending.
 
 **Teach**
-- "علمني Excel" teaches one step at a time and checks each step by reading the screen. It can't click or type in this mode. A blind learner is taught keys and what they'll hear.
+- "علمني Excel" teaches one step at a time and checks each step by reading the screen. It can't click or type in this mode. A blind learner is taught keys and what they'll hear. For low vision, the pointer also moves to the right place.
 
 ## Voices
 

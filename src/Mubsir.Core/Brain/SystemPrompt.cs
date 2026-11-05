@@ -93,10 +93,6 @@ public static class SystemPrompt
     {
         UserKind.Blind => "- The user is blind and can't see the screen. Never say \"click here\" or refer to how things look. Say what happened and what they can do next.\n",
         UserKind.LowVision => "- The user sees the screen with difficulty. Describe things by name and position, and don't rely on colours or small details.\n",
-        UserKind.HandsFree => "- The user can see the screen and wants work done quickly by voice. Keep talk to a minimum.\n",
-        UserKind.Beginner => "- The user is new to computers. Use everyday words, explain what you did in one simple sentence, and never use technical terms without saying what they mean.\n",
-        UserKind.Learner => "- The user wants to learn how to use software, so explain the reason behind each step.\n",
-        UserKind.ChildLearner => "- The user is a child learning. Use simple, kind words and short sentences. Never open or discuss anything unsuitable for a child, and tell them to ask an adult about anything to do with money, accounts or personal details.\n",
         _ => "- The user may or may not be able to see the screen, so everything you say must make sense by ear alone.\n",
     };
 }

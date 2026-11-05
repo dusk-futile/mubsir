@@ -43,25 +43,18 @@ public class OnboardingFlowTests
     }
 
     [Fact]
-    public void A_child_learner_goes_to_teaching_with_simple_words()
+    public void The_only_choices_are_blind_and_low_vision()
     {
-        OnboardingFlow flow = Run(false, "English", "I see the screen fine", "teach me a program", "my son is a kid", "video editing", "skip");
-        PersonalPlan plan = flow.Plan();
-        Assert.Equal(UserKind.ChildLearner, plan.Kind);
-        Assert.True(plan.StartInTeachMode);
-        Assert.True(plan.SimpleWords);
-        Assert.Equal(Lang.English, plan.Language);
-        Assert.Contains("video editing", plan.FirstSuggestion, StringComparison.Ordinal);
+        var flow = Run(false, "arabic");
+        Assert.Equal("sight", flow.Current!.Id);
+        Assert.Equal(["blind", "lowvision"], flow.Current.Options.Select(o => o.Id));
     }
 
     [Fact]
-    public void A_mixed_language_answer_is_understood() =>
-        Assert.Equal("learn", Pick(Run(false, "arabic", "بشوف عادي"), "عايز learn برنامج"));
-
-    private static string? Pick(OnboardingFlow flow, string said)
+    public void A_mixed_language_answer_is_understood()
     {
-        flow.Answer(said);
-        return flow.Plan().Goal;
+        OnboardingFlow flow = Run(false, "arabic", "low vision", "عايز اقرا books");
+        Assert.Equal("books", flow.Plan().Goal);
     }
 
     [Fact]
@@ -74,7 +67,7 @@ public class OnboardingFlowTests
         }
 
         Assert.Null(flow.Current);
-        Assert.Equal(UserKind.HandsFree, flow.Plan().Kind);
+        Assert.Equal(UserKind.Blind, flow.Plan().Kind);
     }
 
     [Fact]

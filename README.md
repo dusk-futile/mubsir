@@ -6,7 +6,7 @@
 
 ### Your PC, by voice.
 
-**A free assistive voice agent for Windows.**<br>
+**A free voice agent for blind and low-vision people on Windows.**<br>
 Hold one key and say what you want, in Arabic, in English, or both in one sentence.<br>
 Mubsir reads it, explains it, does it, or teaches you how.
 
@@ -19,7 +19,7 @@ Mubsir reads it, explains it, does it, or teaches you how.
 
 ---
 
-Most AI assistants live in a chat box and tell you what to click. **Mubsir does the clicking**, or shows you where to click if you'd rather learn. It sees what's on your screen, works your apps, reads your documents and answers out loud.
+Most AI assistants live in a chat box and tell you what to click. **Mubsir does the clicking**, or teaches you the keys if you'd rather learn. It reads your screen, works your apps, reads your documents and answers out loud.
 
 > ```
 > "افتح جوجل وابحث عن مواعيد الصلاة"
@@ -32,9 +32,6 @@ Most AI assistants live in a chat box and tell you what to click. **Mubsir does 
 
 - **If you can't see the screen.** Everything works by voice and Right Ctrl, with sounds and speech, next to the [NVDA](https://www.nvaccess.org/) screen reader. It reads books and scanned Arabic pages, and picks up where you stopped.
 - **If you see it with difficulty.** It tells you what's on screen and where things are.
-- **If you're learning.** In teaching mode it can't click anything. The pointer and the mouse go to the right place, you do the step, and it checks your work. A child stays in this mode.
-- **If you're new to computers.** It explains things in plain words as it goes.
-- **If you want your hands free.** Say it once and it gets done.
 
 On first start it asks a few questions, and each answer changes how it behaves. If you use a screen reader, it already knows and skips that question.
 

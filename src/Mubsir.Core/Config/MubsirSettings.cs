@@ -52,9 +52,6 @@ public sealed record MubsirSettings
     /// <summary>The first conversation has finished. Setup opens until it has.</summary>
     public bool OnboardingDone { get; set; }
 
-    /// <summary>Everything is taught, not done, until the user says otherwise. A child can't leave it by voice.</summary>
-    public bool StartInTeachMode { get; set; }
-
     /// <summary>In teaching, the real mouse moves to the place too. It never clicks.</summary>
     public bool TeachMovesMouse { get; set; } = true;
 

@@ -22,10 +22,6 @@ Hearing a request is off until you've agreed on first start. Saying "private mod
 - Your saved chats, as files in `Documents\Mubsir\Chats`. Card numbers and codes are hidden first. You can turn this off in settings.
 - Logs. They hold timings and error codes, never what you said, read or typed.
 
-## Children
-
-Mubsir has a teaching mode that a child can use. It sends the same data to the same services, so an adult should set it up and hold the keys. The services' own age rules apply.
-
 ## Questions
 
 Open an issue at https://github.com/dusk-futile/mubsir/issues.

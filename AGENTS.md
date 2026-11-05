@@ -4,15 +4,15 @@ Read this first, then `docs/PRODUCT.md` (what the app is), `docs/HANDOFF.md` (wh
 
 ## What this is
 
-Mubsir (مُبصِر) is a free assistive voice agent for Windows. It can do anything a mouse and keyboard can do, and it isn't only for blind people.
+Mubsir (مُبصِر) is a free voice agent for blind and low-vision people on Windows (decided 2026-11-05: no other audience). It can do anything a mouse and keyboard can do.
 - The notch shows for everyone, so anyone watching the screen understands what's happening, and all of it works by voice and Right Ctrl alone.
-- First start is a short branching conversation (`Mubsir.Core/Onboarding`). Each answer changes settings and behaviour: blind, low vision, hands-free, beginner, learner, child learner.
-- Teaching mode never clicks: the pointer and the mouse go to the place, the learner does it. The policy enforces this.
+- First start is a short branching conversation (`Mubsir.Core/Onboarding`). Each answer changes settings and behaviour. The only kinds of user are blind and low vision.
+- Teaching mode never clicks: a blind learner is taught the keys, and for low vision the pointer goes to the place. The policy enforces this.
 - Arabic (Egyptian and other dialects) and English, mixed mid-sentence.
 
 ## Owner decisions (don't re-ask)
 
-- **Decided 2026-11-05, replacing the owner-paid server:** the app is completely free and each user pastes their own keys. Claude Haiku 5.5 is the recommended brain. Fish Audio is for hearing and the Arabic voice. Gemini is an optional alternative for hearing. The setup window suggests costs. There is no account, server or relay.
+- **Decided 2026-11-05, replacing the owner-paid server:** the app is completely free and each user pastes their own keys. The owner is building it for their grandfather and will set up their own keys for him. Claude Haiku 5.5 is the recommended brain. Fish Audio is for hearing and the Arabic voice. Gemini is an optional alternative for hearing. The setup window suggests costs. There is no account, server or relay.
 - Reliability first. Everything heavy is in the back end, and the interface is clean, simple and light for weak PCs. Everything on screen must have a purpose, including Hudhud.
 - Target: a full app for the Microsoft Store, as well as the zip.
 - Testing happens on the owner's Windows PC, with Antigravity agents doing the checking to save tokens (`docs/WINDOWS-TEST.md`).
