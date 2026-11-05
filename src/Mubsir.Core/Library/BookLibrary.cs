@@ -17,7 +17,8 @@ public static class BookTitle
         string name = System.IO.Path.GetFileNameWithoutExtension(fileName);
         if (!string.IsNullOrWhiteSpace(metadataTitle) && metadataTitle.Trim().Length >= 3
             && !Useless.Any(u => metadataTitle.Contains(u, StringComparison.OrdinalIgnoreCase))
-            && metadataTitle.Any(char.IsLetter))
+            && metadataTitle.Any(char.IsLetter)
+            && !LooksLikeFileName(metadataTitle.Trim()))
         {
             return metadataTitle.Trim();
         }
@@ -35,6 +36,13 @@ public static class BookTitle
         }
 
         return name;
+    }
+
+    /// <summary>Many programs store the file they printed as the title, such as "chapter3.html".</summary>
+    private static bool LooksLikeFileName(string title)
+    {
+        string extension = System.IO.Path.GetExtension(title);
+        return extension.Length is >= 3 and <= 6 && !title.EndsWith(' ') && extension.Skip(1).All(char.IsAsciiLetterOrDigit) && extension.Skip(1).Any(char.IsAsciiLetter);
     }
 }
 

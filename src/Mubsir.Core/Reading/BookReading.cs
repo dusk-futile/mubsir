@@ -237,6 +237,12 @@ public sealed class BookReading(IBookVoice voice, IBookPages pages, Action<int, 
                 return;
             }
 
+            // Every sentence of the last page can reach here, and the end is only said once.
+            if (_endIndex >= 0)
+            {
+                return;
+            }
+
             sentences = voice.Say(BookText.End(lang), lang);
             if (sentences.Count > 0)
             {

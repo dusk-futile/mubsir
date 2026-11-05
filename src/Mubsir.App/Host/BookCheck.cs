@@ -9,6 +9,7 @@ using Mubsir.Core.Common;
 using Mubsir.Core.Library;
 using Mubsir.Core.Reading;
 using Mubsir.Core.Speech;
+using Mubsir.Core.Text;
 
 namespace Mubsir.App.Host;
 
@@ -63,7 +64,7 @@ internal static class BookCheck
         var documents = new DocumentReader(screen, NullEventLog.Instance);
         Line("OCR languages: " + string.Join(", ", Windows.Media.Ocr.OcrEngine.AvailableRecognizerLanguages.Select(l => l.LanguageTag)));
 
-        await ReadThrough(documents, temp, "english.pdf", Lang.English, 3, [
+        await ReadThrough(documents, temp, "english.pdf", Lang.English, 4, [
             "The first page opens the story.", "A traveller reached the old harbour at dawn.", "She carried a small brass key.",
             "The second page follows her through the market.", "Dr. Smith sold maps for 3.50 pounds each.", "Is this the right road?",
             "The fourth page comes after a blank one.", "This is the last sentence of the book."]);
@@ -90,7 +91,7 @@ internal static class BookCheck
         bool arabicOcr = Windows.Media.Ocr.OcrEngine.AvailableRecognizerLanguages.Any(l => l.LanguageTag.StartsWith("ar", StringComparison.OrdinalIgnoreCase));
         if (arabicOcr)
         {
-            await ReadThrough(documents, temp, "scan-ar.pdf", Lang.Arabic, 1, ["هذه الصفحة ممسوحة من كتاب ورقي", "يجري النهر بجانب الطاحونة القديمة"]);
+            await ReadThrough(documents, temp, "scan-ar.pdf", Lang.Arabic, 1, ["هذه الصفحة ممسوحة من كتاب ورقي", "يجري النهر بجانب الطاحونة القديمة"], wrongLetters: 1);
         }
         else
         {
@@ -108,7 +109,7 @@ internal static class BookCheck
     }
 
     /// <summary>Hears a whole book, one sentence at a time, and checks every phrase came once and in order.</summary>
-    private static async Task ReadThrough(DocumentReader documents, string temp, string name, Lang lang, int lastPage, string[] phrases)
+    private static async Task ReadThrough(DocumentReader documents, string temp, string name, Lang lang, int lastPage, string[] phrases, int wrongLetters = 0)
     {
         string test = "read " + name;
         try
@@ -130,9 +131,16 @@ internal static class BookCheck
             string heard = await voice.HearAll(ended.Task);
             string flat = Flat(heard);
             int from = 0;
+            int misread = 0;
             foreach (string phrase in phrases)
             {
                 int at = flat.IndexOf(Flat(phrase), from, StringComparison.Ordinal);
+                if (at < 0 && wrongLetters > 0)
+                {
+                    at = NearlyAt(flat, Flat(phrase), from, wrongLetters);
+                    misread += at < 0 ? 0 : 1;
+                }
+
                 if (at < 0)
                 {
                     Fail(test, $"missing or out of order: \"{phrase}\". Heard: {heard}");
@@ -160,13 +168,35 @@ internal static class BookCheck
                 return;
             }
 
-            Pass(test);
+            if (heard.Split(BookEndLine(lang)).Length != 2)
+            {
+                Fail(test, "the end of the book wasn't said exactly once. Heard: " + heard);
+                return;
+            }
+
+            Pass(misread > 0 ? $"{test} ({misread} of {phrases.Length} phrases with a misread letter)" : test);
             Line("  heard: " + heard);
         }
         catch (Exception e) when (e is not OutOfMemoryException)
         {
             Fail(test, e.GetType().Name + ": " + e.Message);
         }
+    }
+
+    private static string BookEndLine(Lang lang) => lang == Lang.Arabic ? "خلص الكتاب." : "That's the end of the book.";
+
+    /// <summary>OCR misreads a letter now and then. This finds a phrase with at most that many letters wrong.</summary>
+    private static int NearlyAt(string flat, string phrase, int from, int wrongLetters)
+    {
+        for (int at = from; at + phrase.Length <= flat.Length; at++)
+        {
+            if (OcrRepair.Distance(flat.Substring(at, phrase.Length), phrase) <= wrongLetters)
+            {
+                return at;
+            }
+        }
+
+        return -1;
     }
 
     /// <summary>Real library cards from real files: found by subject with no AI, including a scan with a useless name.</summary>

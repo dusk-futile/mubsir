@@ -11,6 +11,7 @@ internal sealed class OcrService
 
     private readonly object _gate = new();
     private OcrEngine? _engine;
+    private OcrEngine? _latin;
     private bool _tried;
 
     public static int MaxImageDimension
@@ -38,37 +39,46 @@ internal sealed class OcrService
             return null;
         }
 
-        var result = await engine.RecognizeAsync(bitmap).AsTask(ct).ConfigureAwait(false);
-        return ToLogicalText(result);
-    }
-
-    internal static string? ToLogicalText(OcrResult? result)
-    {
-        if (result?.Lines is null || result.Lines.Count == 0)
+        var lines = ToLines(await engine.RecognizeAsync(bitmap).AsTask(ct).ConfigureAwait(false));
+        var latin = LatinEngine();
+        if (latin is not null && (lines.Count == 0 || OcrRepair.HasLatin(lines)))
         {
-            return null;
+            var latinLines = ToLines(await latin.RecognizeAsync(bitmap).AsTask(ct).ConfigureAwait(false));
+            return Text(OcrRepair.Merge(lines, latinLines.SelectMany(l => l).ToArray()));
         }
 
-        var lines = new List<(double Top, string Text)>(result.Lines.Count);
+        return Text(string.Join('\n', lines.OrderBy(l => l.Min(w => w.Y)).Select(OcrLineOrder.ToLogicalLine).Where(t => t.Length > 0)));
+    }
+
+    private static string? Text(string text) => string.IsNullOrWhiteSpace(text) ? null : text;
+
+    private static List<IReadOnlyList<OcrWordBox>> ToLines(OcrResult? result)
+    {
+        var lines = new List<IReadOnlyList<OcrWordBox>>();
+        if (result?.Lines is null)
+        {
+            return lines;
+        }
+
         foreach (var line in result.Lines)
         {
             var words = new List<OcrWordBox>(line.Words.Count);
-            double top = double.MaxValue;
             foreach (var w in line.Words)
             {
                 var r = w.BoundingRect;
-                words.Add(new OcrWordBox(w.Text, r.X, r.Y, r.Width, r.Height));
-                top = Math.Min(top, r.Y);
+                if (!string.IsNullOrWhiteSpace(w.Text))
+                {
+                    words.Add(new OcrWordBox(w.Text, r.X, r.Y, r.Width, r.Height));
+                }
             }
 
-            var text = OcrLineOrder.ToLogicalLine(words);
-            if (!string.IsNullOrWhiteSpace(text))
+            if (words.Count > 0)
             {
-                lines.Add((top, text));
+                lines.Add(words);
             }
         }
 
-        return lines.Count == 0 ? null : string.Join('\n', lines.OrderBy(l => l.Top).Select(l => l.Text));
+        return lines;
     }
 
     private OcrEngine? Engine()
@@ -86,6 +96,7 @@ internal sealed class OcrService
                 _engine = TryCreate(tag);
                 if (_engine is not null)
                 {
+                    _latin = CreateLatin();
                     return _engine;
                 }
             }
@@ -101,6 +112,41 @@ internal sealed class OcrService
 
             return _engine ??= TryCreate("en-US");
         }
+    }
+
+    /// <summary>A second engine for English on the page. It's only there when the first one is Arabic.</summary>
+    private OcrEngine? LatinEngine()
+    {
+        Engine();
+        lock (_gate)
+        {
+            return _latin;
+        }
+    }
+
+    private static OcrEngine? CreateLatin()
+    {
+        var engine = TryCreate("en-US") ?? TryCreate("en-GB");
+        if (engine is not null)
+        {
+            return engine;
+        }
+
+        try
+        {
+            foreach (var language in OcrEngine.AvailableRecognizerLanguages)
+            {
+                if (!language.LanguageTag.StartsWith("ar", StringComparison.OrdinalIgnoreCase) && TryCreate(language.LanguageTag) is { } other)
+                {
+                    return other;
+                }
+            }
+        }
+        catch (Exception)
+        {
+        }
+
+        return null;
     }
 
     private static OcrEngine? TryCreate(string tag)

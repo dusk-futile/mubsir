@@ -2,6 +2,8 @@ using System.Diagnostics;
 using Mubsir.Core.Library;
 using Mubsir.Core.Logging;
 using Mubsir.Core.Reading;
+using Mubsir.Core.Text;
+using UglyToad.PdfPig.Content;
 using UglyToad.PdfPig.DocumentLayoutAnalysis.TextExtractor;
 using Windows.Data.Pdf;
 using Windows.Graphics.Imaging;
@@ -175,7 +177,7 @@ internal sealed class DocumentReader(UiaScreenReader screen, IEventLog log)
                     for (int i = 0; i < found.Length; i++)
                     {
                         ct.ThrowIfCancellationRequested();
-                        found[i] = DocumentFormats.FixPdfPageText(ContentOrderTextExtractor.GetText(pdf.GetPage(i + 1)));
+                        found[i] = PdfPageText.WithoutUnknown(PageTextOf(pdf.GetPage(i + 1)));
                     }
 
                     return found;
@@ -227,21 +229,47 @@ internal sealed class DocumentReader(UiaScreenReader screen, IEventLog log)
     private async Task<DocumentText> ReadPdfAsync(
         string path, int firstOcrPage, int maxOcrPages, IProgress<(int Page, int Total)>? progress, CancellationToken ct)
     {
-        var (pages, scanned) = await Task.Run(() => ExtractPdfText(path, ct), ct).ConfigureAwait(false);
-        var pending = new List<int>(scanned);
-        if (scanned.Count > 0 && maxOcrPages > 0)
+        var (pages, scanned, lostLetters) = await Task.Run(() => ExtractPdfText(path, ct), ct).ConfigureAwait(false);
+        var pending = scanned.Concat(lostLetters).Order().ToList();
+        if (pending.Count > 0 && maxOcrPages > 0)
         {
-            var toOcr = scanned.Where(p => p >= Math.Max(1, firstOcrPage)).Take(maxOcrPages).ToList();
+            var toOcr = pending.Where(p => p >= Math.Max(1, firstOcrPage)).Take(maxOcrPages).ToList();
             if (toOcr.Count > 0)
             {
                 await OcrPagesAsync(path, pages, toOcr, pending, progress, ct).ConfigureAwait(false);
             }
         }
 
+        if (!screen.Ocr.IsAvailable)
+        {
+            // A page with a few lost letters still reads, and only OCR could have filled them.
+            foreach (int page in lostLetters)
+            {
+                pages[page - 1] = PdfPageText.WithoutUnknown(pages[page - 1]);
+                pending.Remove(page);
+            }
+        }
+
         return Build("pdf", pages, scanned.Count, pending);
     }
 
-    private static (string[] Pages, List<int> Scanned) ExtractPdfText(string path, CancellationToken ct)
+    /// <summary>Glyph by glyph, so ligatures stay in order. Text that isn't laid out level still uses PdfPig's order.</summary>
+    private static string PageTextOf(Page page)
+    {
+        var letters = page.Letters;
+        if (letters.All(l => l.TextOrientation == TextOrientation.Horizontal))
+        {
+            var glyphs = letters.Select(l => new PdfGlyph(l.Value, l.Location.X, l.Location.Y, l.Width, l.BoundingBox.Height)).ToArray();
+            if (PdfPageText.Build(glyphs) is { } text)
+            {
+                return text;
+            }
+        }
+
+        return DocumentFormats.FixPdfPageText(ContentOrderTextExtractor.GetText(page));
+    }
+
+    private static (string[] Pages, List<int> Scanned, List<int> LostLetters) ExtractPdfText(string path, CancellationToken ct)
     {
         try
         {
@@ -249,6 +277,7 @@ internal sealed class DocumentReader(UiaScreenReader screen, IEventLog log)
             int count = pdf.NumberOfPages;
             var pages = new string[count];
             var scanned = new List<int>();
+            var lostLetters = new List<int>();
             long total = 0;
             for (int i = 1; i <= count; i++)
             {
@@ -257,7 +286,7 @@ internal sealed class DocumentReader(UiaScreenReader screen, IEventLog log)
                 try
                 {
                     var page = pdf.GetPage(i);
-                    text = total < MaxTextChars ? DocumentFormats.FixPdfPageText(ContentOrderTextExtractor.GetText(page)) : "";
+                    text = total < MaxTextChars ? PageTextOf(page) : "";
                 }
                 catch (Exception e) when (e is not OutOfMemoryException and not OperationCanceledException)
                 {
@@ -265,16 +294,20 @@ internal sealed class DocumentReader(UiaScreenReader screen, IEventLog log)
                 }
 
                 total += text.Length;
-                if (DocumentFormats.LooksScanned(text))
+                if (PdfPageText.TooBroken(text) || DocumentFormats.LooksScanned(PdfPageText.WithoutUnknown(text)))
                 {
                     scanned.Add(i);
                     text = "";
+                }
+                else if (text.Contains(PdfPageText.Unknown, StringComparison.Ordinal))
+                {
+                    lostLetters.Add(i);
                 }
 
                 pages[i - 1] = text;
             }
 
-            return (pages, scanned);
+            return (pages, scanned, lostLetters);
         }
         catch (UglyToad.PdfPig.Exceptions.PdfDocumentEncryptedException)
         {
@@ -316,7 +349,7 @@ internal sealed class DocumentReader(UiaScreenReader screen, IEventLog log)
                 stream.Seek(0);
                 using var bitmap = await ImageCodec.DecodeAsync(stream, maxSide, ct).ConfigureAwait(false);
                 var text = await screen.OcrBitmapAsync(bitmap, ct).ConfigureAwait(false);
-                pages[pageNumber - 1] = text ?? "";
+                pages[pageNumber - 1] = string.IsNullOrEmpty(pages[pageNumber - 1]) ? text ?? "" : OcrRepair.FillLostLetters(pages[pageNumber - 1], text);
                 pending.Remove(pageNumber);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -326,6 +359,11 @@ internal sealed class DocumentReader(UiaScreenReader screen, IEventLog log)
             catch (Exception e) when (e is not OutOfMemoryException)
             {
                 log.Fail(LogKind.Error, "document.page_ocr." + MetaLog.Code(e));
+                if (!string.IsNullOrEmpty(pages[pageNumber - 1]))
+                {
+                    pages[pageNumber - 1] = PdfPageText.WithoutUnknown(pages[pageNumber - 1]);
+                    pending.Remove(pageNumber);
+                }
             }
         }
     }

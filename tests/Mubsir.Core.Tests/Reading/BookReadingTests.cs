@@ -67,6 +67,20 @@ public class BookReadingTests
     private const string PageThree = "Sixth sentence here.";
 
     [Fact]
+    public async Task The_end_of_the_book_is_said_once_however_many_sentences_the_last_page_has()
+    {
+        var h = new Harness(PageOne);
+        await h.Reading.StartAsync(1, 0);
+        h.Hear("First");
+        h.Hear("Second");
+        h.Hear("Third");
+        Assert.Single(h.Voice.Queue, s => s.Text.Contains("end of the book", StringComparison.Ordinal));
+        h.Hear("end of the book");
+        Assert.Equal(1, h.Ended);
+        Assert.Equal((1, 0), h.Saved);
+    }
+
+    [Fact]
     public async Task Nothing_is_saved_until_a_sentence_is_heard()
     {
         var h = new Harness(PageOne, PageTwo);

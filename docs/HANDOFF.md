@@ -2,7 +2,9 @@
 
 - PR 14 merged. PR 15 (`feat/reading-direct`, into `main`) holds the reading fixes, the softer notch, `--book-check` and the reader's features: page commands and keys, notes, sleep timer, journal and greeting, passages with checked quotes, library cards, page check.
 - The walk, what is still missing and the feature prices are in `docs/USER-JOURNEY.md`.
-- Next: read the "Real book check" CI results and fix what they find, then have someone use it by ear with NVDA. Offline speech isn't built. The owner dropped locked books and privacy as priorities: reliability and mixed Arabic and English come first.
+- The first Windows book check (run 42005451328) found real bugs: swapped letters in Arabic PDFs, damaged English in scans, the end of the book said several times, and file names used as titles. All are fixed or noted in `docs/RESULTS.md`. PDF text is now built glyph by glyph in `Mubsir.Core/Text/PdfPageText.cs`, with PdfPig's old order only as a fallback. OCR uses a second, English engine next to the Arabic one (`OcrRepair`).
+- Mixed Arabic and English commands and AI keyword search are in `BookCommands` and `BookSearch`.
+- Next: read the "Real book check" results for the newest commit, since the OCR changes can only be proven on Windows. The Arabic voice wasn't installed on that run, so the voice checks were in English. Then have someone use it by ear with NVDA. Offline speech isn't built. The owner dropped locked books and privacy as priorities: reliability and mixed Arabic and English come first.
 
 # Handoff — where the work stands
 

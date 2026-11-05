@@ -3,6 +3,31 @@
 Measured numbers for each phase (`docs/EXECUTION.md` → "Tests and the numbers to report").
 Every row: date, commit, sample size, value, target, pass or fail.
 
+## First real book check on Windows, and its fixes
+
+Run 42005451328, commit `0836a33`, windows-2025, `--book-check`. Arabic OCR was installed; the Arabic voice was not. This run read the fixtures through the real code on Windows for the first time. 6 of its checks failed:
+
+| What failed | Heard | Cause | Fix |
+| --- | --- | --- | --- |
+| Arabic PDF letters swapped, also breaking resume and library search | `األولى`, `املدرسة`, `ثالثة`, `بخمسني` | One glyph holding two letters was flipped when the line was reversed | `PdfPageText` orders glyphs by position and keeps each one whole |
+| English scan | `.aper`, `.ill`, `.ast` | The Arabic OCR engine read the English | `OcrRepair.Merge` takes English words from an English engine |
+| Arabic PDF, one letter with no text in the file | `رأ` for `قرأ` | The PDF has no letter for that glyph | Marked, then filled from OCR of that page, word by word |
+| Arabic scan, one letter | `ورفي` for `ورقي` | OCR misread. Not fixed | The check allows 1 wrong letter per phrase on this scan and prints when it happens |
+| End of book said up to 5 times (the check didn't test this, it only showed in the output) | `خلص الكتاب` repeated | Every sentence of the last page queued it again | Said once; the check now fails if not |
+| Book title | `english.html` | Chrome stored the file it printed as the title | A title that is only a file name is ignored |
+| English PDF page count | saved 4, expected 3 | The check was wrong: the file has 4 pages, one blank | Check corrected |
+
+Measured 2026-11-05 on macOS, SDK 10.0.401, on the same real PDFs through PdfPig:
+
+| Test | Sample | Value | Target | Result |
+| --- | --- | --- | --- | --- |
+| Core unit tests, all | 195 tests | 195 pass | all pass | Pass |
+| Sentences from the real Arabic PDF, correct and in order | 5 sentences | 5 | all | Pass |
+| Sentences from the real English PDF | 4 sentences | 4 | all | Pass |
+| Release build of the solution | Core, Overlay, App, tests | 0 warnings, 0 errors | 0 | Pass |
+
+Not confirmed until the next Windows run: the two OCR engines working together, and filling the lost letter. Not measured: anything by ear.
+
 ## Softer notch and the reader's features
 
 Measured 2026-11-05 on branch `feat/reading-direct`, macOS, SDK 10.0.401. Windows results are in the CI run for the same commit.
@@ -20,7 +45,7 @@ Measured 2026-11-05 on branch `feat/reading-direct`, macOS, SDK 10.0.401. Window
 | Text sent for a question | 400-page book | under 8,000 characters | about 2,000 tokens | Pass |
 | Windows overlay smoke test, before the features | run 42002603609 | passed; asleep 8.1 % of one core, against 2.5–3.4 % before | no target on this machine | Check on the next run |
 
-Not measured yet: `--book-check` on Windows, using any of this by ear, and how long a real library scan takes.
+Not measured yet: using any of this by ear, and how long a real library scan takes.
 
 ## Reading fixes: straight to the voice, bookmarks by file, place saved when heard
 

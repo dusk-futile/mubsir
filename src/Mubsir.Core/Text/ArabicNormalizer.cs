@@ -156,7 +156,7 @@ public static class ArabicNormalizer
         }
     }
 
-    private static char Mirror(char c) => c switch
+    internal static char Mirror(char c) => c switch
     {
         '(' => ')',
         ')' => '(',
