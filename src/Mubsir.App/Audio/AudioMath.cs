@@ -40,6 +40,20 @@ internal static class AudioMath
     public static int DurationMs(int pcmBytes, int sampleRate) =>
     sampleRate <= 0 ? 0 : (int)((long)(pcmBytes / 2) * 1000 / sampleRate);
 
+    /// <summary>How loud 16-bit audio sounds, 0 to 1. The square root makes quiet speech still move the wave.</summary>
+    public static double Loudness(ReadOnlySpan<byte> pcm)
+    {
+        long sum = 0;
+        int count = pcm.Length / 2;
+        for (int i = 0; i < count; i++)
+        {
+            int sample = (short)(pcm[i * 2] | (pcm[(i * 2) + 1] << 8));
+            sum += sample * sample;
+        }
+
+        return count == 0 ? 0 : Math.Min(1, Math.Sqrt(Math.Sqrt((double)sum / count) / 32768) * 1.4);
+    }
+
     public static AudioLevels Analyze(ReadOnlySpan<byte> pcm, int sampleRate)
     {
         int samplesPerFrame = Math.Max(1, sampleRate * FrameMs / 1000);

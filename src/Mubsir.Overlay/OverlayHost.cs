@@ -69,7 +69,7 @@ public sealed class OverlayHost : IDisposable
     public void SetVoiceLevel(double level) => Post(c => c.Notch.SetVoiceLevel(level));
 
     /// <summary>Lets the voice wave move by itself, for the demo.</summary>
-    public void UseDemoVoice() => Post(c => c.Notch.DemoVoice = true);
+    public void UseDemoVoice(bool on = true) => Post(c => c.Notch.DemoVoice = on);
 
     /// <summary>Wakes Hudhud if it sleeps. The app decides what Ctrl does otherwise.</summary>
     public void WakeHudhud() => Post(c => c.Hudhud.Wake());

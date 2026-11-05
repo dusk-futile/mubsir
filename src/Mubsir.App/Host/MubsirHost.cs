@@ -115,7 +115,7 @@ internal sealed class MubsirHost
         app.Ears = Create("ears", () => new EarsRouter(new GeminiEars(secrets, settings, _log), new FishEars(secrets, _log), secrets, settings, _log));
         app.Sessions = new SessionArchive(settings.Settings.SessionsFolder ?? AppPaths.DefaultChatsDir, () => _clock.UtcNow.ToLocalTime());
         fishVoice.KeyRejected += status => app.SayNow(status == 402 ? AppPhrase.FishNoCredit : AppPhrase.FishKeyRejected);
-        using var companion = settings.Settings.ShowNotch ? new CompanionBridge(speech, settings, _log) : null;
+        using var companion = settings.Settings.ShowNotch ? new CompanionBridge(speech, recorder, settings, _log) : null;
         app.Companion = companion;
         app.Brain = Create<IBrain>("brain", () => new ClaudeBrain(secrets, settings, _log));
         if (screen is not null)

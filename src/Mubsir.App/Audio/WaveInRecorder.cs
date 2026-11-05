@@ -29,6 +29,9 @@ internal sealed class WaveInRecorder : IDisposable
         }
     }
 
+    /// <summary>How loud the mic is right now, 0 to 1, a few times a second, for the listening wave. Nothing is stored.</summary>
+    public event Action<double>? Level;
+
     public void Start()
     {
         Session? previous;
@@ -40,7 +43,7 @@ internal sealed class WaveInRecorder : IDisposable
 
         previous?.Finish();
 
-        var session = Session.Open(_log);
+        var session = Session.Open(_log, level => Level?.Invoke(level));
         lock (_gate)
         {
             _session = session;
@@ -93,14 +96,16 @@ internal sealed class WaveInRecorder : IDisposable
         private volatile bool _stopping;
         private bool _finished;
 
+        private Action<double>? _level;
+
         private Session(IEventLog log)
         {
             _log = log;
         }
 
-        public static Session Open(IEventLog log)
+        public static Session Open(IEventLog log, Action<double> level)
         {
-            var s = new Session(log);
+            var s = new Session(log) { _level = level };
             try
             {
                 s.OpenDevice();
@@ -236,7 +241,9 @@ internal sealed class WaveInRecorder : IDisposable
                 int recorded = (int)Math.Min(h->DwBytesRecorded, (uint)BytesPerBuffer);
                 if (recorded > 0 && _pcm.Length + recorded <= MaxBytes)
                 {
-                    _pcm.Write(new ReadOnlySpan<byte>((void*)h->LpData, recorded));
+                    var samples = new ReadOnlySpan<byte>((void*)h->LpData, recorded);
+                    _pcm.Write(samples);
+                    _level?.Invoke(AudioMath.Loudness(samples));
                 }
 
                 h->DwBytesRecorded = 0;

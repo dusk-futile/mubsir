@@ -8,7 +8,7 @@ namespace Mubsir.App.Host;
 /// Tells the notch what the voice agent is doing, for anyone looking at the screen. It starts in the background and
 /// can fail or be turned off with no effect on anything else: every call is safe to make whether it's running or not.
 /// </summary>
-internal sealed class CompanionBridge(SpeechService speech, SettingsProvider settings, IEventLog log) : IDisposable
+internal sealed class CompanionBridge(SpeechService speech, WaveInRecorder recorder, SettingsProvider settings, IEventLog log) : IDisposable
 {
     private const int MaxSteps = 6;
 
@@ -21,6 +21,8 @@ internal sealed class CompanionBridge(SpeechService speech, SettingsProvider set
     public void Start()
     {
         speech.SpeakingChanged += OnSpeaking;
+        speech.History.Spoken += OnSentence;
+        recorder.Level += OnMic;
         _ = Task.Run(() =>
         {
             try
@@ -48,6 +50,9 @@ internal sealed class CompanionBridge(SpeechService speech, SettingsProvider set
     public void Listening()
     {
         _busy = true;
+
+        // The wave follows the real mic while listening. Speech has no level to read, so it uses the demo's motion.
+        _overlay?.UseDemoVoice(false);
         _overlay?.Show(CompanionState.Listening);
     }
 
@@ -103,6 +108,8 @@ internal sealed class CompanionBridge(SpeechService speech, SettingsProvider set
     public void Dispose()
     {
         speech.SpeakingChanged -= OnSpeaking;
+        speech.History.Spoken -= OnSentence;
+        recorder.Level -= OnMic;
         lock (_gate)
         {
             _disposed = true;
@@ -113,11 +120,29 @@ internal sealed class CompanionBridge(SpeechService speech, SettingsProvider set
     private CompanionStep[] Lines(StepState last) =>
         _steps.Select((s, i) => new CompanionStep(s, i == _steps.Count - 1 ? last : StepState.Done)).ToArray();
 
+    private void OnMic(double level) => _overlay?.SetVoiceLevel(level);
+
+    /// <summary>What's being said, for anyone looking at the screen.</summary>
+    private void OnSentence(int index)
+    {
+        if (speech.IsSpeaking)
+        {
+            _overlay?.Show(CompanionState.Speaking, Caption(speech.History.Current?.Text));
+        }
+    }
+
+    private static CompanionContent? Caption(string? text) => string.IsNullOrWhiteSpace(text)
+        ? null
+        : text.Any(c => c is >= '\u0600' and <= '\u06FF')
+            ? new CompanionContent { Caption = string.Empty, CaptionArabic = text }
+            : new CompanionContent { Caption = text };
+
     private void OnSpeaking(bool speaking)
     {
         if (speaking)
         {
-            _overlay?.Show(CompanionState.Speaking);
+            _overlay?.UseDemoVoice();
+            _overlay?.Show(CompanionState.Speaking, Caption(speech.History.Current?.Text));
         }
         else
         {
