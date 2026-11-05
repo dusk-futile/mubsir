@@ -544,8 +544,8 @@ public sealed class SetupWindow : Window
 
         // Fish voice id & testing
         Add(Words(T("معرف صوت Fish Audio (Voice ID)", "Fish Audio Voice ID"), 14, Ink, FontWeights.SemiBold));
-        Add(Words(T("سيبه فاضي لاستخدام الصوت الافتراضي، أو اكتب معرف صوت من حسابك في Fish Audio.",
-            "Leave empty for the default voice, or enter a voice ID from Fish Audio."), 12.5, Quiet));
+        Add(Words(T("سيبه فاضي، أو اكتب معرف صوت من حسابك في Fish Audio.",
+            "Leave it empty, or enter a voice ID from Fish Audio."), 12.5, Quiet));
         var voiceIdBox = new TextBox
         {
             Text = _driver.GetFishVoiceId() ?? string.Empty,

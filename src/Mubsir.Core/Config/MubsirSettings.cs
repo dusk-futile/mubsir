@@ -78,10 +78,10 @@ public sealed record MubsirSettings
     /// <summary>Read Arabic diacritics fully instead of leaving them to the voice.</summary>
     public bool ReadFullTashkeel { get; set; } = true;
 
-    /// <summary>A Fish Audio voice id, for English and for Arabic if that has none of its own. Empty uses Fish's default.</summary>
+    /// <summary>The Fish Audio voice id for English. Empty uses the first voice in the catalog.</summary>
     public string? FishVoiceId { get; set; }
 
-    /// <summary>The Fish Audio voice id for Arabic.</summary>
+    /// <summary>The Fish Audio voice id for Arabic. Empty uses the first voice in the catalog.</summary>
     public string? FishVoiceIdArabic { get; set; }
 
     /// <summary>Keep conversations as files the user can open. Private mode saves nothing.</summary>

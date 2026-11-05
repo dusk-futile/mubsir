@@ -1,3 +1,4 @@
+using Mubsir.Core.Speech;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -105,7 +106,7 @@ internal sealed class FishVoice(
         }
 
         double speed = Math.Clamp(0.5 + (rate / 100.0), 0.5, 2.0);
-        string? voice = lang == Lang.Arabic ? settings.Settings.FishVoiceIdArabic ?? settings.Settings.FishVoiceId : settings.Settings.FishVoiceId;
+        string voice = (lang == Lang.Arabic ? settings.Settings.FishVoiceIdArabic : settings.Settings.FishVoiceId) ?? VoiceCatalog.Default(lang == Lang.Arabic ? Lang.Arabic : Lang.English).Id;
         FishVoiceCache store = isBook ? _bookCache : _cache;
         bool canCache = !settings.Settings.PrivateMode && text.Length <= store.Limit;
 
