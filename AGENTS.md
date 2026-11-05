@@ -11,6 +11,7 @@ Do the full setup and run everything: `docs/WINDOWS-TEST.md` under "Run tests" s
 Mubsir (مُبصِر) is a free voice agent for blind and low-vision people on Windows (decided 2026-11-05: no other audience). It can do anything a mouse and keyboard can do.
 - The notch shows for everyone, so anyone watching the screen understands what's happening, and all of it works by voice and Right Ctrl alone.
 - First start is a short branching conversation (`Mubsir.Core/Onboarding`). Each answer changes settings and behaviour. The only kinds of user are blind and low vision.
+- It never uses the camera (decided 2026-11-05). It sees only what is on the screen, and it can act on anything there.
 - It only executes what is said by voice. There is no teaching mode (decided 2026-11-05).
 - Plain questions can go to the ChatGPT or Gemini the person is signed in to in their browser, to keep API use low. The reply is only read aloud (`Core/Chat`, `WindowsToolExecutor.Chat.cs`).
 - Arabic (Egyptian and other dialects) and English, mixed mid-sentence.
