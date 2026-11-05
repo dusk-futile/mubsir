@@ -12,7 +12,20 @@ public static class GeminiWire
 
     public sealed record ChunkResult(string? Text, IReadOnlyList<ToolCall> Calls, JsonArray Parts, string? FinishReason, string? BlockReason);
 
-    public static string Request(BrainSessionOptions options, JsonArray contents)
+    private static readonly string[] ActionWords =
+    [
+        "افتح", "شغل", "دور", "ابحث", "ابعت", "ارسل", "أرسل", "امسح", "احذف", "اكتب", "اضغط", "اقفل", "انقل", "انسخ", "نزل", "ثبت", "روح", "هات",
+        "open", "play", "search", "find", "send", "delete", "remove", "type", "click", "close", "move", "copy", "install", "go",
+    ];
+
+    /// <summary>The free model sometimes says it did something without doing it. A person who can't see would believe it, so these requests must use a tool.</summary>
+    public static bool AsksForAction(string? said)
+    {
+        string first = (said ?? string.Empty).Trim().Split((char[]?)null, 2, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? string.Empty;
+        return ActionWords.Contains(first.Trim('،', ',', '.', '!', '؟'), StringComparer.OrdinalIgnoreCase);
+    }
+
+    public static string Request(BrainSessionOptions options, JsonArray contents, bool mustUseTool = false)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(contents);
@@ -37,6 +50,10 @@ public static class GeminiWire
             }
 
             request["tools"] = new JsonArray(new JsonObject { ["functionDeclarations"] = declarations });
+            if (mustUseTool)
+            {
+                request["toolConfig"] = new JsonObject { ["functionCallingConfig"] = new JsonObject { ["mode"] = "ANY" } };
+            }
         }
 
         return request.ToJsonString();

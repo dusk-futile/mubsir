@@ -8,6 +8,7 @@ public sealed record MubsirSettings
     public const string DefaultBrainModel = "claude-haiku-5-5";
     public const string DefaultEarsModel = "gemini-3.5-flash-lite";
     public const string DefaultGeminiBrainModel = "gemini-3.5-flash-lite";
+    public const string BackupGeminiBrainModel = "gemini-3.5-flash";
     public const string DefaultNvdaLangTagStyle = "VoiceElement";
     public const int DefaultSpeechRate = 50;
     public const decimal DefaultBudgetSoftCapUsd = 20m;

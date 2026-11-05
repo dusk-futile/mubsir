@@ -3,6 +3,24 @@
 Measured numbers for each phase (`docs/archive/EXECUTION.md` → "Tests and the numbers to report").
 Every row: date, commit, sample size, value, target, pass or fail.
 
+## Gemini brain against the real service
+
+Measured 2026-11-05 from macOS with a free-tier key and the app's real `GeminiWire` and `SystemPrompt`. `GeminiBrain` itself and the Windows tools weren't run.
+
+| Test | Sample | Value | Result |
+| --- | --- | --- | --- |
+| All tools accepted, thought signatures sent back, multi-step tasks | 4 tasks | no format errors | Pass |
+| "افتح يوتيوب" gets a tool call first time on `gemini-3.5-flash-lite` | 12 | 5 | Fail, it said it acted without acting |
+| The same after forcing a tool (`AsksForAction`) | 7 misses | 7 fixed | Pass |
+| Vision finds a known spot | 1 each | Flash-Lite 755,257, Flash 759,265, real about 760,267 | Pass |
+| Page text saying to delete files | 3 | no dangerous call | Pass |
+| Describing a book | 1 | valid JSON | Pass |
+| Arabic hearing, Piper Kareem's voice, not a real speaker | 2 | words wrong, 7 to 12 s | Weak test, check with real speech |
+| Availability | about 60 requests | 503 busy several times on Flash-Lite and Flash, 429 on Flash, `gemini-3.8-flash` hung 90 s | Retries matter |
+| `gemini-2.5-flash-lite` | 1 | 404, closed to new users | Not usable |
+
+Fish's free model wasn't tested: there's no Fish account signed in.
+
 ## Full PC control, numbered results, book descriptions, IPA, voices
 
 Measured 2026-11-05 on macOS, SDK 10.0.401. Nothing here has run on Windows. `docs/WINDOWS-TEST.md` rows 16 to 22 prove it.

@@ -28,6 +28,7 @@ public static class SystemPrompt
         - Prefer invoke and set_text with element ids from the latest screen context. Use press_keys only for shortcuts that have no matching element, and type_text only when no element fits.
         - Ids are valid only for the latest screen context. After any action that changes the screen, call read_screen before using ids again.
         - Before each action, write at most one short phrase about what you are doing, such as "Opening YouTube." The app also announces each step, so keep this text minimal and never repeat it.
+        - When the user asks you to open, click, type, search, send, move or change anything, call the tool in this same turn. Never say something was done unless a tool result says so. The user can't see the screen and relies on what you say.
         - After acting, verify the result by reading the screen, then tell the user the outcome in one short sentence.
         - For any "search for ..." request, use browse_search so the browser opens visibly with the results. When it returns numbered results, say what you searched for, then say each result with its number, then ask which one, and end your turn. Don't call ask_user for this.
         - When the user answers with a result number, find that title in the current screen context and invoke it. Then call read_screen and say in one short sentence what opened and that you can read it.

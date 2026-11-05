@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Mubsir.Core.Agent;
+using Mubsir.Core.Brain;
 using Mubsir.Core.Config;
 using Mubsir.Core.Logging;
 
@@ -51,138 +52,153 @@ internal sealed class GeminiBrain(SecretStore secrets, SettingsProvider settings
             });
             GeminiWire.Trim(_contents);
 
-            string model = GeminiPrompt.SafeModelId(owner.Settings().GeminiBrainModel) ?? MubsirSettings.DefaultGeminiBrainModel;
-            string url = GeminiEars.Endpoint + model + ":streamGenerateContent?alt=sse";
+            string chosen = GeminiPrompt.SafeModelId(owner.Settings().GeminiBrainModel) ?? MubsirSettings.DefaultGeminiBrainModel;
             using var limit = CancellationTokenSource.CreateLinkedTokenSource(ct);
             limit.CancelAfter(RequestTimeout);
-
             var clock = Stopwatch.StartNew();
-            HttpResponseMessage? response = null;
-            BrainFailed? failed = null;
-            for (int attempt = 0; response is null && failed is null; attempt++)
+            bool canAct = options.Tools.Any(t => t.Name == ToolNames.Invoke);
+            bool mustUseTool = false;
+            while (true)
             {
-                try
+                HttpResponseMessage? response = null;
+                BrainFailed? failed = null;
+                for (int attempt = 0; response is null && failed is null; attempt++)
                 {
-                    using var request = new HttpRequestMessage(HttpMethod.Post, url);
-                    request.Headers.TryAddWithoutValidation("x-goog-api-key", key);
-                    request.Content = new StringContent(GeminiWire.Request(options, _contents), Encoding.UTF8, new MediaTypeHeaderValue("application/json"));
-                    HttpResponseMessage sent = await owner._http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, limit.Token).ConfigureAwait(false);
-                    if (sent.IsSuccessStatusCode)
-                    {
-                        response = sent;
-                        break;
-                    }
-
-                    int status = (int)sent.StatusCode;
-                    string body = await sent.Content.ReadAsStringAsync(limit.Token).ConfigureAwait(false);
-                    sent.Dispose();
-                    if (status is 429 or 503 && attempt < WaitsAfterLimit.Length)
-                    {
-                        await Task.Delay(WaitsAfterLimit[attempt], limit.Token).ConfigureAwait(false);
-                        continue;
-                    }
-
-                    failed = new BrainFailed(GeminiWire.KindOf(status, body), "gemini_" + status);
-                }
-                catch (HttpRequestException)
-                {
-                    failed = new BrainFailed(BrainErrorKind.Network, "gemini_network");
-                }
-                catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-                {
-                    failed = new BrainFailed(BrainErrorKind.Network, "gemini_timeout");
-                }
-            }
-
-            if (failed is not null)
-            {
-                Rollback(mark);
-                owner.Log.Fail(LogKind.BrainRequest, failed.Code, latencyMs: clock.ElapsedMilliseconds);
-                yield return failed;
-                yield break;
-            }
-
-            var parts = new JsonArray();
-            var calls = new List<ToolCall>();
-            string? finish = null;
-            string? blocked = null;
-            bool cut = false;
-            using (response)
-            {
-                using Stream stream = await response!.Content.ReadAsStreamAsync(limit.Token).ConfigureAwait(false);
-                using var reader = new StreamReader(stream, Encoding.UTF8);
-                while (true)
-                {
-                    string? line = null;
+                    // Free models are often busy, so the last try uses an older one that's usually free to answer.
+                    string model = attempt < WaitsAfterLimit.Length ? chosen : MubsirSettings.BackupGeminiBrainModel;
                     try
                     {
-                        line = await reader.ReadLineAsync(limit.Token).ConfigureAwait(false);
-                    }
-                    catch (Exception e) when (e is IOException or HttpRequestException || (e is OperationCanceledException && !ct.IsCancellationRequested))
-                    {
-                        cut = true;
-                    }
+                        using var request = new HttpRequestMessage(HttpMethod.Post, GeminiEars.Endpoint + model + ":streamGenerateContent?alt=sse");
+                        request.Headers.TryAddWithoutValidation("x-goog-api-key", key);
+                        request.Content = new StringContent(GeminiWire.Request(options, _contents, mustUseTool), Encoding.UTF8, new MediaTypeHeaderValue("application/json"));
+                        HttpResponseMessage sent = await owner._http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, limit.Token).ConfigureAwait(false);
+                        if (sent.IsSuccessStatusCode)
+                        {
+                            response = sent;
+                            break;
+                        }
 
-                    if (line is null)
-                    {
-                        break;
-                    }
+                        int status = (int)sent.StatusCode;
+                        string body = await sent.Content.ReadAsStringAsync(limit.Token).ConfigureAwait(false);
+                        sent.Dispose();
+                        if (status is 429 or 503 && attempt < WaitsAfterLimit.Length)
+                        {
+                            await Task.Delay(WaitsAfterLimit[attempt], limit.Token).ConfigureAwait(false);
+                            continue;
+                        }
 
-                    if (!line.StartsWith("data:", StringComparison.Ordinal))
-                    {
-                        continue;
+                        failed = new BrainFailed(GeminiWire.KindOf(status, body), "gemini_" + status);
                     }
-
-                    GeminiWire.ChunkResult chunk;
-                    try
+                    catch (HttpRequestException)
                     {
-                        chunk = GeminiWire.Chunk(line[5..].Trim(), () => "g" + Guid.NewGuid().ToString("N"));
+                        failed = new BrainFailed(BrainErrorKind.Network, "gemini_network");
                     }
-                    catch (Exception e) when (e is JsonException or InvalidOperationException)
+                    catch (OperationCanceledException) when (!ct.IsCancellationRequested)
                     {
-                        cut = true;
-                        break;
-                    }
-
-                    foreach (JsonNode? part in chunk.Parts)
-                    {
-                        parts.Add(part?.DeepClone());
-                    }
-
-                    calls.AddRange(chunk.Calls);
-                    finish = chunk.FinishReason ?? finish;
-                    blocked = chunk.BlockReason ?? blocked;
-                    if (chunk.Text is { } text)
-                    {
-                        yield return new TextDelta(text);
+                        failed = new BrainFailed(BrainErrorKind.Network, "gemini_timeout");
                     }
                 }
-            }
 
-            if (blocked is not null || finish is "SAFETY" or "RECITATION" or "PROHIBITED_CONTENT" or "SPII" or "BLOCKLIST")
-            {
-                Rollback(mark);
-                yield return new BrainFailed(BrainErrorKind.Refusal, "gemini_blocked");
+                if (failed is not null)
+                {
+                    Rollback(mark);
+                    owner.Log.Fail(LogKind.BrainRequest, failed.Code, latencyMs: clock.ElapsedMilliseconds);
+                    yield return failed;
+                    yield break;
+                }
+
+                var parts = new JsonArray();
+                var calls = new List<ToolCall>();
+                string? finish = null;
+                string? blocked = null;
+                bool cut = false;
+                using (response)
+                {
+                    using Stream stream = await response!.Content.ReadAsStreamAsync(limit.Token).ConfigureAwait(false);
+                    using var reader = new StreamReader(stream, Encoding.UTF8);
+                    while (true)
+                    {
+                        string? line = null;
+                        try
+                        {
+                            line = await reader.ReadLineAsync(limit.Token).ConfigureAwait(false);
+                        }
+                        catch (Exception e) when (e is IOException or HttpRequestException || (e is OperationCanceledException && !ct.IsCancellationRequested))
+                        {
+                            cut = true;
+                        }
+
+                        if (line is null)
+                        {
+                            break;
+                        }
+
+                        if (!line.StartsWith("data:", StringComparison.Ordinal))
+                        {
+                            continue;
+                        }
+
+                        GeminiWire.ChunkResult chunk;
+                        try
+                        {
+                            chunk = GeminiWire.Chunk(line[5..].Trim(), () => "g" + Guid.NewGuid().ToString("N"));
+                        }
+                        catch (Exception e) when (e is JsonException or InvalidOperationException)
+                        {
+                            cut = true;
+                            break;
+                        }
+
+                        foreach (JsonNode? part in chunk.Parts)
+                        {
+                            parts.Add(part?.DeepClone());
+                        }
+
+                        calls.AddRange(chunk.Calls);
+                        finish = chunk.FinishReason ?? finish;
+                        blocked = chunk.BlockReason ?? blocked;
+
+                        // A request that must act isn't spoken until it's known a tool was really called.
+                        if (chunk.Text is { } text && !(canAct && input is UserTurn first && GeminiWire.AsksForAction(first.Text)))
+                        {
+                            yield return new TextDelta(text);
+                        }
+                    }
+                }
+
+                if (blocked is not null || finish is "SAFETY" or "RECITATION" or "PROHIBITED_CONTENT" or "SPII" or "BLOCKLIST")
+                {
+                    Rollback(mark);
+                    yield return new BrainFailed(BrainErrorKind.Refusal, "gemini_blocked");
+                    yield break;
+                }
+
+                if (cut || finish is null || parts.Count == 0)
+                {
+                    Rollback(mark);
+                    owner.Log.Fail(LogKind.BrainRequest, cut ? "gemini_stream_cut" : "gemini_empty", latencyMs: clock.ElapsedMilliseconds);
+                    yield return new BrainFailed(BrainErrorKind.Network, "stream_cut");
+                    yield break;
+                }
+
+                if (calls.Count == 0 && !mustUseTool && canAct && input is UserTurn turn && GeminiWire.AsksForAction(turn.Text))
+                {
+                    owner.Log.Fail(LogKind.BrainRequest, "gemini_said_without_acting", latencyMs: clock.ElapsedMilliseconds);
+                    mustUseTool = true;
+                    continue;
+                }
+
+                _contents.Add(new JsonObject { ["role"] = "model", ["parts"] = parts });
+                owner.Log.Ok(LogKind.BrainRequest, chosen, clock.ElapsedMilliseconds);
+                foreach (ToolCall call in calls)
+                {
+                    _names[call.Id] = call.Name;
+                    yield return new ToolCallRequested(call);
+                }
+
+                yield return new TurnCompleted(calls.Count > 0 ? "tool_use" : "end_turn");
                 yield break;
             }
-
-            if (cut || finish is null || parts.Count == 0)
-            {
-                Rollback(mark);
-                owner.Log.Fail(LogKind.BrainRequest, cut ? "gemini_stream_cut" : "gemini_empty", latencyMs: clock.ElapsedMilliseconds);
-                yield return new BrainFailed(BrainErrorKind.Network, "stream_cut");
-                yield break;
-            }
-
-            _contents.Add(new JsonObject { ["role"] = "model", ["parts"] = parts });
-            owner.Log.Ok(LogKind.BrainRequest, model, clock.ElapsedMilliseconds);
-            foreach (ToolCall call in calls)
-            {
-                _names[call.Id] = call.Name;
-                yield return new ToolCallRequested(call);
-            }
-
-            yield return new TurnCompleted(calls.Count > 0 ? "tool_use" : "end_turn");
         }
 
         private void Rollback(int mark)

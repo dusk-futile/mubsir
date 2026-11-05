@@ -64,6 +64,23 @@ public class GeminiWireTests
         Assert.Equal("no", answer["parts"]![1]!["functionResponse"]!["response"]!["error"]!.GetValue<string>());
     }
 
+    [Theory]
+    [InlineData("افتح يوتيوب", true)]
+    [InlineData("open youtube", true)]
+    [InlineData("امسح الملف", true)]
+    [InlineData("what time is it", false)]
+    [InlineData("الكتاب ده بيتكلم عن إيه", false)]
+    [InlineData(null, false)]
+    public void Requests_to_act_are_recognised(string? said, bool acts) => Assert.Equal(acts, GeminiWire.AsksForAction(said));
+
+    [Fact]
+    public void A_request_that_must_act_forces_a_tool()
+    {
+        string json = GeminiWire.Request(Options(), [GeminiWire.UserTurn(new UserTurn("hi", null, null))], mustUseTool: true);
+        Assert.Contains("\"mode\":\"ANY\"", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("toolConfig", GeminiWire.Request(Options(), [GeminiWire.UserTurn(new UserTurn("hi", null, null))]), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void A_picture_goes_with_the_turn() =>
         Assert.Contains("image/jpeg", GeminiWire.UserTurn(new UserTurn("look", "screen", [1, 2, 3])).ToJsonString(), StringComparison.Ordinal);
