@@ -82,8 +82,6 @@ public static class SettingsSerializer
         ArgumentNullException.ThrowIfNull(s);
         return s with
         {
-            BrainModel = string.IsNullOrWhiteSpace(s.BrainModel) ? MubsirSettings.DefaultBrainModel : s.BrainModel.Trim(),
-            EscalationModel = string.IsNullOrWhiteSpace(s.EscalationModel) ? null : s.EscalationModel.Trim(),
             EarsModel = string.IsNullOrWhiteSpace(s.EarsModel) ? MubsirSettings.DefaultEarsModel : s.EarsModel.Trim(),
             SpeechRate = Math.Clamp(s.SpeechRate, 0, 100),
             Verbosity = Enum.IsDefined(s.Verbosity) ? s.Verbosity : Verbosity.Brief,

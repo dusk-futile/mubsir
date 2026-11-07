@@ -138,16 +138,10 @@ internal sealed class NotchWindow : Window, IAnimated
 
     public event Action? CancelClicked;
 
-    /// <summary>The mouse moved over or off the notch while it rests.</summary>
-    public event Action<bool>? Hovered;
-
     /// <summary>Makes the voice wave move by itself, for the demo; the real app feeds <see cref="SetVoiceLevel"/>.</summary>
     public bool DemoVoice { get; set; }
 
     public void SetVoiceLevel(double level) => _voiceTarget = Math.Clamp(level, 0, 1);
-
-    /// <summary>The voice level as it moves on screen, for Hudhud to follow.</summary>
-    public double VoiceValue => _voice.Value;
 
     public void SetAsleep(bool asleep)
     {
@@ -333,7 +327,7 @@ internal sealed class NotchWindow : Window, IAnimated
         double fillet = Math.Min(_assets.Tokens.NotchFilletMax, h / 2);
         double r = NotchCurves.CornerLength(Math.Max(0, _radius.Value), w, h, fillet);
 
-        // Hudhud keeps the clock running, but a notch at rest must not redraw its shadow every frame.
+        // The pointer can keep the clock running, but a notch at rest must not redraw its shadow every frame.
         if (w != _drawnWidth || h != _drawnHeight || r != _drawnRadius)
         {
             _drawnWidth = w;
@@ -392,7 +386,6 @@ internal sealed class NotchWindow : Window, IAnimated
         if (_state == CompanionState.Idle)
         {
             Morph(over ? CompanionState.Peek : CompanionState.Idle);
-            Hovered?.Invoke(over);
             _loop.Wake();
         }
     }

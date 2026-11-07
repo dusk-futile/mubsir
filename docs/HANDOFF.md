@@ -2,7 +2,17 @@
 
 Update this file at the end of every session. Newest on top.
 
-# Latest session, 2026-11-05 (eighth part)
+# Latest session, 2026-11-07
+
+- **Hudhud removed** (owner's decision): the bird window, its art and rig, the panel it opened, its motion code, tests and setting. The notch and pointer are unchanged and still move on `motion-tokens.json`. `overlay-smoke.ps1` now checks the notch only.
+- **Sonnet removed:** Claude is always Haiku 5.5 (`ClaudeBrain`). The brain picker in the setup window is now one line of text. `BrainModel` and `EscalationModel` settings are gone; old settings files still load.
+- **Reading fixes, with tests:** numbers take the language of their label ("chapter 3" no longer switches to the Arabic voice for "3"); opening brackets and quotes go with the words they open; √, Greek letters, maths relations, arrows, §, ¶, ©, ™ and check marks are named in normal reading (`SymbolTables.NormalSymbols`); the Arabic comma is left alone.
+- **Smoother local voice:** `Core/Speech/SpeechSilence.cs` trims Ryan's padding to 40 ms before and 140 ms after each sentence, with 6 ms fades, so sentences follow evenly and never click.
+- **New tests:** `LanguageSwitchingTests`, `SymbolReadingTests`, `SentenceSplitterTests`, `SpeechCompositionTests`, `SpeechSilenceTests`. 529 pass on Windows with the folder test excluded.
+- **Plan:** `docs/ROADMAP.md`. Next for sound: an optional one-voice-per-answer mode, one open audio output, two sentences prepared ahead.
+- Not checked by ear on a real PC yet.
+
+# Earlier, 2026-11-05 (eighth part)
 
 - **Built, never run on Windows:** reminders (`Core/Reminders`, spoken from `MubsirHost`), `describe_photo`, `read_notifications` (`WindowsToolExecutor.Daily.cs`), Spotify and WhatsApp steps in `AppRecipes`. Notifications may need the Store build's identity. The owner doesn't want external or remote help features.
 

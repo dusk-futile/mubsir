@@ -15,10 +15,6 @@ public sealed record MubsirSettings
     public const int DefaultAgentMaxSteps = 15;
     public const int DefaultAgentMaxSeconds = 180;
 
-    public string BrainModel { get; set; } = DefaultBrainModel;
-
-    public string? EscalationModel { get; set; }
-
     public string EarsModel { get; set; } = DefaultEarsModel;
 
     public int SpeechRate { get; set; } = DefaultSpeechRate;
@@ -56,8 +52,6 @@ public sealed record MubsirSettings
 
     /// <summary>The notch shows anyone watching the screen what's going on. The app works the same without it.</summary>
     public bool ShowNotch { get; set; } = true;
-
-    public bool ShowHudhud { get; set; } = true;
 
     /// <summary>Speak Arabic through Fish Audio when it has a key. Otherwise, or if it fails, the free Windows voice speaks. English always uses the free voice.</summary>
     public bool UseFishVoice { get; set; } = true;

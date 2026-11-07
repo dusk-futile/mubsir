@@ -1,4 +1,4 @@
-# Runs the native notch and Hudhud (Mubsir.exe --overlay-demo) on a real Windows desktop and records what
+# Runs the native notch (Mubsir.exe --overlay-demo) on a real Windows desktop and records what
 # happens: a screenshot every second, the undo path with a real Ctrl press, memory and CPU, and a clean exit.
 # Used by CI on windows-2025 (software rendering, no GPU, so its CPU numbers are a worst case).
 #
@@ -105,23 +105,6 @@ function Shot([string]$name) {
     $bitmap.Dispose()
 }
 
-# Is the panel's dark card on screen in this shot? Looks at its left padding, which holds only the card's colour.
-function Test-PanelShowing([string]$name) {
-    $work = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
-    $bitmap = New-Object System.Drawing.Bitmap (Join-Path $Out "$name.png")
-    $x = $work.Right - 274 + 7
-    $bottom = $work.Bottom - 112
-    $showing = $true
-    foreach ($up in 20, 60, 100, 140, 180) {
-        $c = $bitmap.GetPixel($x, $bottom - $up)
-        if ([math]::Abs($c.R - 10) -gt 12 -or [math]::Abs($c.G - 12) -gt 12 -or [math]::Abs($c.B - 40) -gt 12) {
-            $showing = $false
-        }
-    }
-    $bitmap.Dispose()
-    return $showing
-}
-
 # The notch is pure black, so a black pixel at this spot means the notch reaches it.
 function Test-NotchAt([string]$name, [int]$x, [int]$y) {
     $bitmap = New-Object System.Drawing.Bitmap (Join-Path $Out "$name.png")
@@ -170,7 +153,7 @@ if ($version.ExitCode -ne 0) {
     throw "Mubsir.exe --version exited with code $($version.ExitCode)"
 }
 
-# First run: the whole story, then Hudhud falls asleep and Ctrl wakes it.
+# First run: the whole story, then the notch rests.
 $demo = Start-Process -FilePath $Exe -ArgumentList '--overlay-demo' -PassThru -RedirectStandardOutput (Join-Path $Out 'demo-log.txt')
 for ($t = 1; $t -le 36; $t++) {
     Start-Sleep -Seconds 1
@@ -181,36 +164,14 @@ for ($t = 1; $t -le 36; $t++) {
 Note "Memory after the story: $(Memory-Mb $demo)"
 Note "CPU, awake and idle: $(Measure-Cpu $demo 5) % of one core"
 
-# It sleeps 20 s after the last activity.
+# It rests 20 s after the last activity.
 Start-Sleep -Seconds 16
-Assert-Running $demo 'while falling asleep'
-Shot 'asleep'
-Note "CPU, asleep: $(Measure-Cpu $demo 5) % of one core"
-Note "Memory, asleep: $(Memory-Mb $demo)"
+Assert-Running $demo 'while resting'
+Shot 'resting'
+Note "CPU, resting: $(Measure-Cpu $demo 5) % of one core"
+Note "Memory, resting: $(Memory-Mb $demo)"
 
-[SmokeInput]::Press($VkControl)
-Start-Sleep -Milliseconds 500
-Shot 'woken-shake-1'
-Start-Sleep -Milliseconds 150
-Shot 'woken-shake-2'
-Start-Sleep -Seconds 2
-Shot 'woken'
-Assert-Running $demo 'after waking'
-
-# A click on the bird opens the panel, and a click anywhere else closes it again.
-$work = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
-$birdX = $work.Right - 28 - 46
-$birdY = $work.Bottom - 2 - 42
-Shot 'before-click'
-[SmokeInput]::ClickAt($birdX, $birdY)
-Start-Sleep -Milliseconds 800
-Shot 'panel-open'
-[SmokeInput]::ClickAt(120, 300)
-Start-Sleep -Milliseconds 800
-Shot 'panel-closed'
-Assert-Running $demo 'after the panel'
-
-# A full-screen app has the screen: the bird steps aside while there is nothing to show, then comes back.
+# A full-screen app has the screen: the notch steps aside while there is nothing to show, then comes back.
 $cover = New-Object System.Windows.Forms.Form
 $cover.FormBorderStyle = 'None'
 $cover.WindowState = 'Maximized'
@@ -222,7 +183,7 @@ for ($i = 0; $i -lt 40; $i++) {
     [System.Windows.Forms.Application]::DoEvents()
     Start-Sleep -Milliseconds 100
 }
-$hiddenOver = -not [SmokeInput]::IsVisible('Hudhud')
+$hiddenOver = -not [SmokeInput]::IsVisible('Mubsir notch')
 Note "Windows notification state over the test window: $([SmokeInput]::NotificationState()) (2, 3 or 4 = full-screen)"
 $cover.Close()
 $cover.Dispose()
@@ -230,27 +191,14 @@ for ($i = 0; $i -lt 40; $i++) {
     [System.Windows.Forms.Application]::DoEvents()
     Start-Sleep -Milliseconds 100
 }
-$backAfter = [SmokeInput]::IsVisible('Hudhud')
-Note "Full-screen app: Hudhud hidden while it runs: $hiddenOver; back afterwards: $backAfter"
+$backAfter = [SmokeInput]::IsVisible('Mubsir notch')
+Note "Full-screen app: notch hidden while it runs: $hiddenOver; back afterwards: $backAfter"
 if (-not $backAfter) {
-    throw 'Hudhud did not come back after the full-screen app closed'
+    throw 'the notch did not come back after the full-screen app closed'
 }
 Assert-Running $demo 'after the full-screen test'
 $dpi = [System.Drawing.Graphics]::FromHwnd([IntPtr]::Zero).DpiX
 if ($dpi -eq 96) {
-    if (Test-PanelShowing 'before-click') { throw 'the panel was showing before Hudhud was clicked' }
-    if (-not (Test-PanelShowing 'panel-open')) { throw 'clicking Hudhud did not open the panel' }
-    if (Test-PanelShowing 'panel-closed') { throw 'clicking elsewhere did not close the panel' }
-    Note 'Panel: opens on a click on Hudhud, closes on a click elsewhere.'
-
-    # Its buttons must really take a click, which means the window stopped being click-through in time.
-    [SmokeInput]::ClickAt($birdX, $birdY)
-    Start-Sleep -Milliseconds 600
-    [SmokeInput]::ClickAt($work.Right - 274 + 100, $work.Bottom - 112 - 32)
-    Start-Sleep -Milliseconds 800
-    Shot 'panel-button-pressed'
-    if (Test-PanelShowing 'panel-button-pressed') { throw 'pressing a panel button did not close the panel' }
-
     # Resting, the notch is 120 wide. Hovering it peeks (236 wide), and clicking it starts listening (404 wide).
     $middle = [int]($screen.Width / 2)
     [SmokeInput]::MoveTo(120, 300)
@@ -284,10 +232,6 @@ Note "Frames a second, every 5 s: $rates"
 if ($log -match 'overlay error') {
     throw "the overlay reported an error: $log"
 }
-if ($dpi -eq 96 -and $log -notmatch 'Panel: Settings') {
-    throw 'the Settings button in the panel did not take the click'
-}
-Note 'Panel: its buttons take clicks.'
 
 # Second run: Ctrl in the middle of the checklist stops it and undoes the finished steps.
 $demo = Start-Process -FilePath $Exe -ArgumentList '--overlay-demo' -PassThru

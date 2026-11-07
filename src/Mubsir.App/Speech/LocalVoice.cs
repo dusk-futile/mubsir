@@ -197,7 +197,9 @@ internal sealed class LocalVoice(IEventLog log, string? folder = null, HttpClien
                     return null;
                 }
 
-                wav = WavFile.FromSamples(audio.Samples, sampleRate);
+                // An even, short breath between sentences instead of the voice's own padding.
+                float[] trimmed = SpeechSilence.Trim(audio.Samples, sampleRate);
+                wav = WavFile.FromSamples(trimmed.Length > 0 ? trimmed : audio.Samples, sampleRate);
             }
         }
         catch (Exception e) when (e is not OutOfMemoryException and not ObjectDisposedException)

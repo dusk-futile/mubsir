@@ -25,7 +25,6 @@ public static class PriceTable
     new Dictionary<string, ModelPrice>(StringComparer.OrdinalIgnoreCase)
     {
         ["claude-haiku-5-5"] = new("claude-haiku-5-5", 0.10m, 0.01m, 0.125m, 0.50m, LongPromptThresholdTokens: 100_000, LongPromptMultiplier: 5m),
-        ["claude-sonnet-5-5"] = new("claude-sonnet-5-5", 2.00m, 0.20m, 2.50m, 10.00m),
         ["gemini-3.5-flash-lite"] = new("gemini-3.5-flash-lite", 0.30m, 0.03m, 0m, 2.50m, AudioInputPerMTok: 0.30m),
     });
 

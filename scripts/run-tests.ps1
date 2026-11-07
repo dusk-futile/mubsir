@@ -50,10 +50,10 @@ Step 'Book check' {
     if (Test-Path book-check.txt) { Move-Item -Force book-check.txt (Join-Path $out 'book-check.txt') }
     $global:LASTEXITCODE = $p.ExitCode
 }
-Step 'Notch and Hudhud' { pwsh scripts/overlay-smoke.ps1 -Exe publish/Mubsir.exe -Out (Join-Path $out 'overlay') }
+Step 'Notch' { pwsh scripts/overlay-smoke.ps1 -Exe publish/Mubsir.exe -Out (Join-Path $out 'overlay') }
 Step 'Setup window' { pwsh scripts/setup-shots.ps1 -Exe publish/Mubsir.exe -Out (Join-Path $out 'setup') }
 
 Get-Content $summary
-Write-Host 'Showing the notch and Hudhud. Press Esc to close them.'
+Write-Host 'Showing the notch. Press Esc to close it.'
 Start-Process publish/Mubsir.exe -ArgumentList '--overlay-demo'
 Start-Process explorer.exe $out

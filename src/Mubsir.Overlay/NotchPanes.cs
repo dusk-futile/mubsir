@@ -259,7 +259,7 @@ internal sealed class IdlePane : Pane
             return FrameNeed.None;
         }
 
-        // A slow pulse: six updates a second are enough, however fast Hudhud is being drawn.
+        // A slow pulse: six updates a second are enough, however fast the clock runs.
         if (t - _drawnAt < 0.16)
         {
             return FrameNeed.Slow;

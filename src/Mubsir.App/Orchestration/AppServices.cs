@@ -50,7 +50,7 @@ internal sealed class AppServices
 
     public EarsRouter? Ears { get; set; }
 
-    /// <summary>The notch and Hudhud. Null when they're turned off or couldn't start; nothing depends on them.</summary>
+    /// <summary>The notch. Null when they're turned off or couldn't start; nothing depends on them.</summary>
     public CompanionBridge? Companion { get; set; }
 
     /// <summary>Saved chats. Private mode and the setting keep it from writing.</summary>

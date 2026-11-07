@@ -113,7 +113,6 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
         return name switch
         {
             "ShowNotch" => s.ShowNotch,
-            "ShowHudhud" => s.ShowHudhud,
             "UseFishVoice" => s.UseFishVoice,
             "ReadArabicBooksWithFish" => s.ReadArabicBooksWithFish,
             "ReadFullTashkeel" => s.ReadFullTashkeel,
@@ -125,7 +124,6 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
     public void SetOption(string name, bool value) => app.Settings.Update(s => name switch
     {
         "ShowNotch" => s with { ShowNotch = value },
-        "ShowHudhud" => s with { ShowHudhud = value },
         "UseFishVoice" => s with { UseFishVoice = value },
         "ReadArabicBooksWithFish" => s with { ReadArabicBooksWithFish = value },
         "ReadFullTashkeel" => s with { ReadFullTashkeel = value },
@@ -195,20 +193,6 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
             _ => (lang == Lang.Arabic ? "Control اليمين" : "Right Ctrl"),
         };
         Say((lang == Lang.Arabic ? "مفتاح الكلام: " : "Talk key: ") + name, lang);
-    }
-
-    public string GetBrainModel() => app.Settings.Settings.BrainModel;
-
-    public void SetBrainModel(string model)
-    {
-        app.Settings.Update(s => s with { BrainModel = model });
-        Lang lang = app.UiLang;
-        string name = model switch
-        {
-            "claude-sonnet-5-5" => "Claude Sonnet 5.5",
-            _ => "Claude Haiku 5.5",
-        };
-        Say((lang == Lang.Arabic ? "العقل المختار: " : "Chosen brain: ") + name, lang);
     }
 
     public string? GetFishVoiceId() => app.Settings.Settings.FishVoiceIdArabic;

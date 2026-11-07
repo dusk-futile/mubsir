@@ -26,7 +26,6 @@
   <ItemGroup>
     <None Include="..\..\src\Mubsir.Overlay\motion-tokens.json" Link="data\motion-tokens.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\fixtures\books\*.pdf" Link="data\books\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\assets\hudhud\rig.json" Link="data\rig.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
