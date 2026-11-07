@@ -67,7 +67,7 @@ public static class ScriptSegmenter
         }
 
         AssignNumbers(text, cls, sentenceLang, lang, assigned);
-        AssignNeutrals(lang, assigned, spell);
+        AssignNeutrals(text, lang, assigned, spell);
         return BuildRuns(text, lang, spell);
     }
 
@@ -298,14 +298,30 @@ public static class ScriptSegmenter
             }
 
             int end = i;
-            Lang l;
-            if (start > 0 && cls[start - 1] is Cls.Arabic or Cls.Latin)
+
+            // A number is read in the language of the word it belongs to. Labels come before their number
+            // ("chapter 3", "iPhone 15", "صفحة 12"), so the word on the left wins, even across a space;
+            // otherwise the word right after it ("3 كتب"), otherwise the sentence's language.
+            int left = start - 1;
+            while (left >= 0 && text[left] == ' ')
             {
-                l = lang[start - 1];
+                left--;
             }
-            else if (end < n && cls[end] is Cls.Arabic or Cls.Latin)
+
+            int right = end;
+            while (right < n && text[right] == ' ')
             {
-                l = lang[end];
+                right++;
+            }
+
+            Lang l;
+            if (left >= 0 && cls[left] is Cls.Arabic or Cls.Latin)
+            {
+                l = lang[left];
+            }
+            else if (right < n && cls[right] is Cls.Arabic or Cls.Latin)
+            {
+                l = lang[right];
             }
             else
             {
@@ -317,7 +333,9 @@ public static class ScriptSegmenter
         }
     }
 
-    private static void AssignNeutrals(Lang[] lang, bool[] assigned, bool[] spell)
+    private static bool IsOpening(char c) => c is '(' or '[' or '{' or '"' or '«' or '“' or '‘' or '<';
+
+    private static void AssignNeutrals(string text, Lang[] lang, bool[] assigned, bool[] spell)
     {
         int n = lang.Length;
         int i = 0;
@@ -352,7 +370,17 @@ public static class ScriptSegmenter
             }
             else
             {
-                l = lang[start - 1];
+                // Between two languages: the gap goes with the words before it, except opening brackets
+                // and quotes at its end, which belong to the words they open: «قال: "» + «hello"».
+                int split = end;
+                while (split > start && IsOpening(text[split - 1]))
+                {
+                    split--;
+                }
+
+                Array.Fill(lang, lang[start - 1], start, split - start);
+                Array.Fill(lang, lang[end], split, end - split);
+                continue;
             }
 
             Array.Fill(lang, l, start, end - start);

@@ -35,7 +35,6 @@ public class OnboardingFlowTests
         Assert.Null(flow.Current);
         PersonalPlan plan = flow.Plan();
         Assert.Equal(UserKind.Blind, plan.Kind);
-        Assert.False(plan.ShowHudhud);
         Assert.True(plan.UseNvda);
         Assert.Equal(Verbosity.Brief, plan.Verbosity);
         Assert.Equal(70, plan.SpeechRate);
@@ -77,7 +76,6 @@ public class OnboardingFlowTests
         Run(false, "arabic", "low vision", "books", "skip", "لأ", "none", "skip").Plan().ApplyTo(settings);
         Assert.True(settings.OnboardingDone);
         Assert.Equal(UserKind.LowVision, settings.UserKind);
-        Assert.True(settings.ShowHudhud);
     }
 
     [Theory]

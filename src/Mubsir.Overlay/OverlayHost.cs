@@ -5,7 +5,7 @@ using Mubsir.Core.Motion;
 namespace Mubsir.Overlay;
 
 /// <summary>
-/// Normal mode's companion: the notch at the top of the screen and Hudhud in the corner. Runs on its own
+/// The notch at the top of the screen, which shows anyone watching what Mubsir is doing. Runs on its own
 /// UI thread, so it never waits on the host and the host never waits on it. All methods can be called
 /// from any thread. Events are raised on the overlay's thread, so handlers should hand work off quickly.
 /// This is only the view: the app decides what a click or a key press means.
@@ -25,9 +25,6 @@ public sealed class OverlayHost : IDisposable
         _thread = new Thread(ThreadMain) { IsBackground = true, Name = "Mubsir overlay" };
         _thread.SetApartmentState(ApartmentState.STA);
     }
-
-    /// <summary>Something was chosen in the panel Hudhud opens when it is clicked.</summary>
-    public event Action<CompanionAction>? ActionChosen;
 
     /// <summary>The notch was clicked: start talking.</summary>
     public event Action? NotchClicked;
@@ -49,9 +46,9 @@ public sealed class OverlayHost : IDisposable
     public long FramesDrawn => _companion?.Frames ?? 0;
 
     /// <summary>Shows the windows and returns when they are up.</summary>
-    public static OverlayHost Start(bool withHudhud = true)
+    public static OverlayHost Start()
     {
-        var host = new OverlayHost { _withHudhud = withHudhud };
+        var host = new OverlayHost();
         host._thread.Start();
         host._ready.Wait();
         if (host._startFailure is { } failure)
@@ -71,9 +68,6 @@ public sealed class OverlayHost : IDisposable
     /// <summary>Lets the voice wave move by itself, for the demo.</summary>
     public void UseDemoVoice(bool on = true) => Post(c => c.Notch.DemoVoice = on);
 
-    /// <summary>Wakes Hudhud if it sleeps. The app decides what Ctrl does otherwise.</summary>
-    public void WakeHudhud() => Post(c => c.Hudhud.Wake());
-
     /// <summary>A small squeeze of the notch, to feel a key press land.</summary>
     public void NudgeNotch() => Post(c => c.Notch.Nudge(0, 70));
 
@@ -82,9 +76,6 @@ public sealed class OverlayHost : IDisposable
 
     /// <summary>Calls the pointer back to the notch.</summary>
     public void RecallPointer() => Post(c => c.Pointer.Recall());
-
-    /// <summary>Closes the panel if it is open (the app's Esc).</summary>
-    public void ClosePanel() => Post(c => c.Panel.SetOpen(false));
 
     public void Dispose()
     {
@@ -105,8 +96,6 @@ public sealed class OverlayHost : IDisposable
 
         _ready.Dispose();
     }
-
-    private bool _withHudhud = true;
 
     private void Post(Action<Companion> action)
     {
@@ -131,12 +120,11 @@ public sealed class OverlayHost : IDisposable
         {
             _dispatcher = Dispatcher.CurrentDispatcher;
             _dispatcher.UnhandledException += OnUnhandled;
-            var companion = new Companion(OverlayAssets.Load(), _withHudhud);
+            var companion = new Companion(OverlayAssets.Load());
             companion.Notch.Clicked += () => NotchClicked?.Invoke();
             companion.Notch.StopClicked += () => StopRequested?.Invoke();
             companion.Notch.TapClicked += () => ConfirmTapRequested?.Invoke();
             companion.Notch.CancelClicked += () => CancelRequested?.Invoke();
-            companion.Panel.ActionChosen += action => ActionChosen?.Invoke(action);
             companion.Open();
             _companion = companion;
         }
@@ -162,44 +150,27 @@ public sealed class OverlayHost : IDisposable
         }
     }
 
-    /// <summary>The two windows and the clock that drives them, on the overlay's thread.</summary>
+    /// <summary>The notch, the pointer and the clock that drives them, on the overlay's thread.</summary>
     private sealed class Companion
     {
         private readonly FrameLoop _loop = new();
         private readonly DispatcherTimer _fullScreen = new() { Interval = TimeSpan.FromSeconds(2) };
-        private CompanionState _state = CompanionState.Idle;
         private readonly DispatcherTimer _rest = new() { Interval = TimeSpan.FromSeconds(20) };
-        private readonly bool _withHudhud;
+        private CompanionState _state = CompanionState.Idle;
         private bool _started;
         private bool _hidden;
 
-        public Companion(OverlayAssets assets, bool withHudhud)
+        public Companion(OverlayAssets assets)
         {
-            _withHudhud = withHudhud;
             // Respects Windows' "Show animations" setting: values jump instead of moving.
             bool reduceMotion = !SystemParameters.ClientAreaAnimation;
             Notch = new NotchWindow(assets, _loop, reduceMotion);
-            Hudhud = new HudhudWindow(assets, _loop, reduceMotion);
-            Panel = new PanelWindow(assets, _loop, reduceMotion);
             Pointer = new PointerWindow(assets, _loop, reduceMotion);
-            assets.ReleaseImages();
             _loop.Add(Notch);
-            if (withHudhud)
-            {
-                _loop.Add(Hudhud);
-                _loop.Add(Panel);
-            }
-
             _loop.Add(Pointer);
-            Hudhud.Clicked += Panel.Toggle;
-            Panel.OpenChanged += Hudhud.Hold;
-            Panel.CursorOnOpener = () => Hudhud.CursorOver;
             _fullScreen.Tick += (_, _) => WatchFullScreen();
-            Notch.Hovered += Hudhud.Peek;
-            Hudhud.VoiceSource = () => Notch.VoiceValue;
-            Hudhud.AsleepChanged += Notch.SetAsleep;
 
-            // With no bird to fall asleep, the notch rests on its own timer.
+            // After a while with nothing to show, the notch rests.
             _rest.Tick += (_, _) =>
             {
                 _rest.Stop();
@@ -209,10 +180,6 @@ public sealed class OverlayHost : IDisposable
 
         public NotchWindow Notch { get; }
 
-        public HudhudWindow Hudhud { get; }
-
-        public PanelWindow Panel { get; }
-
         public PointerWindow Pointer { get; }
 
         public long Frames => _loop.Frames;
@@ -220,24 +187,13 @@ public sealed class OverlayHost : IDisposable
         public void Open()
         {
             Notch.Show();
-            if (_withHudhud)
-            {
-                Hudhud.Show();
-                Panel.Show();
-            }
-
             _loop.Wake();
 
-            // The notch comes out of the top edge, then Hudhud hops in.
+            // The notch comes out of the top edge.
             var start = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(380) };
             start.Tick += (_, _) =>
             {
                 start.Stop();
-                if (_withHudhud)
-                {
-                    Hudhud.Enter();
-                }
-
                 if (!_started)
                 {
                     Notch.Go(CompanionState.Idle, null);
@@ -256,18 +212,13 @@ public sealed class OverlayHost : IDisposable
                 SetHidden(false);
             }
 
-            Panel.SetOpen(false);
             if (state != CompanionState.Pointing)
             {
                 Pointer.Recall();
             }
 
             Notch.Go(state, content);
-            if (_withHudhud)
-            {
-                Hudhud.Go(state);
-            }
-            else if (state == CompanionState.Idle)
+            if (state == CompanionState.Idle)
             {
                 _rest.Start();
             }
@@ -282,7 +233,7 @@ public sealed class OverlayHost : IDisposable
         /// and comes back the moment there is.</summary>
         private void WatchFullScreen()
         {
-            SetHidden(_state == CompanionState.Idle && !Panel.IsOpen && Win32.FullScreenAppRunning());
+            SetHidden(_state == CompanionState.Idle && Win32.FullScreenAppRunning());
         }
 
         private void SetHidden(bool hidden)
@@ -293,16 +244,13 @@ public sealed class OverlayHost : IDisposable
             }
 
             _hidden = hidden;
-            foreach (Window window in _withHudhud ? new Window[] { Notch, Hudhud, Panel } : [Notch])
+            if (hidden)
             {
-                if (hidden)
-                {
-                    window.Hide();
-                }
-                else
-                {
-                    window.Show();
-                }
+                Notch.Hide();
+            }
+            else
+            {
+                Notch.Show();
             }
 
             _loop.Paused = hidden;
@@ -311,10 +259,9 @@ public sealed class OverlayHost : IDisposable
         public void Close()
         {
             _fullScreen.Stop();
+            _rest.Stop();
             _loop.Stop();
             Notch.Close();
-            Hudhud.Close();
-            Panel.Close();
             Pointer.Close();
         }
     }

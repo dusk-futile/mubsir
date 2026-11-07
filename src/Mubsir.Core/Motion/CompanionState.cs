@@ -1,6 +1,6 @@
 namespace Mubsir.Core.Motion;
 
-/// <summary>What the normal-mode companion (the notch and Hudhud) is showing.</summary>
+/// <summary>What the notch is showing.</summary>
 public enum CompanionState
 {
     Idle,

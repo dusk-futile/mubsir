@@ -35,9 +35,8 @@ internal sealed class LocalVoice(IEventLog log, string? folder = null, HttpClien
     private Timer? _unload;
     private long _lastUsed;
     private CancellationTokenSource _stop = new();
-    private MediaPlayer? _player;
-    private TaskCompletionSource<bool>? _playing;
-    private (string Text, int Rate, Task<byte[]?> Audio)? _ready;
+    private readonly SentencePlayer _out = new(log, "local_voice");
+    private readonly List<(string Text, int Rate, Task<byte[]?> Audio)> _ready = [];
     private int _slowInARow;
     private volatile bool _tooSlow;
     private volatile bool _installed;
@@ -134,20 +133,25 @@ internal sealed class LocalVoice(IEventLog log, string? folder = null, HttpClien
         }
 
         CancellationToken stopped;
-        (string Text, int Rate, Task<byte[]?> Audio)? ready;
+        Task<byte[]?>? ready = null;
         lock (_gate)
         {
             stopped = _stop.Token;
-            ready = _ready;
-            _ready = null;
+            int at = _ready.FindIndex(r => r.Text == text && r.Rate == rate);
+            if (at >= 0)
+            {
+                ready = _ready[at].Audio;
+                _ready.RemoveRange(0, at + 1);
+            }
         }
 
         try
         {
-            byte[]? audio = ready is { } r && r.Text == text && r.Rate == rate
-                ? await r.Audio.WaitAsync(stopped).ConfigureAwait(false)
+            byte[]? audio = ready is not null
+                ? await ready.WaitAsync(stopped).ConfigureAwait(false)
                 : await Task.Run(() => Make(text, rate), stopped).WaitAsync(stopped).ConfigureAwait(false);
-            return audio is not null && await PlayAsync(audio, started, stopped, text.Length).ConfigureAwait(false);
+            TimeSpan limit = TimeSpan.FromSeconds(30) + TimeSpan.FromMilliseconds(text.Length * 250L);
+            return audio is not null && await _out.PlayAsync(audio, "audio/wav", started, limit, stopped).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (stopped.IsCancellationRequested)
         {
@@ -164,10 +168,18 @@ internal sealed class LocalVoice(IEventLog log, string? folder = null, HttpClien
 
         lock (_gate)
         {
-            if (_ready is not { } r || r.Text != text || r.Rate != rate)
+            if (_ready.Exists(r => r.Text == text && r.Rate == rate))
             {
-                _ready = (text, rate, Task.Run(() => Make(text, rate)));
+                return;
             }
+
+            // Two sentences ahead at most: enough to hide the next pause, little wasted if the user stops.
+            if (_ready.Count >= SpeechAhead.Sentences)
+            {
+                _ready.RemoveAt(0);
+            }
+
+            _ready.Add((text, rate, Task.Run(() => Make(text, rate))));
         }
     }
 
@@ -197,7 +209,9 @@ internal sealed class LocalVoice(IEventLog log, string? folder = null, HttpClien
                     return null;
                 }
 
-                wav = WavFile.FromSamples(audio.Samples, sampleRate);
+                // An even, short breath between sentences instead of the voice's own padding.
+                float[] trimmed = SpeechSilence.Trim(audio.Samples, sampleRate);
+                wav = WavFile.FromSamples(SpeechAudio.EvenLoudness(trimmed.Length > 0 ? trimmed : audio.Samples), sampleRate);
             }
         }
         catch (Exception e) when (e is not OutOfMemoryException and not ObjectDisposedException)
@@ -212,36 +226,22 @@ internal sealed class LocalVoice(IEventLog log, string? folder = null, HttpClien
 
     public void Stop()
     {
-        MediaPlayer? player;
-        TaskCompletionSource<bool>? playing;
         CancellationTokenSource old;
         lock (_gate)
         {
-            player = _player;
-            playing = _playing;
-            _player = null;
-            _playing = null;
-            _ready = null;
+            _ready.Clear();
             old = _stop;
             _stop = new CancellationTokenSource();
         }
 
         old.Cancel();
-        playing?.TrySetResult(true);
-        try
-        {
-            player?.Pause();
-            player?.Dispose();
-        }
-        catch (Exception e) when (e is not OutOfMemoryException)
-        {
-            log.Fail(LogKind.Speech, "local_voice_stop_" + MetaLog.Code(e));
-        }
+        _out.Stop();
     }
 
     public void Dispose()
     {
         Stop();
+        _out.Dispose();
         lock (_engineGate)
         {
             _disposed = true;
@@ -293,50 +293,5 @@ internal sealed class LocalVoice(IEventLog log, string? folder = null, HttpClien
             log.Fail(LogKind.Speech, "local_voice_too_slow");
             TooSlow?.Invoke();
         }
-    }
-
-    private async Task<bool> PlayAsync(byte[] wav, Action started, CancellationToken stopped, int chars)
-    {
-        var done = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var player = new MediaPlayer { AutoPlay = false, AudioCategory = MediaPlayerAudioCategory.Speech };
-        using var audio = new MemoryStream(wav);
-        using var stream = audio.AsRandomAccessStream();
-        using var source = MediaSource.CreateFromStream(stream, "audio/wav");
-        player.MediaEnded += (_, _) => done.TrySetResult(true);
-        player.MediaFailed += (_, args) =>
-        {
-            log.Fail(LogKind.Speech, "local_voice_play_" + args.Error);
-            done.TrySetResult(false);
-        };
-        lock (_gate)
-        {
-            if (stopped.IsCancellationRequested)
-            {
-                player.Dispose();
-                return true;
-            }
-
-            _player = player;
-            _playing = done;
-            player.Source = source;
-            started();
-            player.Play();
-        }
-
-        Task finished = await Task.WhenAny(done.Task, Task.Delay(TimeSpan.FromSeconds(30) + TimeSpan.FromMilliseconds(chars * 250L))).ConfigureAwait(false);
-        bool heard = finished == done.Task && await done.Task.ConfigureAwait(false);
-        lock (_gate)
-        {
-            if (!ReferenceEquals(_player, player))
-            {
-                return true;
-            }
-
-            _player = null;
-            _playing = null;
-        }
-
-        player.Dispose();
-        return heard;
     }
 }

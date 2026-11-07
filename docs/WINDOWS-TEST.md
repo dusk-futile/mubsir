@@ -12,7 +12,7 @@ The owner gives a Claude session full access to their PC to install Mubsir and t
 
 ## "Run tests"
 
-When the owner says **run tests**: run `pwsh scripts/run-tests.ps1` as administrator. It installs what's missing, gets the latest code, runs every automatic check, writes `test-results\summary.txt`, and shows the notch, Hudhud and the setup pictures. Report those results, then ask the owner to paste the keys into the setup window, and run the numbered tests below.
+When the owner says **run tests**: run `pwsh scripts/run-tests.ps1` as administrator. It installs what's missing, gets the latest code, runs every automatic check, writes `test-results\summary.txt`, and shows the notch and the setup pictures. Report those results, then ask the owner to paste the keys into the setup window, and run the numbered tests below.
 
 ## What the owner does first
 
@@ -169,8 +169,8 @@ For each, try while idle, during a request and during reading.
 
 | # | Test | Record |
 |---|---|---|
-| 80. H1 | RAM and CPU on a 4 GB PC or VM: idle, listening, reading, with and without Hudhud | Numbers in `docs/RESULTS.md` |
-| 81. H2 | Frame rate and CPU with a real GPU, and Hudhud over a full-screen app | Numbers, and whether it hides |
+| 80. H1 | RAM and CPU on a 4 GB PC or VM: idle, listening, reading, with and without the notch | Numbers in `docs/RESULTS.md` |
+| 81. H2 | Frame rate and CPU with a real GPU, and the notch over a full-screen app | Numbers, and whether it hides |
 | 82. H3 | Leave it running for 8 hours with some use | No memory growth, and it still answers |
 | 83. H4 | Full disk, read-only data folder | Says saves failed, no crash |
 | 84. H5 | Different display scales, two screens, Arabic Windows, right-to-left | Clicks land in the right place. `click_on` is the one to check |

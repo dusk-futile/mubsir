@@ -134,9 +134,9 @@ internal sealed class MubsirHost
         localVoice.Installed += () => app.SayNow(AppPhrase.LocalVoiceReady);
         localVoice.TooSlow += () => app.SayNow(AppPhrase.LocalVoiceTooSlow);
         fishVoice.KeyRejected += status => app.SayNow(status == 402 ? AppPhrase.FishNoCredit : AppPhrase.FishKeyRejected);
-        using var companion = settings.Settings.ShowNotch ? new CompanionBridge(speech, recorder, settings, _log) : null;
+        using var companion = settings.Settings.ShowNotch ? new CompanionBridge(speech, recorder, _log) : null;
         app.Companion = companion;
-        app.Brain = Create<IBrain>("brain", () => new BrainRouter(new ClaudeBrain(secrets, settings, _log), new GeminiBrain(secrets, settings, _log), secrets));
+        app.Brain = Create<IBrain>("brain", () => new BrainRouter(new ClaudeBrain(secrets, _log), new GeminiBrain(secrets, settings, _log), secrets));
         if (screen is not null)
         {
             var positions = new ReadingPositions(AppPaths.PositionsFile);

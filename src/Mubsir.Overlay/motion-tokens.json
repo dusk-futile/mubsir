@@ -1,20 +1,13 @@
 {
-  "about": "Motion and size tokens for the normal-mode companion (the notch and Hudhud), taken from the approved design. Sizes are device-independent pixels. Springs are response (seconds) and damping fraction (1 = no bounce), like SwiftUI.",
+  "about": "Motion and size tokens for the notch, taken from the approved design. Sizes are device-independent pixels. Springs are response (seconds) and damping fraction (1 = no bounce), like SwiftUI.",
   "springs": {
     "notchWidth":  { "response": 0.44, "damping": 0.86 },
     "notchHeight": { "response": 0.4,  "damping": 0.9 },
     "content":     { "response": 0.32, "damping": 1.0 },
     "voice":       { "response": 0.24, "damping": 1.0 },
-    "crest":       { "response": 0.42, "damping": 0.55 },
-    "head":        { "response": 0.62, "damping": 0.8 },
-    "wing":        { "response": 0.38, "damping": 0.5 },
-    "turn":        { "response": 0.3,  "damping": 0.86 },
-    "body":        { "response": 0.46, "damping": 0.42 },
     "glow":        { "response": 0.7,  "damping": 1.0 },
-    "sleep":       { "response": 1.4,  "damping": 1.0 },
     "pointerX":    { "response": 0.66, "damping": 0.9 },
-    "pointerY":    { "response": 0.5,  "damping": 0.78 },
-    "panel":       { "response": 0.34, "damping": 0.82 }
+    "pointerY":    { "response": 0.5,  "damping": 0.78 }
   },
   "notch": {
     "sizes": {
@@ -34,25 +27,6 @@
     "filletMax": 18,
     "contentBlur": 10,
     "contentDelayMs": 70
-  },
-  "hudhud": {
-    "size": [92, 100],
-    "margin": [28, 2],
-    "sleepAfterSeconds": 20,
-    "poses": {
-      "idle":      { "crest": 0.32, "tilt": 0 },
-      "peek":      { "crest": 0.5,  "tilt": 6 },
-      "listening": { "crest": 1,    "tilt": 8,   "raise": 0.2, "wing": 4, "spread": 0.2 },
-      "thinking":  { "crest": 0.55, "tilt": 12 },
-      "doing":     { "crest": 0.62, "tilt": 2 },
-      "pointing":  { "crest": 0.85, "tilt": 6,   "raise": 0.2, "wing": 3, "spread": 0.2 },
-      "speaking":  { "crest": 0.45, "tilt": 3 },
-      "reading":   { "crest": 0.3,  "tilt": -9 },
-      "confirm":   { "crest": 1,    "tilt": 3,   "raise": 1,   "wing": 7, "spread": 0.5 },
-      "paid":      { "crest": 0.9,  "tilt": 7,   "raise": 0.3, "wing": 6, "spread": 0.6 },
-      "undone":    { "crest": 0.4,  "tilt": 2 },
-      "sleep":     { "crest": -0.22, "tilt": -18 }
-    }
   },
   "colors": {
     "island": "#000000",

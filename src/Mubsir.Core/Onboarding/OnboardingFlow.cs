@@ -30,7 +30,6 @@ public sealed record PersonalPlan(
     Lang Language,
     Verbosity Verbosity,
     int SpeechRate,
-    bool ShowHudhud,
     bool UseNvda,
     string? Goal,
     string? Subject,
@@ -48,7 +47,6 @@ public sealed record PersonalPlan(
         settings.UserKind = Kind;
         settings.Verbosity = Verbosity;
         settings.SpeechRate = SpeechRate;
-        settings.ShowHudhud = ShowHudhud;
         settings.UseNvda = UseNvda;
         settings.DescribeBooks = DescribeBooks;
         settings.ChatSite = ChatSite;
@@ -211,7 +209,6 @@ public sealed class OnboardingFlow
             _language,
             verbosity,
             rate,
-            ShowHudhud: !noSight,
             UseNvda: noSight || _facts.ScreenReaderRunning,
             goal,
             _subject,

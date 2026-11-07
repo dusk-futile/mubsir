@@ -16,12 +16,6 @@ Mubsir reads it, finds it or does it.
 ![Arabic + English](https://img.shields.io/badge/speaks-Arabic%20%2B%20English-E2552B)
 ![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)
 
-<br>
-
-<img src="assets/brand/readme-preview.jpg" width="820" alt="A black notch at the top of a Windows desktop shows a checklist, with finished steps ticked, while a paper-cut hoopoe stands in the bottom-right corner.">
-
-*Hudhud and the notch show anyone watching what Mubsir is doing. You never need to look.*
-
 </div>
 
 ---
@@ -117,7 +111,7 @@ Settings are in the tray icon's menu. To see the interface on its own, run `Mubs
 ```
 src/Mubsir.Core      the brain, reading and onboarding, builds on any OS
 src/Mubsir.App       the Windows app
-src/Mubsir.Overlay   the notch and Hudhud
+src/Mubsir.Overlay   the notch and the setup window
 nvda-addon/          the NVDA bridge
 tests/               dotnet test tests/Mubsir.Core.Tests
 ```
