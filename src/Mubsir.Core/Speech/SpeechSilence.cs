@@ -7,10 +7,10 @@ namespace Mubsir.Core.Speech;
 /// </summary>
 public static class SpeechSilence
 {
-    /// <summary>Silence kept before the first sound.</summary>
+    /// <summary>Silence before the first sound.</summary>
     public const double LeadMs = 40;
 
-    /// <summary>Silence kept after the last sound: with the next sentence's lead, a natural pause.</summary>
+    /// <summary>Silence after the last sound: with the next sentence's lead, a natural pause.</summary>
     public const double TailMs = 140;
 
     /// <summary>Length of the fade at each edge.</summary>
@@ -19,7 +19,10 @@ public static class SpeechSilence
     /// <summary>Anything quieter than this (about -46 dBFS) counts as silence.</summary>
     public const float Threshold = 0.005f;
 
-    public static float[] Trim(ReadOnlySpan<float> samples, int sampleRate)
+    public static float[] Trim(ReadOnlySpan<float> samples, int sampleRate) => Trim(samples, sampleRate, LeadMs, TailMs);
+
+    /// <summary>Keeps <paramref name="leadMs"/> of silence before the first sound and <paramref name="tailMs"/> after the last.</summary>
+    public static float[] Trim(ReadOnlySpan<float> samples, int sampleRate, double leadMs, double tailMs)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sampleRate);
         int first = 0;
@@ -39,11 +42,14 @@ public static class SpeechSilence
             last--;
         }
 
-        int lead = Samples(LeadMs, sampleRate);
-        int tail = Samples(TailMs, sampleRate);
-        int start = Math.Max(0, first - lead);
-        int end = Math.Min(samples.Length, last + 1 + tail);
-        float[] result = samples[start..end].ToArray();
+        // Exactly this much silence on each side, whatever the voice added: taken from the clip, or added.
+        int lead = Samples(leadMs, sampleRate);
+        int tail = Samples(tailMs, sampleRate);
+        int speech = last + 1 - first;
+        var result = new float[lead + speech + tail];
+        int from = Math.Max(0, first - lead);
+        int to = Math.Min(samples.Length, last + 1 + tail);
+        samples[from..to].CopyTo(result.AsSpan(lead - (first - from)));
 
         int fade = Math.Min(Samples(FadeMs, sampleRate), result.Length / 2);
         for (int i = 0; i < fade; i++)

@@ -36,12 +36,14 @@ skipped. Everyday use costs almost nothing. The only visual is a very smooth not
 ## Next
 
 ### Sound
-- [ ] One voice per utterance as an option: when a mixed reply has Arabic and English sentences, say all
-      of it in the Arabic (Fish) voice so the speaker doesn't change mid-answer. Costs Fish for English
-      sentences, so it's a setting
-- [ ] Keep one audio output open instead of one player per sentence, so there is no start-up gap
-- [ ] Prepare two sentences ahead instead of one
-- [ ] Loudness matching between Fish, Ryan and the Windows voice
+- [x] One voice per answer as an option (off by default): when an answer has Arabic, the Fish voice says
+      all of it, so the speaker doesn't change mid-answer. Costs Fish for the English sentences
+- [x] One audio player per voice, kept open, instead of a new one per sentence (`SentencePlayer`)
+- [x] The Windows voice joins a mixed sentence's Arabic and English pieces into one clip with a word-sized
+      gap, instead of playing each piece separately
+- [x] Two sentences prepared ahead instead of one
+- [x] Even loudness for Ryan and the Windows voice, piece by piece
+- [ ] Even loudness for Fish (its audio is MP3, so it needs decoding first)
 - [ ] Listening test on a real PC with the owner's grandfather: gaps, switching, speed
 
 ### Cheaper per task

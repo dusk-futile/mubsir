@@ -2,7 +2,16 @@
 
 Update this file at the end of every session. Newest on top.
 
-# Latest session, 2026-11-07
+# Latest session, 2026-11-07 (sound)
+
+- **One player per voice:** `Speech/SentencePlayer.cs` keeps one Windows media player open and is shared by Fish, Ryan and the Windows voice, replacing three copies of the play code.
+- **Windows voice, mixed sentences:** `OneCoreSpeech` makes every language piece at once and joins them with `Core/Speech/SpeechAudio.Join`: each piece trimmed, brought to the same loudness, 50 ms between languages. Before, each piece played as its own clip with a fresh player. Falls back to piece by piece if Windows doesn't give plain WAV.
+- **Ryan:** exact 40 ms / 140 ms silence around each sentence and even loudness.
+- **Two sentences ahead** (`Core/Speech/SpeechAhead`) for Fish and Ryan.
+- **New setting `OneVoicePerAnswer`, off by default:** an answer with any Arabic is said all in the Fish voice. In the setup window's options.
+- `--book-check` passed on a Windows 11 PC. That PC has no Windows Arabic voice, so mixed Windows-voice sentences weren't heard in Arabic. 540 Core tests pass. Not judged by ear yet.
+
+# Earlier, 2026-11-07
 
 - **Hudhud removed** (owner's decision): the bird window, its art and rig, the panel it opened, its motion code, tests and setting. The notch and pointer are unchanged and still move on `motion-tokens.json`. `overlay-smoke.ps1` now checks the notch only.
 - **Sonnet removed:** Claude is always Haiku 5.5 (`ClaudeBrain`). The brain picker in the setup window is now one line of text. `BrainModel` and `EscalationModel` settings are gone; old settings files still load.

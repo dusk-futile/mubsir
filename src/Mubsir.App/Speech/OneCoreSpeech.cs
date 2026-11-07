@@ -1,8 +1,7 @@
 using Mubsir.Core.Common;
 using Mubsir.Core.Logging;
+using Mubsir.Core.Speech;
 using Mubsir.Core.Text;
-using Windows.Media.Core;
-using Windows.Media.Playback;
 using Windows.Media.SpeechSynthesis;
 
 namespace Mubsir.App.Speech;
@@ -17,14 +16,14 @@ internal sealed class OneCoreSpeech : IDisposable
     private SpeechSynthesizer? _english;
     private bool _initialized;
     private bool _available;
-    private MediaPlayer? _player;
-    private TaskCompletionSource? _playing;
+    private SentencePlayer? _out;
     private CancellationTokenSource _stop = new();
     private double _rate = RateMapping.ToOneCore(50);
 
     public OneCoreSpeech(IEventLog log)
     {
         _log = log;
+        _out = new SentencePlayer(log, "onecore");
     }
 
     public bool IsAvailable
@@ -68,21 +67,46 @@ internal sealed class OneCoreSpeech : IDisposable
         CancellationToken token = linked.Token;
         try
         {
-            Task<SpeechSynthesisStream?>? next = SynthesizeAsync(runs[0], token);
-            for (int i = 0; i < runs.Count; i++)
+            // Every language piece of the sentence is made at once, then joined into one clip, so switching
+            // between Arabic and English sounds like one reader with a word's pause, not two clips.
+            SpeechSynthesisStream?[] streams = await Task.WhenAll(runs.Select(r => SynthesizeAsync(r, token))).ConfigureAwait(false);
+            var pieces = new List<(byte[] Audio, string Type)>();
+            try
             {
-                SpeechSynthesisStream? stream = next is null ? null : await next.ConfigureAwait(false);
-                next = i + 1 < runs.Count ? SynthesizeAsync(runs[i + 1], token) : null;
-                if (stream is null)
+                foreach (SpeechSynthesisStream? stream in streams)
                 {
-                    continue;
+                    if (stream is not null)
+                    {
+                        pieces.Add((await ReadAllAsync(stream, token).ConfigureAwait(false), stream.ContentType));
+                    }
+                }
+            }
+            finally
+            {
+                foreach (SpeechSynthesisStream? stream in streams)
+                {
+                    stream?.Dispose();
+                }
+            }
+
+            TimeSpan limit = EstimatePlayTimeout(string.Concat(runs.Select(r => r.Text)));
+            SpeechClip?[] clips = pieces.Select(p => SpeechAudio.ReadWav(p.Audio)).ToArray();
+            if (clips.Length > 0 && clips.All(c => c is not null))
+            {
+                SpeechClip joined = SpeechAudio.Join(clips!);
+                if (joined.Samples.Length > 0)
+                {
+                    await PlayAsync(WavFile.FromSamples(joined.Samples, joined.SampleRate), "audio/wav", limit, token).ConfigureAwait(false);
                 }
 
-                using (stream)
-                {
-                    token.ThrowIfCancellationRequested();
-                    await PlayAsync(stream, EstimatePlayTimeout(runs[i].Text), token).ConfigureAwait(false);
-                }
+                return;
+            }
+
+            // Not plain WAV on this PC: play the pieces one after another as Windows made them.
+            foreach (var (audio, type) in pieces)
+            {
+                token.ThrowIfCancellationRequested();
+                await PlayAsync(audio, type, limit, token).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
@@ -96,15 +120,9 @@ internal sealed class OneCoreSpeech : IDisposable
 
     public void Stop()
     {
-        MediaPlayer? player;
-        TaskCompletionSource? playing;
         CancellationTokenSource old;
         lock (_gate)
         {
-            player = _player;
-            playing = _playing;
-            _player = null;
-            _playing = null;
             old = _stop;
             _stop = new CancellationTokenSource();
         }
@@ -118,24 +136,14 @@ internal sealed class OneCoreSpeech : IDisposable
         }
 
         old.Dispose();
-        playing?.TrySetResult();
-        if (player is not null)
-        {
-            try
-            {
-                player.Pause();
-            }
-            catch (Exception e) when (e is not OutOfMemoryException)
-            {
-            }
-
-            DisposeQuietly(player);
-        }
+        _out?.Stop();
     }
 
     public void Dispose()
     {
         Stop();
+        _out?.Dispose();
+        _out = null;
         lock (_gate)
         {
             _arabic?.Dispose();
@@ -147,17 +155,6 @@ internal sealed class OneCoreSpeech : IDisposable
 
     private static TimeSpan EstimatePlayTimeout(string text) =>
         TimeSpan.FromSeconds(10) + TimeSpan.FromMilliseconds(Math.Min(text.Length, 4000) * 200);
-
-    private static void DisposeQuietly(IDisposable d)
-    {
-        try
-        {
-            d.Dispose();
-        }
-        catch (Exception e) when (e is not OutOfMemoryException)
-        {
-        }
-    }
 
     private void EnsureInitialized()
     {
@@ -270,62 +267,19 @@ internal sealed class OneCoreSpeech : IDisposable
         }
     }
 
-    private async Task PlayAsync(SpeechSynthesisStream stream, TimeSpan timeout, CancellationToken ct)
+    private async Task PlayAsync(byte[] audio, string contentType, TimeSpan limit, CancellationToken ct)
     {
-        var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var player = new MediaPlayer
+        if (_out is { } player)
         {
-            AutoPlay = false,
-            AudioCategory = MediaPlayerAudioCategory.Speech,
-        };
-
-        player.MediaEnded += (_, _) => done.TrySetResult();
-        player.MediaFailed += (_, args) =>
-        {
-            _log.Error("onecore_play_failed_" + args.Error, LogKind.Speech);
-            done.TrySetResult();
-        };
-
-        lock (_gate)
-        {
-            if (ct.IsCancellationRequested)
-            {
-                DisposeQuietly(player);
-                return;
-            }
-
-            _player = player;
-            _playing = done;
+            await player.PlayAsync(audio, contentType, () => { }, limit, ct).ConfigureAwait(false);
         }
+    }
 
-        try
-        {
-            player.Source = MediaSource.CreateFromStream(stream, stream.ContentType);
-            player.Play();
-            await done.Task.WaitAsync(timeout, ct).ConfigureAwait(false);
-        }
-        catch (TimeoutException)
-        {
-            _log.Error("onecore_play_timeout", LogKind.Speech, LogOutcome.TimedOut);
-        }
-        finally
-        {
-            bool mine;
-            lock (_gate)
-            {
-                mine = ReferenceEquals(_player, player);
-                if (mine)
-                {
-                    _player = null;
-                    _playing = null;
-                }
-            }
-
-            if (mine)
-            {
-                DisposeQuietly(player);
-            }
-        }
+    private static async Task<byte[]> ReadAllAsync(SpeechSynthesisStream stream, CancellationToken ct)
+    {
+        using var copy = new MemoryStream();
+        await stream.AsStreamForRead().CopyToAsync(copy, ct).ConfigureAwait(false);
+        return copy.ToArray();
     }
 }
 

@@ -114,6 +114,7 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
         {
             "ShowNotch" => s.ShowNotch,
             "UseFishVoice" => s.UseFishVoice,
+            "OneVoicePerAnswer" => s.OneVoicePerAnswer,
             "ReadArabicBooksWithFish" => s.ReadArabicBooksWithFish,
             "ReadFullTashkeel" => s.ReadFullTashkeel,
             "SaveSessions" => s.SaveSessions,
@@ -125,6 +126,7 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
     {
         "ShowNotch" => s with { ShowNotch = value },
         "UseFishVoice" => s with { UseFishVoice = value },
+        "OneVoicePerAnswer" => s with { OneVoicePerAnswer = value },
         "ReadArabicBooksWithFish" => s with { ReadArabicBooksWithFish = value },
         "ReadFullTashkeel" => s with { ReadFullTashkeel = value },
         "SaveSessions" => s with { SaveSessions = value },

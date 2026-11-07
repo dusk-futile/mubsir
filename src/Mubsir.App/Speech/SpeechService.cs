@@ -281,17 +281,34 @@ internal sealed class SpeechService : IDisposable
                 return;
             }
 
+            bool answerHasArabic = sentences.Any(s => HasArabic(s.PlainText));
             for (int i = 0; i < sentences.Count; i++)
             {
-                _queue.AddLast(new Job(sentences[i], lang, generation, i == sentences.Count - 1 ? done : null, isBook));
+                _queue.AddLast(new Job(sentences[i], lang, generation, i == sentences.Count - 1 ? done : null, isBook, answerHasArabic));
             }
         }
 
         _signal.Set();
     }
 
-    /// <summary>Any Arabic in a sentence means the Arabic voice says it, so an English voice never has to read Arabic letters.</summary>
-    private static Lang LangOf(Job job) => job.Lang == Lang.Arabic || job.Sentence.PlainText.Any(c => c is >= '\u0600' and <= '\u06FF' or >= '\u0750' and <= '\u077F') ? Lang.Arabic : Lang.English;
+    private static bool HasArabic(string text) => text.Any(c => c is >= '\u0600' and <= '\u06FF' or >= '\u0750' and <= '\u077F');
+
+    /// <summary>
+    /// Any Arabic in a sentence means the Arabic voice says it, so an English voice never has to read Arabic
+    /// letters. With "one voice per answer" on, an English sentence in an answer that has Arabic goes to the
+    /// Arabic (Fish) voice too, so the speaker doesn't change mid-answer.
+    /// </summary>
+    private Lang LangOf(Job job)
+    {
+        if (job.Lang == Lang.Arabic || HasArabic(job.Sentence.PlainText))
+        {
+            return Lang.Arabic;
+        }
+
+        bool oneVoice = job.AnswerHasArabic && !job.IsBook && _settings.Settings.OneVoicePerAnswer
+            && _fish is { } fish && fish.CanSpeak(false, Lang.Arabic);
+        return oneVoice ? Lang.Arabic : Lang.English;
+    }
 
     private ISentenceVoice? VoiceFor(Job job)
     {
@@ -304,20 +321,23 @@ internal sealed class SpeechService : IDisposable
         return _local is { } local && local.CanSpeak(job.IsBook, lang) ? local : null;
     }
 
-    /// <summary>Runs once a sentence starts playing, so its own ready audio has already been used.</summary>
+    /// <summary>Runs once a sentence starts playing, so its own ready audio has already been used. Gets the next two ready.</summary>
     private void GetNextReady(Job job)
     {
         try
         {
-            Job? next;
+            Job[] next;
             lock (_gate)
             {
-                next = _queue.First?.Value;
+                next = _queue.Take(SpeechAhead.Sentences).ToArray();
             }
 
-            if (next is not null && next.Generation == job.Generation && VoiceFor(next) is { } voice)
+            foreach (Job upcoming in next)
             {
-                voice.GetReady(next.Sentence.PlainText, LangOf(next), _rate, next.IsBook);
+                if (upcoming.Generation == job.Generation && VoiceFor(upcoming) is { } voice)
+                {
+                    voice.GetReady(upcoming.Sentence.PlainText, LangOf(upcoming), _rate, upcoming.IsBook);
+                }
             }
         }
         catch (Exception e) when (e is not OutOfMemoryException)
@@ -663,5 +683,5 @@ internal sealed class SpeechService : IDisposable
         }
     }
 
-    private sealed record Job(ComposedSentence Sentence, Lang Lang, long Generation, TaskCompletionSource? Done, bool IsBook = false);
+    private sealed record Job(ComposedSentence Sentence, Lang Lang, long Generation, TaskCompletionSource? Done, bool IsBook = false, bool AnswerHasArabic = false);
 }

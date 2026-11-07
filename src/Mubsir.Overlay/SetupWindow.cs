@@ -555,6 +555,7 @@ public sealed class SetupWindow : Window
         Add(Words(T("خيارات عامة", "General options"), 14, Ink, FontWeights.SemiBold));
         Option("ShowNotch", T("أظهر الشريط اللي فوق الشاشة (بعد إعادة التشغيل)", "Show the notch at the top of the screen (after a restart)"));
         Option("UseFishVoice", T("اتكلم عربي بصوت Fish Audio", "Speak Arabic in the Fish Audio voice"));
+        Option("OneVoicePerAnswer", T("صوت واحد للرد كله لو فيه عربي (الجمل الإنجليزي كمان بصوت Fish، بتكلفة)", "One voice for a whole answer that has Arabic (English sentences in the Fish voice too, at a cost)"));
         Option("ReadArabicBooksWithFish", T("اقرأ الكتب العربية بصوت Fish (10 صفحات بحوالي 50 سنت)", "Read Arabic books in the Fish voice (about $0.50 for 10 pages)"));
         Option("ReadFullTashkeel", T("اقرأ التشكيل كاملاً (لو مقفول، متروك للصوت)", "Read Arabic diacritics fully (when off, left to the voice)"));
         Option("SaveSessions", T("احفظ المحادثات في فولدر على جهازي", "Save chats in a folder on this PC"));

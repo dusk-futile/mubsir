@@ -30,7 +30,7 @@ public sealed class SpeechSilenceTests
         float[] trimmed = SpeechSilence.Trim(Sentence(before, 1000, after), Rate);
 
         double ms = trimmed.Length * 1000.0 / Rate;
-        double expected = 1000 + Math.Min(before, SpeechSilence.LeadMs) + Math.Min(after, SpeechSilence.TailMs);
+        double expected = 1000 + SpeechSilence.LeadMs + SpeechSilence.TailMs;
         Assert.InRange(ms, expected - 2, expected + 2);
     }
 

@@ -56,6 +56,9 @@ public sealed record MubsirSettings
     /// <summary>Speak Arabic through Fish Audio when it has a key. Otherwise, or if it fails, the free Windows voice speaks. English always uses the free voice.</summary>
     public bool UseFishVoice { get; set; } = true;
 
+    /// <summary>When an answer has any Arabic, the Fish voice says all of it, English sentences too, so the speaker never changes mid-answer. Costs Fish for those English sentences, so it's off unless chosen.</summary>
+    public bool OneVoicePerAnswer { get; set; }
+
     /// <summary>Arabic books through the paid voice, about $0.50 for 10 pages. The free Arabic voices are much weaker, so it's on.</summary>
     public bool ReadArabicBooksWithFish { get; set; } = true;
 

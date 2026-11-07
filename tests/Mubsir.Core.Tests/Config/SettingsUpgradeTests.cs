@@ -25,4 +25,11 @@ public sealed class SettingsUpgradeTests
         Assert.DoesNotContain("sonnet", SettingsSerializer.Serialize(settings), StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("hudhud", SettingsSerializer.Serialize(settings), StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void One_voice_per_answer_is_off_until_chosen_because_it_costs()
+    {
+        Assert.False(new MubsirSettings().OneVoicePerAnswer);
+        Assert.True(SettingsSerializer.DeserializeSettings("{\"oneVoicePerAnswer\": true}").OneVoicePerAnswer);
+    }
 }
