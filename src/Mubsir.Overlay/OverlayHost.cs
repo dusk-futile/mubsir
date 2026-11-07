@@ -71,12 +71,6 @@ public sealed class OverlayHost : IDisposable
     /// <summary>A small squeeze of the notch, to feel a key press land.</summary>
     public void NudgeNotch() => Post(c => c.Notch.Nudge(0, 70));
 
-    /// <summary>Flies the pointer from the notch to a point on the screen, in physical pixels, and names it.</summary>
-    public void PointAt(double screenX, double screenY, string label) => Post(c => c.Pointer.Fly(screenX, screenY, label));
-
-    /// <summary>Calls the pointer back to the notch.</summary>
-    public void RecallPointer() => Post(c => c.Pointer.Recall());
-
     public void Dispose()
     {
         Dispatcher? dispatcher = _dispatcher;
@@ -150,7 +144,7 @@ public sealed class OverlayHost : IDisposable
         }
     }
 
-    /// <summary>The notch, the pointer and the clock that drives them, on the overlay's thread.</summary>
+    /// <summary>The notch and the clock that drives it, on the overlay's thread.</summary>
     private sealed class Companion
     {
         private readonly FrameLoop _loop = new();
@@ -165,9 +159,7 @@ public sealed class OverlayHost : IDisposable
             // Respects Windows' "Show animations" setting: values jump instead of moving.
             bool reduceMotion = !SystemParameters.ClientAreaAnimation;
             Notch = new NotchWindow(assets, _loop, reduceMotion);
-            Pointer = new PointerWindow(assets, _loop, reduceMotion);
             _loop.Add(Notch);
-            _loop.Add(Pointer);
             _fullScreen.Tick += (_, _) => WatchFullScreen();
 
             // After a while with nothing to show, the notch rests.
@@ -179,8 +171,6 @@ public sealed class OverlayHost : IDisposable
         }
 
         public NotchWindow Notch { get; }
-
-        public PointerWindow Pointer { get; }
 
         public long Frames => _loop.Frames;
 
@@ -210,11 +200,6 @@ public sealed class OverlayHost : IDisposable
             if (state != CompanionState.Idle)
             {
                 SetHidden(false);
-            }
-
-            if (state != CompanionState.Pointing)
-            {
-                Pointer.Recall();
             }
 
             Notch.Go(state, content);
@@ -262,7 +247,6 @@ public sealed class OverlayHost : IDisposable
             _rest.Stop();
             _loop.Stop();
             Notch.Close();
-            Pointer.Close();
         }
     }
 }

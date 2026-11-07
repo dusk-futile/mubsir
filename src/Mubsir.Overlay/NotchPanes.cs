@@ -593,27 +593,6 @@ internal sealed class DoingPane : Pane
     }
 }
 
-internal sealed class PointingPane : Pane
-{
-    private readonly TextBlock _text;
-
-    public PointingPane(PaneContext context, Size2 size)
-        : base(context, size)
-    {
-        var box = new Canvas { Width = 26, Height = 26 };
-        box.Children.Add(Shape("M4 2 L22 12 L13.5 14 L9.5 22 Z", P.CrestBrush, P.CreamBrush, 1.6));
-        var pointer = new Viewbox { Width = 18, Height = 18, Child = box };
-        _text = Ui.Text(string.Empty, 14, P.CreamBrush);
-        Set(Ends(Row(10, pointer, _text), Ui.Text("Ctrl to stop", 12.5, P.CreamDim)));
-    }
-
-    public override void Apply(CompanionContent content)
-    {
-        _text.Text = content.PointText ?? string.Empty;
-        _text.FlowDirection = FlowOf(content.PointText);
-    }
-}
-
 internal sealed class SpeakingPane : Pane
 {
     private readonly RippleMark _mark;

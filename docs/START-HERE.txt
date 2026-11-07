@@ -1,0 +1,30 @@
+Mubsir: your whole PC, by voice
+
+Mubsir is a free voice agent for blind and low-vision people on Windows.
+Hold Right Ctrl, say what you want in Arabic, English or both, and let go.
+It reads your screen, works your apps, reads your books and answers out loud.
+
+Install (about 10 minutes)
+
+1. Extract this zip to a folder you keep, for example Documents\Mubsir.
+2. Right-click setup.ps1 and choose "Run with PowerShell" as administrator.
+   It installs NVDA if you don't have it, the Mubsir add-on for NVDA,
+   Arabic speech and text recognition, and starts Mubsir when you sign in.
+3. Mubsir opens its setup window and talks you through it.
+   You need one free key from Google Gemini. The window opens the page for you.
+   Copy the key and Mubsir picks it up, tests it and tells you the result.
+   Keys are stored encrypted for your Windows account only.
+
+Optional keys
+- Fish Audio: a natural Arabic voice. Without it, the free Windows voice speaks Arabic.
+- Claude: a paid brain (Claude Haiku), used instead of Gemini when you add it.
+
+Keys
+- Hold Right Ctrl: talk. Let go when you're done.
+- Ctrl: stop speaking.
+- Right Ctrl or Esc during a task: stop it.
+- Win + Shift + Esc: stop everything.
+- Double-tap Right Ctrl, then F1: help.
+
+Needs 64-bit Windows 10 (22H2) or 11, a microphone and the internet.
+Source, help and updates: https://github.com/dusk-futile/mubsir

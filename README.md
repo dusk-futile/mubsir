@@ -20,7 +20,9 @@ Mubsir reads it, finds it or does it.
 
 ---
 
-Most AI assistants live in a chat box and tell you what to click. **Mubsir does the clicking.** It reads your screen, works your apps, reads your documents and answers out loud.
+Most AI assistants live in a chat box and tell you what to click. **Mubsir does the clicking.** It reads your screen, works your apps, reads your documents and answers out loud. It runs next to the NVDA screen reader and never needs you to look.
+
+Mubsir started as something one person needed: a grandfather who can't see the screen any more and speaks Arabic first. It's free and open source, and you bring your own keys.
 
 ```
 افتح جوجل وابحث عن مواعيد الصلاة
@@ -43,7 +45,27 @@ open a new window with the same page
 
 On first start it asks a few questions, and each answer changes how it behaves. If you use a screen reader, it already knows and skips that question.
 
-## Get it running
+## Install
+
+1. Download the latest zip from [Releases](https://github.com/dusk-futile/mubsir/releases) and extract it to a folder you keep.
+2. Right-click `setup.ps1` → **Run with PowerShell** as administrator. It installs NVDA if needed, the Mubsir add-on for NVDA, Arabic speech and text recognition, and starts Mubsir when you sign in.
+3. Mubsir's setup window talks you through adding one free Google Gemini key.
+
+`START-HERE.txt` in the zip has the same steps as plain text, easy to read with a screen reader.
+
+## Your keys
+
+There are no keys in this repo and no account to make. Copy a key on the website and Mubsir picks it up, tests it and stores it, encrypted for your Windows account. Nothing goes in a file.
+
+| Key | What it's for | |
+| --- | --- | --- |
+| [Google Gemini](https://aistudio.google.com/apikey) | The brain and hearing you | Required and free, within Google's limits. Google may use free requests to improve its products. |
+| [Fish Audio](https://fish.audio/app/api-keys) | A natural Arabic voice | Optional, and free while Fish offers its free model. Without it, the free Windows voice speaks Arabic. |
+| [Claude](https://console.anthropic.com/settings/keys) | A paid brain | Optional. If you add it, Claude Haiku is used instead of Gemini. |
+
+English speech is free and private: Ryan, a natural voice that runs on your PC, downloads once in the background.
+
+## Build it yourself
 
 You need 64-bit Windows 10 (22H2) or 11, a microphone, the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0), Git and Python.
 
@@ -60,18 +82,6 @@ Mubsir opens its setup window and talks you through the rest. To add Arabic spee
 ```powershell
 .\scripts\setup.ps1 -MubsirExe (Resolve-Path .\publish\Mubsir.exe) -BridgeAddon (Resolve-Path .\dist\mubsirBridge-0.1.0.nvda-addon)
 ```
-
-### Your keys
-
-There are no keys in this repo and no account to make. Copy a key on the website and Mubsir picks it up, tests it and stores it, encrypted for your Windows account. Nothing goes in a file.
-
-| Key | What it's for | |
-| --- | --- | --- |
-| [Google Gemini](https://aistudio.google.com/apikey) | The brain and hearing you | Required and free, within Google's limits. Google may use free requests to improve its products. |
-| [Fish Audio](https://fish.audio/app/api-keys) | A natural Arabic voice | Optional, and free while Fish offers its free model. Without it, the free Windows voice speaks Arabic. |
-| [Claude](https://console.anthropic.com/settings/keys) | A paid brain | Optional. If you add it, it's used instead of Gemini. |
-
-English speech is free and private: Ryan, a natural voice that runs on your PC, downloads once in the background.
 
 ### Hand it to your AI agent
 
@@ -97,6 +107,19 @@ On the Windows PC, open your coding agent in an empty folder and paste this:
 
 Settings are in the tray icon's menu. To see the interface on its own, run `Mubsir.exe --overlay-demo`. It listens to, sends and clicks nothing, and Esc quits.
 
+## What it costs
+
+| | |
+| --- | --- |
+| Gemini brain and hearing | Free, within Google's limits |
+| English voice (Ryan, on your PC) | Free |
+| Arabic voice | Free with the Windows voice; Fish Audio's natural voice costs about $0.50 for 10 book pages, and pages already heard are kept |
+| Claude Haiku brain, if you add it | About $2 a month at 60 requests a day |
+
+## What your PC needs
+
+64-bit Windows 10 (22H2) or 11, 4 GB of RAM (8 GB is smoother), a microphone, the internet, and about 300 MB of disk with the English voice.
+
 ## Privacy
 
 - Mubsir only sends something when you ask for it, and only to the services you gave keys for.
@@ -114,9 +137,10 @@ src/Mubsir.App       the Windows app
 src/Mubsir.Overlay   the notch and the setup window
 nvda-addon/          the NVDA bridge
 tests/               dotnet test tests/Mubsir.Core.Tests
+scripts/package.ps1  builds the release zip
 ```
 
-Coding agents start at [AGENTS.md](AGENTS.md).
+Start with [CONTRIBUTING.md](CONTRIBUTING.md). Coding agents start at [AGENTS.md](AGENTS.md). Where it's going: [docs/ROADMAP.md](docs/ROADMAP.md). Security issues: [SECURITY.md](SECURITY.md).
 
 ## License
 

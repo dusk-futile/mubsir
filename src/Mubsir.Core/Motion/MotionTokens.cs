@@ -11,7 +11,7 @@ public readonly record struct Size2(double Width, double Height);
 public sealed class MotionTokens
 {
     private static readonly string[] RequiredSprings =
-        ["notchWidth", "notchHeight", "content", "voice", "glow", "pointerX", "pointerY"];
+        ["notchWidth", "notchHeight", "content", "voice", "glow"];
 
     private MotionTokens(
         IReadOnlyDictionary<string, SpringToken> springs,

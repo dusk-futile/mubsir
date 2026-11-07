@@ -30,6 +30,7 @@ public sealed record ScreenContext
 
     public bool Truncated { get; init; }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0051", Justification = "The record's ToString calls it.")]
     private bool PrintMembers(StringBuilder builder)
     {
         builder.Append("ProcessName = ").Append(ProcessName)

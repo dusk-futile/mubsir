@@ -266,7 +266,7 @@ internal sealed class MubsirHost
         {
             _ = Task.Run(async () =>
             {
-                await TestSavedKeysInBackgroundAsync(secrets, app, _log).ConfigureAwait(false);
+                await TestSavedKeysInBackgroundAsync(secrets, app).ConfigureAwait(false);
             });
         }
 
@@ -324,7 +324,7 @@ internal sealed class MubsirHost
         }
     }
 
-    private static async Task TestSavedKeysInBackgroundAsync(SecretStore secrets, AppServices app, IEventLog log)
+    private static async Task TestSavedKeysInBackgroundAsync(SecretStore secrets, AppServices app)
     {
         var keysToTest = new List<(KeyKind Kind, string Key, string Name)>();
         string? anthropic = secrets.Get(SecretNames.Anthropic);

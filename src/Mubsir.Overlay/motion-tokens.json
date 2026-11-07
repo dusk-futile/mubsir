@@ -5,9 +5,7 @@
     "notchHeight": { "response": 0.4,  "damping": 0.9 },
     "content":     { "response": 0.32, "damping": 1.0 },
     "voice":       { "response": 0.24, "damping": 1.0 },
-    "glow":        { "response": 0.7,  "damping": 1.0 },
-    "pointerX":    { "response": 0.66, "damping": 0.9 },
-    "pointerY":    { "response": 0.5,  "damping": 0.78 }
+    "glow":        { "response": 0.7,  "damping": 1.0 }
   },
   "notch": {
     "sizes": {
@@ -16,7 +14,6 @@
       "listening": [404, 98],
       "thinking": [178, 38],
       "doing": [424, 172],
-      "pointing": [372, 48],
       "speaking": [452, 136],
       "reading": [404, 86],
       "confirm": [444, 206],

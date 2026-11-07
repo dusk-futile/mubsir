@@ -2,7 +2,16 @@
 
 Update this file at the end of every session. Newest on top.
 
-# Latest session, 2026-11-07 (sound)
+# Latest session, 2026-11-08 (finishing pass)
+
+- **Ponytail-style audit:** `.editorconfig` makes unused code a warning, and `Directory.Build.props` now treats warnings as errors (package advisories stay warnings). Fixed what it found: the setup window's cost box was never shown and its numbers were from the old Fish-for-everything setup, so it's replaced by one line on the Claude key row ("about $2 a month at 60 requests a day", from `CostGuide`); unused parameters in Fish and the host.
+- **Pointer removed:** only the demo used it since teaching was removed. `PointerWindow`, the Pointing notch state, its springs and pane are gone.
+- **Every tool connects:** all 43 tools in `ToolNames` have a catalog entry and an executor case.
+- **Packaging:** `scripts/package.ps1` builds the release zip (works in Windows PowerShell 5.1 and pwsh 7, forward-slash zip paths) with `docs/START-HERE.txt`; `release.yml` calls it. Built and unzipped on Windows 11: `--book-check` all passed, notch demo 156–194 fps.
+- **New:** `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md` (0.2.0 unreleased). README leads with the download and has cost and PC sections.
+- **Open:** private vulnerability reporting is off on GitHub, so `SECURITY.md`'s link needs it turned on. The only release is v0.1.0; README's install steps need a v0.2.0 release.
+
+# Earlier, 2026-11-07 (sound)
 
 - **One player per voice:** `Speech/SentencePlayer.cs` keeps one Windows media player open and is shared by Fish, Ryan and the Windows voice, replacing three copies of the play code.
 - **Windows voice, mixed sentences:** `OneCoreSpeech` makes every language piece at once and joins them with `Core/Speech/SpeechAudio.Join`: each piece trimmed, brought to the same loudness, 50 ms between languages. Before, each piece played as its own clip with a fresh player. Falls back to piece by piece if Windows doesn't give plain WAV.

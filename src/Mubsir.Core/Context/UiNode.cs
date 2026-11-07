@@ -40,6 +40,7 @@ public sealed record UiNode
 
     public IReadOnlyList<UiNode> Children { get; init; } = [];
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0051", Justification = "The record's ToString calls it.")]
     private bool PrintMembers(StringBuilder builder)
     {
         builder.Append("Id = ").Append(Id)
