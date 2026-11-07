@@ -86,7 +86,7 @@ The person must always hear what happened and what to do. Silence counts as a bu
 
 64-bit Windows 10 (22H2) or Windows 11, a microphone, and about 4 GB of RAM. Understanding speech needs internet. With no internet, books already readable keep going in a free voice, and keyboard commands still work.
 
-The notch at the top of the screen and Hudhud the hoopoe let anyone watching see what's going on. The person never needs them, and they can be turned off.
+The notch at the top of the screen lets anyone watching see what's going on. The person never needs them, and they can be turned off.
 
 ## Not built yet
 

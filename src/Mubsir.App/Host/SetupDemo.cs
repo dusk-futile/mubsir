@@ -69,12 +69,6 @@ internal static class SetupDemo
         {
         }
 
-        public string GetBrainModel() => MubsirSettings.DefaultBrainModel;
-
-        public void SetBrainModel(string model)
-        {
-        }
-
         public string? GetFishVoiceId() => null;
 
         public void SetFishVoiceId(string? voiceId)

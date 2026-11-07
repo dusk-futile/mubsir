@@ -20,19 +20,7 @@ public class MotionTokensTests
         Assert.Equal(new Size2(424, 172), tokens.NotchSizes[CompanionState.Doing]);
         Assert.Equal(new SpringToken(0.44, 0.86), tokens.Spring("notchWidth"));
         Assert.Equal(new SpringToken(0.32, 1.0), tokens.Spring("content"));
-        Assert.Equal(new Size2(92, 100), tokens.Hudhud.Size);
-        Assert.Equal(20, tokens.Hudhud.SleepAfterSeconds);
-        Assert.Equal(0.32, tokens.Hudhud.Pose("idle").Crest);
-        Assert.Equal(-0.22, tokens.Hudhud.Pose("sleep").Crest);
         Assert.Equal("#F3C343", tokens.Colors["amber"]);
-    }
-
-    [Fact]
-    public void A_state_without_a_pose_uses_idle()
-    {
-        MotionTokens tokens = MotionTokens.Parse(TokensJson());
-
-        Assert.Equal(tokens.Hudhud.Pose("idle"), tokens.Hudhud.Pose("no-such-state"));
     }
 
     [Fact]

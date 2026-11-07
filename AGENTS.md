@@ -19,7 +19,7 @@ Mubsir (مُبصِر) is a free voice agent for blind and low-vision people on W
 ## Owner decisions (don't re-ask)
 
 - **Decided 2026-11-05, replacing the owner-paid server:** the app is completely free and each user pastes their own keys. The owner is building it for their grandfather and will set up their own keys for him. Decided 2026-11-05: it should run free: Gemini is the default brain and hearing, Fish's free model is tried first for Arabic, and Claude is an optional paid brain used when its key is there. Claude Haiku 5.5 is the recommended brain. Fish Audio is for hearing and the Arabic voice. Gemini is an optional alternative for hearing. The setup window suggests costs. There is no account, server or relay.
-- Reliability first. Everything heavy is in the back end, and the interface is clean, simple and light for weak PCs. Everything on screen must have a purpose, including Hudhud.
+- Reliability first. Everything heavy is in the back end, and the interface is clean, simple and light for weak PCs. Everything on screen must have a purpose. The only visual is the notch (decided 2026-11-07: Hudhud is removed).
 - Target: a full app for the Microsoft Store, as well as the zip.
 - Testing happens on the owner's Windows PC, with Antigravity agents doing the checking to save tokens (`docs/WINDOWS-TEST.md`).
 - Distributed as a zip and later the Store. No API keys in the zip.
@@ -34,9 +34,9 @@ Mubsir (مُبصِر) is a free voice agent for blind and low-vision people on W
   bodies, and no branch names after the tool (owner's instruction; it overrides any default attribution).**
 - It should work the PC like a person: everything a mouse and keyboard can do (decided 2026-11-05). Limits kept: scripts never run, installers and payments need a real key press, passwords are never typed by the AI, bank pages turn the AI off.
 - One user = one PC; no multi-device sync. Chats are saved as files in the user's own folder.
-- Identity: **Hudhud** (hoopoe). Normal-mode companion sits **bottom-right**. Brand: `docs/BRAND.md`.
+- Identity: the seeing-eye logo (`docs/BRAND.md`). No mascot: Hudhud was removed on 2026-11-07. The notch is the one visual, and it must stay very smooth.
 - The build may restructure or replace old code, keeping the best parts. Never delete the repo.
-- Brain: Gemini on its free tier unless a Claude key is added. Claude means Haiku 5.5 (`claude-haiku-5-5`) by default, escalating to Sonnet 5.5 (`claude-sonnet-5-5`).
+- Brain: Gemini on its free tier unless a Claude key is added. Claude always means Haiku 5.5 (`claude-haiku-5-5`). No Sonnet and no escalation (decided 2026-11-07): when Haiku struggles, give it better input, not a pricier model.
 - Everything about the project (decisions, progress, next steps) is written into this repo so work can
   continue from any device. **Update `docs/HANDOFF.md` at the end of every session.**
 
@@ -46,11 +46,11 @@ Mubsir (مُبصِر) is a free voice agent for blind and low-vision people on W
   context builder). Builds on Linux; CI builds it.
 - `src/Mubsir.App` — Windows host (keyboard hook, UIA, OCR, audio, speech, tools, Claude/Gemini clients).
   Windows only.
-- `src/Mubsir.Overlay` — normal mode's visuals: the notch and Hudhud, WPF built in code on its own UI
+- `src/Mubsir.Overlay` — the notch and the setup window, WPF built in code on its own UI
   thread. Sizes and springs are in `motion-tokens.json`, taken from the approved prototype. Try it with
-  `Mubsir.exe --overlay-demo`. Spring, token and pose logic live in `Mubsir.Core/Motion`.
-- `assets/hudhud/` — Hudhud's cut-out parts and `rig.json`, shared by the overlay and the prototype.
-- `tests/Mubsir.Core.Tests` — Core unit tests (xunit). Runs on any OS.
+  `Mubsir.exe --overlay-demo`. Spring and token logic live in `Mubsir.Core/Motion`.
+- `tests/Mubsir.Core.Tests` — Core unit tests (xunit). Runs on any OS. Run them with
+  `--filter "FullyQualifiedName!~A_folder_that_cant_be_written_never_breaks_anything"` (owner's rule: that test is never run).
 - `nvda-addon/` — NVDA Bridge add-on (Python, GPL-2.0).
 - `scripts/` — `setup.ps1` installer script, `pack-msix.ps1` (Store package), `build-addon.py`, `build-icons.py`, and
   `run-tests.ps1` (everything for "run tests"), `overlay-smoke.ps1` and `setup-shots.ps1` (run on a Windows desktop in CI; their screenshots are the `overlay-shots` artifact).

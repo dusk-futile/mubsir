@@ -5,7 +5,7 @@ using Mubsir.Core.Logging;
 
 namespace Mubsir.App.Brain;
 
-internal sealed class ClaudeBrain(SecretStore secrets, SettingsProvider settings, IEventLog log) : IBrain
+internal sealed class ClaudeBrain(SecretStore secrets, IEventLog log) : IBrain
 {
     public static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(90);
 
@@ -16,22 +16,8 @@ internal sealed class ClaudeBrain(SecretStore secrets, SettingsProvider settings
     public IBrainSession StartSession(BrainSessionOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        string model;
-        try
-        {
-            model = settings.Settings.BrainModel;
-        }
-        catch (Exception e) when (e is not OutOfMemoryException)
-        {
-            model = MubsirSettings.DefaultBrainModel;
-        }
-
-        if (string.IsNullOrWhiteSpace(model))
-        {
-            model = MubsirSettings.DefaultBrainModel;
-        }
-
-        return new ClaudeSession(this, options, model.Trim(), log ?? NullEventLog.Instance);
+        // Haiku only: it handles everyday PC work well, and every other Claude model costs far more.
+        return new ClaudeSession(this, options, MubsirSettings.DefaultBrainModel, log ?? NullEventLog.Instance);
     }
 
     internal AnthropicClient? Client()

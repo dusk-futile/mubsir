@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Normal mode's companion: the notch at the top of the screen and Hudhud in the bottom-right corner.
+  <!-- The notch at the top of the screen, which shows anyone watching what Mubsir is doing.
        Plain WPF built in code (no XAML), on its own UI thread, so the host keeps its Win32 message loop. -->
   <PropertyGroup>
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
@@ -15,11 +15,9 @@
     <ProjectReference Include="..\Mubsir.Core\Mubsir.Core.csproj" />
   </ItemGroup>
 
-  <!-- The tokens and Hudhud's cut-out parts ship inside the assembly; the zip needs no extra files. -->
+  <!-- The tokens ship inside the assembly; the zip needs no extra files. -->
   <ItemGroup>
     <EmbeddedResource Include="motion-tokens.json" LogicalName="Mubsir.Overlay.motion-tokens.json" />
-    <EmbeddedResource Include="..\..\assets\hudhud\*.png" LogicalName="Mubsir.Overlay.Hudhud.%(Filename)%(Extension)" />
-    <EmbeddedResource Include="..\..\assets\hudhud\rig.json" LogicalName="Mubsir.Overlay.Hudhud.rig.json" />
   </ItemGroup>
 
 </Project>

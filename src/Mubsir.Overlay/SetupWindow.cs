@@ -44,10 +44,6 @@ public interface ISetupDriver
 
     void SetTalkKey(KeyIdentity key);
 
-    string GetBrainModel();
-
-    void SetBrainModel(string model);
-
     string? GetFishVoiceId();
 
     void SetFishVoiceId(string? voiceId);
@@ -508,33 +504,10 @@ public sealed class SetupWindow : Window
         };
         Add(talkKeyBox);
 
-        // Brain choice
-        Add(Words(T("عقل الذكاء الاصطناعي", "Brain model"), 14, Ink, FontWeights.SemiBold));
-        Add(Words(T("Claude Haiku 5.5 هو الأسرع والأوفر للمهام اليومية. Claude Sonnet 5.5 للمهام المعقدة ولكن تكلفته 20 ضعف.",
-            "Claude Haiku 5.5 is fastest and cheapest for daily tasks. Claude Sonnet 5.5 is for harder tasks but costs 20x more."), 12.5, Quiet));
-        var brainBox = new ComboBox { FontFamily = Font, FontSize = 13, Height = 32, Margin = new Thickness(0, 4, 0, 10) };
-        AutomationProperties.SetName(brainBox, T("اختر عقل الذكاء الاصطناعي", "Choose brain model"));
-        var brainOptions = new[]
-        {
-            (Model: "claude-haiku-5-5", Label: T("Claude Haiku 5.5 (موصى به، سريع ورخيص)", "Claude Haiku 5.5 (recommended, fast and cheap)")),
-            (Model: "claude-sonnet-5-5", Label: T("Claude Sonnet 5.5 (للمهام الأصعب، تكلفة أعلى 20 ضعف)", "Claude Sonnet 5.5 (for harder tasks - 20x higher cost)")),
-        };
-        foreach (var opt in brainOptions)
-        {
-            brainBox.Items.Add(new ComboBoxItem { Content = opt.Label, Tag = opt.Model });
-        }
-
-        string currentBrain = _driver.GetBrainModel();
-        int brainIdx = Array.FindIndex(brainOptions, o => string.Equals(o.Model, currentBrain, StringComparison.OrdinalIgnoreCase));
-        brainBox.SelectedIndex = brainIdx >= 0 ? brainIdx : 0;
-        brainBox.SelectionChanged += (_, _) =>
-        {
-            if (brainBox.SelectedItem is ComboBoxItem item && item.Tag is string chosen)
-            {
-                _driver.SetBrainModel(chosen);
-            }
-        };
-        Add(brainBox);
+        // Brain
+        Add(Words(T("عقل الذكاء الاصطناعي", "Brain"), 14, Ink, FontWeights.SemiBold));
+        Add(Words(T("مع مفتاح Claude، مُبصِر بيستخدم Claude Haiku 5.5: سريع وقوي ورخيص للمهام اليومية.",
+            "With a Claude key, Mubsir uses Claude Haiku 5.5: fast, capable and cheap for everyday tasks."), 12.5, Quiet));
 
         // Fish voice id & testing
         Add(Words(T("صوت العربية (Fish Audio)", "Arabic voice (Fish Audio)"), 14, Ink, FontWeights.SemiBold));
@@ -581,8 +554,8 @@ public sealed class SetupWindow : Window
         // Options
         Add(Words(T("خيارات عامة", "General options"), 14, Ink, FontWeights.SemiBold));
         Option("ShowNotch", T("أظهر الشريط اللي فوق الشاشة (بعد إعادة التشغيل)", "Show the notch at the top of the screen (after a restart)"));
-        Option("ShowHudhud", T("أظهر الهدهد (بعد إعادة التشغيل)", "Show Hudhud (after a restart)"));
         Option("UseFishVoice", T("اتكلم عربي بصوت Fish Audio", "Speak Arabic in the Fish Audio voice"));
+        Option("OneVoicePerAnswer", T("صوت واحد للرد كله لو فيه عربي (الجمل الإنجليزي كمان بصوت Fish، بتكلفة)", "One voice for a whole answer that has Arabic (English sentences in the Fish voice too, at a cost)"));
         Option("ReadArabicBooksWithFish", T("اقرأ الكتب العربية بصوت Fish (10 صفحات بحوالي 50 سنت)", "Read Arabic books in the Fish voice (about $0.50 for 10 pages)"));
         Option("ReadFullTashkeel", T("اقرأ التشكيل كاملاً (لو مقفول، متروك للصوت)", "Read Arabic diacritics fully (when off, left to the voice)"));
         Option("SaveSessions", T("احفظ المحادثات في فولدر على جهازي", "Save chats in a folder on this PC"));

@@ -18,7 +18,7 @@ public enum VerbalizeMode
 public static class SymbolVerbalizer
 {
     private static readonly SearchValues<char> NormalTriggers =
-        SearchValues.Create("@#&%٪²³½¼¾⅓⅔⅕⅛°℃℉");
+        SearchValues.Create("@#&%٪²³½¼¾⅓⅔⅕⅛°℃℉" + string.Concat(NormalSymbols.Keys));
 
     public static string Verbalize(string text, Lang lang, VerbalizeMode mode)
     {
@@ -138,6 +138,13 @@ public static class SymbolVerbalizer
                     {
                         Bilingual words = PrecededByDigit(text, i) ? fraction.AfterNumber : fraction.Alone;
                         AppendWords(sb, words.For(lang), text, i + 1);
+                        i++;
+                        continue;
+                    }
+
+                    if (NormalSymbols.TryGetValue(c, out var named))
+                    {
+                        AppendWords(sb, named.For(lang), text, i + 1);
                         i++;
                         continue;
                     }

@@ -39,14 +39,13 @@ internal sealed class FishVoice(
     private static readonly TimeSpan RestAfterFailure = TimeSpan.FromSeconds(60);
 
     private readonly HttpClient _http = new(handler ?? new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) }) { Timeout = Timeout.InfiniteTimeSpan };
-    private ReadySentence? _ready;
+    private readonly List<ReadySentence> _ready = [];
     private bool _freeModelGone;
     private readonly FishVoiceCache _cache = cache ?? new FishVoiceCache(log);
     private readonly FishVoiceCache _bookCache = new(log, AppPaths.VoiceCacheDir + "-books", BookCacheBytes, BookCacheBytes * 9 / 10, MaxChars);
     private readonly object _gate = new();
     private CancellationTokenSource _stop = new();
-    private MediaPlayer? _player;
-    private TaskCompletionSource<bool>? _playing;
+    private readonly SentencePlayer _out = new(log, "fish");
     private DateTime _restUntil = DateTime.MinValue;
     private string? _rejectedKey;
 
@@ -69,7 +68,7 @@ internal sealed class FishVoice(
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(stopped, ct);
             linked.CancelAfter(SampleTimeout);
             byte[] sample = await _http.GetByteArrayAsync(url, linked.Token).ConfigureAwait(false);
-            await PlayAsync(new MemoryStream(sample), () => { }, most, stopped).ConfigureAwait(false);
+            await _out.PlayAsync(sample, "audio/mpeg", () => { }, most, stopped).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (stopped.IsCancellationRequested)
         {
@@ -121,8 +120,7 @@ internal sealed class FishVoice(
         {
             try
             {
-                var cachedStream = new MemoryStream(cachedAudio);
-                return await PlayAsync(cachedStream, started, TimeSpan.FromSeconds(30) + TimeSpan.FromMilliseconds(text.Length * 250L), stopped).ConfigureAwait(false);
+                return await _out.PlayAsync(cachedAudio, "audio/mpeg", started, TimeSpan.FromSeconds(30) + TimeSpan.FromMilliseconds(text.Length * 250L), stopped).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (stopped.IsCancellationRequested)
             {
@@ -140,7 +138,7 @@ internal sealed class FishVoice(
             byte[]? audio = await TakeReadyAsync(text, lang, isBook, stopped).ConfigureAwait(false)
                 ?? await FetchAsync(key, text, lang, rate, voice, speed, store, canCache, stopped).ConfigureAwait(false);
             return audio is not null
-                && await PlayAsync(new MemoryStream(audio), started, TimeSpan.FromSeconds(30) + TimeSpan.FromMilliseconds(text.Length * 250L), stopped).ConfigureAwait(false);
+                && await _out.PlayAsync(audio, "audio/mpeg", started, TimeSpan.FromSeconds(30) + TimeSpan.FromMilliseconds(text.Length * 250L), stopped).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (stopped.IsCancellationRequested)
         {
@@ -155,8 +153,8 @@ internal sealed class FishVoice(
     }
 
     /// <summary>
-    /// Gets the next sentence's audio while this one plays, so there's less of a pause. Only one is ever ready, so
-    /// stopping costs at most that sentence, and it's saved, so hearing it later is free.
+    /// Gets the next sentences' audio while this one plays, so there's no pause. At most two are ever ready, so
+    /// stopping costs at most those, and they're saved, so hearing them later is free.
     /// </summary>
     public void GetReady(string text, Lang lang, int rate, bool isBook)
     {
@@ -178,13 +176,18 @@ internal sealed class FishVoice(
         CancellationToken stopped;
         lock (_gate)
         {
-            if (_ready is not null && _ready.Text == text && _ready.IsBook == isBook)
+            if (_ready.Exists(r => r.Text == text && r.IsBook == isBook))
             {
                 return;
             }
 
+            if (_ready.Count >= SpeechAhead.Sentences)
+            {
+                _ready.RemoveAt(0);
+            }
+
             stopped = _stop.Token;
-            _ready = new ReadySentence(text, lang, isBook, FetchQuietlyAsync(key, text, lang, rate, voice, speed, store, canCache, stopped));
+            _ready.Add(new ReadySentence(text, lang, isBook, FetchQuietlyAsync(key, text, lang, rate, voice, speed, store, canCache, stopped)));
         }
     }
 
@@ -202,16 +205,18 @@ internal sealed class FishVoice(
 
     private async Task<byte[]?> TakeReadyAsync(string text, Lang lang, bool isBook, CancellationToken stopped)
     {
-        ReadySentence? ready;
+        ReadySentence? ready = null;
         lock (_gate)
         {
-            ready = _ready;
-            _ready = null;
+            int at = _ready.FindIndex(r => r.Text == text && r.Lang == lang && r.IsBook == isBook);
+            if (at >= 0)
+            {
+                ready = _ready[at];
+                _ready.RemoveRange(0, at + 1);
+            }
         }
 
-        return ready is not null && ready.Text == text && ready.Lang == lang && ready.IsBook == isBook
-            ? await ready.Audio.WaitAsync(stopped).ConfigureAwait(false)
-            : null;
+        return ready is null ? null : await ready.Audio.WaitAsync(stopped).ConfigureAwait(false);
     }
 
     private async Task<byte[]?> FetchAsync(string key, string text, Lang lang, int rate, string voice, double speed, FishVoiceCache store, bool canCache, CancellationToken stopped)
@@ -281,37 +286,23 @@ internal sealed class FishVoice(
 
     public void Stop()
     {
-        MediaPlayer? player;
-        TaskCompletionSource<bool>? playing;
         CancellationTokenSource old;
         lock (_gate)
         {
-            player = _player;
-            playing = _playing;
-            _player = null;
-            _playing = null;
             old = _stop;
             _stop = new CancellationTokenSource();
-            _ready = null;
+            _ready.Clear();
         }
 
         // Not disposed: a sentence starting right now may still be linking to its token.
         old.Cancel();
-        playing?.TrySetResult(true);
-        try
-        {
-            player?.Pause();
-            player?.Dispose();
-        }
-        catch (Exception e) when (e is not OutOfMemoryException)
-        {
-            log.Fail(LogKind.Speech, "fish_stop_" + MetaLog.Code(e));
-        }
+        _out.Stop();
     }
 
     public void Dispose()
     {
         Stop();
+        _out.Dispose();
         _http.Dispose();
     }
 
@@ -354,56 +345,6 @@ internal sealed class FishVoice(
         else
         {
             _restUntil = DateTime.UtcNow + RestAfterFailure;
-        }
-    }
-
-    private async Task<bool> PlayAsync(MemoryStream audio, Action started, TimeSpan limit, CancellationToken stopped)
-    {
-        var done = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var player = new MediaPlayer { AutoPlay = false, AudioCategory = MediaPlayerAudioCategory.Speech };
-        using (audio)
-        using (var stream = audio.AsRandomAccessStream())
-        using (var source = MediaSource.CreateFromStream(stream, "audio/mpeg"))
-        {
-            player.MediaEnded += (_, _) => done.TrySetResult(true);
-            player.MediaFailed += (_, args) =>
-            {
-                log.Fail(LogKind.Speech, "fish_play_" + args.Error);
-                done.TrySetResult(false);
-            };
-            lock (_gate)
-            {
-                if (stopped.IsCancellationRequested)
-                {
-                    player.Dispose();
-                    return true;
-                }
-
-                _player = player;
-                _playing = done;
-
-                // Under the lock, so Stop can't dispose the player between these lines.
-                player.Source = source;
-                started();
-                player.Play();
-            }
-
-            Task finished = await Task.WhenAny(done.Task, Task.Delay(limit)).ConfigureAwait(false);
-            bool heard = finished == done.Task && await done.Task.ConfigureAwait(false);
-            lock (_gate)
-            {
-                // Stop already took the player and disposed it, and the user meant it.
-                if (!ReferenceEquals(_player, player))
-                {
-                    return true;
-                }
-
-                _player = null;
-                _playing = null;
-            }
-
-            player.Dispose();
-            return heard;
         }
     }
 }

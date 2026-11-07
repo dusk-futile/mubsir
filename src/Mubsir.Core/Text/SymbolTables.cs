@@ -302,6 +302,48 @@ internal static class SymbolTables
         ['\u0670'] = new("ألف خنجرية", "dagger alef"),
     };
 
+    /// <summary>
+    /// Symbols that a voice would skip, mumble or read wrongly in ordinary text (a book, a web page), so
+    /// they are named wherever they appear. Only characters with one clear meaning are here: plain
+    /// punctuation and ASCII operators are left to the voice, which reads them well.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<char, Bilingual> NormalSymbols = BuildNormalSymbols();
+
+    private static Dictionary<char, Bilingual> BuildNormalSymbols()
+    {
+        var map = new Dictionary<char, Bilingual>(GreekLetters);
+        foreach (var (key, symbol) in MathSymbols)
+        {
+            if (key.Length == 1 && key[0] > (char)0x7F && key[0] is not ('°' or '٪' or '،' or '→' or '·' or '∙' or '✕' or '＋'))
+            {
+                map[key[0]] = symbol.Words;
+            }
+        }
+
+        map['→'] = new("سهم لليمين", "right arrow");
+        map['←'] = new("سهم لليسار", "left arrow");
+        map['↑'] = new("سهم لأعلى", "up arrow");
+        map['↓'] = new("سهم لأسفل", "down arrow");
+        map['↔'] = new("سهم في الاتجاهين", "left-right arrow");
+        map['§'] = new("فقرة", "section");
+        map['¶'] = new("علامة فقرة", "paragraph mark");
+        map['•'] = new("نقطة", "bullet");
+        map['©'] = new("حقوق النشر", "copyright");
+        map['®'] = new("علامة مسجلة", "registered");
+        map['™'] = new("علامة تجارية", "trademark");
+        map['€'] = new("يورو", "euro");
+        map['£'] = new("جنيه إسترليني", "pound");
+        map['¥'] = new("ين", "yen");
+        map['✓'] = new("علامة صح", "check mark");
+        map['✔'] = new("علامة صح", "check mark");
+        map['✗'] = new("علامة خطأ", "cross mark");
+        map['✘'] = new("علامة خطأ", "cross mark");
+        map['✕'] = new("علامة إكس", "x mark");
+        map['★'] = new("نجمة", "star");
+        map['☆'] = new("نجمة فارغة", "empty star");
+        return map;
+    }
+
     public static readonly IReadOnlyDictionary<char, Bilingual> SpellSymbols = new Dictionary<char, Bilingual>
     {
         [' '] = new("مسافة", "space"),

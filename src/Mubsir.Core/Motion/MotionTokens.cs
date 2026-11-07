@@ -4,44 +4,14 @@ namespace Mubsir.Core.Motion;
 
 public readonly record struct Size2(double Width, double Height);
 
-/// <summary>Where Hudhud's crest, head, wing and crest scale rest in one state (see the prototype's POSE table).</summary>
-public readonly record struct HudhudPose(double Crest, double Tilt, double Raise, double Wing, double Spread);
-
-public sealed class HudhudTokens
-{
-    internal HudhudTokens(Size2 size, double marginRight, double marginBottom, double sleepAfterSeconds, IReadOnlyDictionary<string, HudhudPose> poses)
-    {
-        Size = size;
-        MarginRight = marginRight;
-        MarginBottom = marginBottom;
-        SleepAfterSeconds = sleepAfterSeconds;
-        Poses = poses;
-    }
-
-    /// <summary>Hudhud's box in device-independent pixels.</summary>
-    public Size2 Size { get; }
-
-    public double MarginRight { get; }
-
-    /// <summary>Gap between Hudhud's feet and the top of the taskbar.</summary>
-    public double MarginBottom { get; }
-
-    public double SleepAfterSeconds { get; }
-
-    public IReadOnlyDictionary<string, HudhudPose> Poses { get; }
-
-    /// <summary>The pose for a state name, or idle's when the state has none of its own.</summary>
-    public HudhudPose Pose(string name) => Poses.TryGetValue(name, out HudhudPose pose) ? pose : Poses["idle"];
-}
-
 /// <summary>
-/// Sizes, springs and colours for the normal-mode companion, read from motion-tokens.json. The values
+/// Sizes, springs and colours for the notch, read from motion-tokens.json. The values
 /// come from the approved HTML prototype, so the native overlay moves the way the owner signed off on.
 /// </summary>
 public sealed class MotionTokens
 {
     private static readonly string[] RequiredSprings =
-        ["notchWidth", "notchHeight", "content", "voice", "crest", "head", "wing", "turn", "body", "glow", "sleep", "panel"];
+        ["notchWidth", "notchHeight", "content", "voice", "glow", "pointerX", "pointerY"];
 
     private MotionTokens(
         IReadOnlyDictionary<string, SpringToken> springs,
@@ -50,7 +20,6 @@ public sealed class MotionTokens
         double notchFilletMax,
         double contentBlur,
         double contentDelayMs,
-        HudhudTokens hudhud,
         IReadOnlyDictionary<string, string> colors)
     {
         Springs = springs;
@@ -59,7 +28,6 @@ public sealed class MotionTokens
         NotchFilletMax = notchFilletMax;
         ContentBlur = contentBlur;
         ContentDelayMs = contentDelayMs;
-        Hudhud = hudhud;
         Colors = colors;
     }
 
@@ -78,8 +46,6 @@ public sealed class MotionTokens
 
     /// <summary>Delay before a new pane starts to appear, so the notch leads and the content follows.</summary>
     public double ContentDelayMs { get; }
-
-    public HudhudTokens Hudhud { get; }
 
     /// <summary>Named colours as #RRGGBB strings.</summary>
     public IReadOnlyDictionary<string, string> Colors { get; }
@@ -127,31 +93,6 @@ public sealed class MotionTokens
             }
         }
 
-        JsonElement hud = Required(root, "hudhud");
-        Size2 margin = Pair(Required(hud, "margin"), "hudhud.margin");
-        var poses = new Dictionary<string, HudhudPose>(StringComparer.Ordinal);
-        foreach (JsonProperty p in Required(hud, "poses").EnumerateObject())
-        {
-            poses[p.Name] = new HudhudPose(
-                Number(p.Value, "crest"),
-                Optional(p.Value, "tilt"),
-                Optional(p.Value, "raise"),
-                Optional(p.Value, "wing"),
-                Optional(p.Value, "spread"));
-        }
-
-        if (!poses.ContainsKey("idle") || !poses.ContainsKey("sleep"))
-        {
-            throw new FormatException("motion tokens: hudhud.poses needs idle and sleep");
-        }
-
-        var hudhud = new HudhudTokens(
-            Pair(Required(hud, "size"), "hudhud.size"),
-            margin.Width,
-            margin.Height,
-            Number(hud, "sleepAfterSeconds"),
-            poses);
-
         var colors = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (JsonProperty p in Required(root, "colors").EnumerateObject())
         {
@@ -171,7 +112,6 @@ public sealed class MotionTokens
             Number(notch, "filletMax"),
             Number(notch, "contentBlur"),
             Optional(notch, "contentDelayMs"),
-            hudhud,
             colors);
     }
 

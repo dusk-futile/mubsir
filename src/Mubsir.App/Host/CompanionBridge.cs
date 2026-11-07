@@ -8,7 +8,7 @@ namespace Mubsir.App.Host;
 /// Tells the notch what the voice agent is doing, for anyone looking at the screen. It starts in the background and
 /// can fail or be turned off with no effect on anything else: every call is safe to make whether it's running or not.
 /// </summary>
-internal sealed class CompanionBridge(SpeechService speech, WaveInRecorder recorder, SettingsProvider settings, IEventLog log) : IDisposable
+internal sealed class CompanionBridge(SpeechService speech, WaveInRecorder recorder, IEventLog log) : IDisposable
 {
     private const int MaxSteps = 6;
 
@@ -27,7 +27,7 @@ internal sealed class CompanionBridge(SpeechService speech, WaveInRecorder recor
         {
             try
             {
-                OverlayHost overlay = OverlayHost.Start(settings.Settings.ShowHudhud);
+                OverlayHost overlay = OverlayHost.Start();
                 overlay.Failed += e => log.Failure("overlay", e);
                 lock (_gate)
                 {
