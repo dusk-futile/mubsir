@@ -31,21 +31,7 @@ jobs:
 
       - name: Build
         shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $PSNativeCommandUseErrorActionPreference = $true
-          $name = "Mubsir-$env:GITHUB_REF_NAME-win-x64"
-          $root = "out/$name"
-          dotnet restore src/Mubsir.App
-          dotnet publish src/Mubsir.App -c Release -r win-x64 --no-restore -o "$root/Mubsir"
-          python scripts/build-addon.py --out-dir "$root/Mubsir"
-          Copy-Item (Join-Path "$root/Mubsir" "*.nvda-addon") $root
-          if (-not (Test-Path "$root/Mubsir/Mubsir.exe")) { throw 'Mubsir.exe was not published' }
-          Copy-Item scripts/setup.ps1, LICENSE $root
-          Compress-Archive -Path "$root/*" -DestinationPath "out/$name.zip"
-          $hash = (Get-FileHash "out/$name.zip" -Algorithm SHA256).Hash.ToLower()
-          [IO.File]::WriteAllText("$PWD/out/$name.zip.sha256", "$hash  $name.zip`n")
-          "ASSET=$name" | Out-File $env:GITHUB_ENV -Append
+        run: pwsh scripts/package.ps1 -Version $env:GITHUB_REF_NAME
 
       - name: Publish
         env:

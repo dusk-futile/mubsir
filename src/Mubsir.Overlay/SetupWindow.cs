@@ -86,7 +86,6 @@ public sealed class SetupWindow : Window
     private static readonly Brush Ground = Palette.Solid(Color.FromRgb(0xF7, 0xF6, 0xF3));
     private static readonly Brush Ink = Palette.Solid(Color.FromRgb(0x1B, 0x1C, 0x20));
     private static readonly Brush Quiet = Palette.Solid(Color.FromRgb(0x5E, 0x60, 0x68));
-    private static readonly Brush Line = Palette.Solid(Color.FromRgb(0xDD, 0xDB, 0xD5));
     private static readonly Brush Accent = Palette.Solid(Color.FromRgb(0x2B, 0x4C, 0x7E));
     private static readonly FontFamily Font = new("Segoe UI Variable Text, Segoe UI, Tahoma");
 
@@ -199,7 +198,7 @@ public sealed class SetupWindow : Window
         extra.Content = inner;
         Add(extra);
         KeyRow(KeyKind.Anthropic, T("Claude: عقل مدفوع", "Claude: a paid brain"),
-            T("اختياري. لو حطيته هيتستخدم بدل Gemini، وبتدفع اللي بتستخدمه.", "Optional. If you add it, it's used instead of Gemini and you pay for what you use."), inner);
+            T($"اختياري. لو حطيته هيتستخدم Claude Haiku بدل Gemini، وبتدفع اللي بتستخدمه: حوالي {CostGuide.Estimate(60).Brain:0} دولار في الشهر لـ 60 طلب في اليوم.", $"Optional. If you add it, Claude Haiku is used instead of Gemini and you pay for what you use: about ${CostGuide.Estimate(60).Brain:0} a month at 60 requests a day."), inner);
 
         bool ready = KeySetup.CanStart(_driver.HasKey(KeyKind.Anthropic), _driver.HasKey(KeyKind.FishAudio), _driver.HasKey(KeyKind.Gemini));
         Button next = MainButton(T("التالي", "Continue"), ShowPrivacy);
@@ -212,21 +211,6 @@ public sealed class SetupWindow : Window
                 "أهلا بك في مبصر. محتاج مفتاح مجاني من Google Gemini. اضغط إدخال عشان أفتح لك صفحته. انشئ مفتاح وانسخه، وأنا هاخده وأجربه وأقولك النتيجة.",
                 "Welcome to Mubsir. I need one free key from Google Gemini. Press Enter and I'll open its page. Create a key and copy it, and I'll pick it up, test it and tell you the result."), _lang);
         }
-    }
-
-    private void AddCosts()
-    {
-        MonthlyCost light = CostGuide.Estimate(20), normal = CostGuide.Estimate(60), heavy = CostGuide.Estimate(150);
-        var box = new Border { BorderBrush = Line, BorderThickness = new Thickness(1), Padding = new Thickness(14), Margin = new Thickness(0, 8, 0, 8) };
-        var lines = new StackPanel();
-        lines.Children.Add(Words(T("التكلفة المتوقعة في الشهر (تقدير)", "What it might cost a month (an estimate)"), 13, Ink, FontWeights.SemiBold));
-        lines.Children.Add(Words(T($"خفيف، 20 طلب في اليوم: حوالي {light.Total:0} دولار", $"Light, 20 requests a day: about ${light.Total:0}"), 13, Ink));
-        lines.Children.Add(Words(T($"عادي، 60 طلب في اليوم: حوالي {normal.Total:0} دولار", $"Normal, 60 requests a day: about ${normal.Total:0}"), 13, Ink));
-        lines.Children.Add(Words(T($"كتير، 150 طلب في اليوم: حوالي {heavy.Total:0} دولار", $"Heavy, 150 requests a day: about ${heavy.Total:0}"), 13, Ink));
-        lines.Children.Add(Words(T($"بصوت ويندوز المجاني بدل Fish: حوالي {normal.WithFreeVoice:0} دولار للاستخدام العادي. الكتب بتتقرأ بالصوت المجاني إلا لو غيرت ده.",
-            $"With the free Windows voice instead: about ${normal.WithFreeVoice:0} for normal use. Books use the free voice unless you change that."), 12.5, Quiet));
-        box.Child = lines;
-        Add(box);
     }
 
     private Button KeyRow(KeyKind kind, string name, string about, StackPanel? into = null)

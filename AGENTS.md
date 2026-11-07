@@ -52,7 +52,8 @@ Mubsir (مُبصِر) is a free voice agent for blind and low-vision people on W
 - `tests/Mubsir.Core.Tests` — Core unit tests (xunit). Runs on any OS. Run them with
   `--filter "FullyQualifiedName!~A_folder_that_cant_be_written_never_breaks_anything"` (owner's rule: that test is never run).
 - `nvda-addon/` — NVDA Bridge add-on (Python, GPL-2.0).
-- `scripts/` — `setup.ps1` installer script, `pack-msix.ps1` (Store package), `build-addon.py`, `build-icons.py`, and
+- `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md` — for people; keep `CHANGELOG.md` current when users would notice a change.
+- `scripts/` — `package.ps1` (the release zip; the release workflow runs it), `setup.ps1` installer script, `pack-msix.ps1` (Store package), `build-addon.py`, `build-icons.py`, and
   `run-tests.ps1` (everything for "run tests"), `overlay-smoke.ps1` and `setup-shots.ps1` (run on a Windows desktop in CI; their screenshots are the `overlay-shots` artifact).
 - `packaging/` — the Store package's manifest. `docs/STORE.md` says what's left to submit it.
 

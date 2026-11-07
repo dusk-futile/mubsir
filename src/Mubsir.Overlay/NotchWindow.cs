@@ -99,7 +99,6 @@ internal sealed class NotchWindow : Window, IAnimated
         Add(CompanionState.Listening, new ListeningPane(context, sizes[CompanionState.Listening]));
         Add(CompanionState.Thinking, new ThinkingPane(context, sizes[CompanionState.Thinking]));
         Add(CompanionState.Doing, new DoingPane(context, sizes[CompanionState.Doing]));
-        Add(CompanionState.Pointing, new PointingPane(context, sizes[CompanionState.Pointing]));
         Add(CompanionState.Speaking, new SpeakingPane(context, sizes[CompanionState.Speaking]));
         Add(CompanionState.Reading, new ReadingPane(context, sizes[CompanionState.Reading]));
         Add(CompanionState.Confirm, new ConfirmPane(context, sizes[CompanionState.Confirm]));
@@ -327,7 +326,7 @@ internal sealed class NotchWindow : Window, IAnimated
         double fillet = Math.Min(_assets.Tokens.NotchFilletMax, h / 2);
         double r = NotchCurves.CornerLength(Math.Max(0, _radius.Value), w, h, fillet);
 
-        // The pointer can keep the clock running, but a notch at rest must not redraw its shadow every frame.
+        // The clock can keep running, but a notch at rest must not redraw its shadow every frame.
         if (w != _drawnWidth || h != _drawnHeight || r != _drawnRadius)
         {
             _drawnWidth = w;

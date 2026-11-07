@@ -136,7 +136,7 @@ internal sealed class FishVoice(
         try
         {
             byte[]? audio = await TakeReadyAsync(text, lang, isBook, stopped).ConfigureAwait(false)
-                ?? await FetchAsync(key, text, lang, rate, voice, speed, store, canCache, stopped).ConfigureAwait(false);
+                ?? await FetchAsync(key, text, rate, voice, speed, store, canCache, stopped).ConfigureAwait(false);
             return audio is not null
                 && await _out.PlayAsync(audio, "audio/mpeg", started, TimeSpan.FromSeconds(30) + TimeSpan.FromMilliseconds(text.Length * 250L), stopped).ConfigureAwait(false);
         }
@@ -187,15 +187,15 @@ internal sealed class FishVoice(
             }
 
             stopped = _stop.Token;
-            _ready.Add(new ReadySentence(text, lang, isBook, FetchQuietlyAsync(key, text, lang, rate, voice, speed, store, canCache, stopped)));
+            _ready.Add(new ReadySentence(text, lang, isBook, FetchQuietlyAsync(key, text, rate, voice, speed, store, canCache, stopped)));
         }
     }
 
-    private async Task<byte[]?> FetchQuietlyAsync(string key, string text, Lang lang, int rate, string voice, double speed, FishVoiceCache store, bool canCache, CancellationToken stopped)
+    private async Task<byte[]?> FetchQuietlyAsync(string key, string text, int rate, string voice, double speed, FishVoiceCache store, bool canCache, CancellationToken stopped)
     {
         try
         {
-            return await FetchAsync(key, text, lang, rate, voice, speed, store, canCache, stopped).ConfigureAwait(false);
+            return await FetchAsync(key, text, rate, voice, speed, store, canCache, stopped).ConfigureAwait(false);
         }
         catch (Exception e) when (e is HttpRequestException or OperationCanceledException or IOException)
         {
@@ -219,12 +219,12 @@ internal sealed class FishVoice(
         return ready is null ? null : await ready.Audio.WaitAsync(stopped).ConfigureAwait(false);
     }
 
-    private async Task<byte[]?> FetchAsync(string key, string text, Lang lang, int rate, string voice, double speed, FishVoiceCache store, bool canCache, CancellationToken stopped)
+    private async Task<byte[]?> FetchAsync(string key, string text, int rate, string voice, double speed, FishVoiceCache store, bool canCache, CancellationToken stopped)
     {
         using var firstAudio = CancellationTokenSource.CreateLinkedTokenSource(stopped);
         firstAudio.CancelAfter(FirstAudioTimeout);
         bool free = !Volatile.Read(ref _freeModelGone);
-        HttpResponseMessage response = await SendAsync(key, text, lang, rate, voice, free ? FreeModel : PaidModel, firstAudio.Token).ConfigureAwait(false);
+        HttpResponseMessage response = await SendAsync(key, text, rate, voice, free ? FreeModel : PaidModel, firstAudio.Token).ConfigureAwait(false);
         if (free && !response.IsSuccessStatusCode && response.StatusCode != HttpStatusCode.Unauthorized)
         {
             // The free model may end or be busy. If it's just busy, the next sentence tries it again.
@@ -236,7 +236,7 @@ internal sealed class FishVoice(
             log.Fail(LogKind.Speech, "fish_free_" + (int)response.StatusCode);
             response.Dispose();
             free = false;
-            response = await SendAsync(key, text, lang, rate, voice, PaidModel, firstAudio.Token).ConfigureAwait(false);
+            response = await SendAsync(key, text, rate, voice, PaidModel, firstAudio.Token).ConfigureAwait(false);
         }
 
         using HttpResponseMessage answer = response;
@@ -271,12 +271,12 @@ internal sealed class FishVoice(
         return bytes;
     }
 
-    private async Task<HttpResponseMessage> SendAsync(string key, string text, Lang lang, int rate, string voice, string model, CancellationToken ct)
+    private async Task<HttpResponseMessage> SendAsync(string key, string text, int rate, string voice, string model, CancellationToken ct)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, Endpoint);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
         request.Headers.TryAddWithoutValidation("model", model);
-        request.Content = new StringContent(Body(text, lang, rate, voice), System.Text.Encoding.UTF8, "application/json");
+        request.Content = new StringContent(Body(text, rate, voice), System.Text.Encoding.UTF8, "application/json");
         return await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
     }
 
@@ -306,7 +306,7 @@ internal sealed class FishVoice(
         _http.Dispose();
     }
 
-    private static string Body(string text, Lang lang, int rate, string? voice)
+    private static string Body(string text, int rate, string? voice)
     {
         using var buffer = new MemoryStream();
         using (var json = new Utf8JsonWriter(buffer))

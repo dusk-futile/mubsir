@@ -26,6 +26,8 @@ skipped. Everyday use costs almost nothing. The only visual is a very smooth not
 - [x] Books read without the AI, with symbol, IPA and tashkeel reading, page checks and OCR repair
 - [x] Fish Audio for Arabic, Ryan (Piper, on the PC) for English, Windows voices as the fallback, audio cache
 - [x] Hudhud removed; the notch is the only visual (2026-11-07)
+- [x] The demo-only pointer removed, and the stale cost box replaced by one line on the Claude key (2026-11-08)
+- [x] `scripts/package.ps1` builds the release zip with `START-HERE.txt`; the release workflow uses it (2026-11-08)
 - [x] Sonnet removed; Claude is Haiku only (2026-11-07)
 - [x] Numbers follow the language of their label ("chapter 3" stays English, "صفحة 12" stays Arabic)
 - [x] Opening brackets and quotes go with the words they open, so the voice switches at the word
@@ -55,10 +57,12 @@ skipped. Everyday use costs almost nothing. The only visual is a very smooth not
 - [ ] More local commands that need no AI at all
 
 ### Clean repo
-- [ ] Warnings as errors, `.editorconfig`, `dotnet format` in CI
+- [x] Warnings as errors and `.editorconfig`, with unused code as a warning
+- [ ] `dotnet format` check in CI
 - [ ] Tests for the policy engine, redaction, router and context builder
 - [ ] A fake brain so CI can run whole tasks without spending tokens
-- [ ] `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`, issue templates
+- [x] `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`
+- [ ] Issue templates
 - [ ] A short demo video with captions and sound for the README
 
 ### Release

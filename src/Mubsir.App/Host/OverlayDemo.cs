@@ -76,7 +76,6 @@ internal static class OverlayDemo
             bool finished = Listening()
                 && Stage(CompanionState.Thinking, null, 1.5)
                 && Doing()
-                && Pointing()
                 && Speaking()
                 && Stage(
                     CompanionState.Reading,
@@ -215,16 +214,6 @@ internal static class OverlayDemo
             }
 
             _overlay.Show(CompanionState.Doing, new CompanionContent { Steps = steps, Mode = mode });
-        }
-
-        /// <summary>The pointer flies out of the notch to a spot on the screen and names it.</summary>
-        private bool Pointing()
-        {
-            _overlay.PointAt(
-                User32.GetSystemMetrics(Win32.SM_CXSCREEN) * 0.34,
-                User32.GetSystemMetrics(Win32.SM_CYSCREEN) * 0.46,
-                "Install all");
-            return Stage(CompanionState.Pointing, new CompanionContent { PointText = "It's the Install all button" }, 2.6);
         }
 
         private bool Speaking()

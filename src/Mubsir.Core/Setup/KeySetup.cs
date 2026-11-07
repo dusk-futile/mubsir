@@ -64,6 +64,7 @@ public sealed record MonthlyCost(int RequestsADay, decimal Brain, decimal Ears, 
     public decimal WithFreeVoice => Brain + Ears;
 }
 
+/// <summary>What Mubsir might cost a month. The setup window shows the Claude part next to its key.</summary>
 public static class CostGuide
 {
     // Rates on 2026-11-05. Haiku 5.5 from PriceTable, Fish TTS from its pricing page, Fish speech to text from third parties.

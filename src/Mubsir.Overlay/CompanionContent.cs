@@ -37,9 +37,6 @@ public sealed record CompanionContent
 
     public DoingMode Mode { get; init; } = DoingMode.Running;
 
-    /// <summary>Pointing: what the pointer is showing, for example "It's the Install all button".</summary>
-    public string? PointText { get; init; }
-
     /// <summary>Reading: the book's title.</summary>
     public string? BookTitle { get; init; }
 
