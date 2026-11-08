@@ -354,9 +354,10 @@ internal sealed class ListeningPane : Pane
 }
 
 /// <summary>
-/// Thinking: Mubsir's signature. A stroke shaped like the letter م writes itself from amber to coral with a
-/// cream pen tip, then lifts away from where it began, like a pen moving on, over a faint outline of the
-/// whole letter so it reads at a glance. The word beside it has a light passing over it. All sharp shapes.
+/// Thinking: Mubsir's signature. A stroke shaped like the letter م writes itself right to left with a cream
+/// pen tip, then lifts away from where it began, like a pen moving on. The ink is sharp, with a soft light
+/// following it; its colour drifts from loop to loop; sparks of stardust lift off the tip and fade; the faint
+/// outline of the letter breathes and the mark floats a little. A light passes over the word beside it.
 /// </summary>
 internal sealed class ThinkingPane : Pane
 {
@@ -364,6 +365,8 @@ internal sealed class ThinkingPane : Pane
     private const double Hold = 0.4;
     private const double Lift = 0.8;
     private const double Cycle = Draw + Hold + Lift;
+    private const double SparkLife = 0.9;
+    private const int Sparks = 12;
 
     // The letter's path in a 44 x 22 box, as chained cubic curves: the joining stroke, the round head, the tail.
     private static readonly Point[][] Curves =
@@ -376,28 +379,69 @@ internal sealed class ThinkingPane : Pane
 
     private static readonly Point[] Points = Sample();
     private readonly WpfPath _stroke;
-    private readonly WpfEllipse _tip;
+    private readonly WpfPath _glow;
+    private readonly WpfPath _ghost;
+    private readonly GradientStop _inkStart;
+    private readonly GradientStop _inkEnd;
+    private readonly Color[] _drift;
+    private readonly Grid _tip;
     private readonly TranslateTransform _tipAt = new();
+    private readonly TranslateTransform _float = new();
     private readonly TranslateTransform _sweep = new(-1, 0);
+    private readonly (WpfPath Shape, TranslateTransform At, ScaleTransform Size)[] _sparks = new (WpfPath, TranslateTransform, ScaleTransform)[Sparks];
+    private readonly (double Born, double X, double Y, double Vx, double Vy)[] _sparkState = new (double, double, double, double, double)[Sparks];
+    private readonly Random _random = new(7);
     private (int From, int To) _drawn = (-1, -1);
+    private double _nextSpark;
+    private int _spark;
 
     public ThinkingPane(PaneContext context, Size2 size)
         : base(context, size)
     {
-        var mark = new Canvas { Width = 44, Height = 22 };
-        var ghost = new WpfPath { Data = Line(0, Points.Length - 1), Stroke = Palette.Solid(P.Cream, 0.16), StrokeThickness = 3 };
-        Round(ghost);
-        mark.Children.Add(ghost);
+        var mark = new Canvas { Width = 44, Height = 22, RenderTransform = _float };
+        _drift = [P.Amber, P.Pink, P.Lilac, P.Sky, P.Teal, P.Amber];
+
+        _ghost = new WpfPath { Data = Line(0, Points.Length - 1), Stroke = Palette.Solid(P.Cream, 1), StrokeThickness = 3, Opacity = 0.14 };
+        Round(_ghost);
+        mark.Children.Add(_ghost);
 
         var ink = new LinearGradientBrush { StartPoint = new Point(1, 0), EndPoint = new Point(0, 1) };
-        ink.GradientStops.Add(new GradientStop(P.Amber, 0.15));
-        ink.GradientStops.Add(new GradientStop(P.Crest, 0.95));
-        ink.Freeze();
-        _stroke = new WpfPath { Stroke = ink, StrokeThickness = 3 };
+        _inkStart = new GradientStop(P.Amber, 0.1);
+        _inkEnd = new GradientStop(P.Crest, 0.95);
+        ink.GradientStops.Add(_inkStart);
+        ink.GradientStops.Add(_inkEnd);
+
+        // The light under the ink: the same line, wider and soft. Only this small shape is blurred.
+        _glow = new WpfPath { Stroke = ink, StrokeThickness = 6, Opacity = 0.55, Effect = new BlurEffect { Radius = 5, RenderingBias = RenderingBias.Performance } };
+        Round(_glow);
+        mark.Children.Add(_glow);
+        _stroke = new WpfPath { Stroke = ink, StrokeThickness = 2.6 };
         Round(_stroke);
         mark.Children.Add(_stroke);
 
-        _tip = new WpfEllipse { Width = 5, Height = 5, Fill = P.CreamBrush, RenderTransform = _tipAt, IsHitTestVisible = false };
+        for (int i = 0; i < Sparks; i++)
+        {
+            var at = new TranslateTransform();
+            var scale = new ScaleTransform(1, 1);
+            var group = new TransformGroup();
+            group.Children.Add(scale);
+            group.Children.Add(at);
+            var spark = Shape("M2 0 C2.15 1.4 2.6 1.85 4 2 C2.6 2.15 2.15 2.6 2 4 C1.85 2.6 1.4 2.15 0 2 C1.4 1.85 1.85 1.4 2 0 Z", Palette.Solid(i % 3 == 0 ? P.Sky : i % 3 == 1 ? P.Cream : P.Pink), null);
+            spark.RenderTransform = group;
+            spark.Opacity = 0;
+            mark.Children.Add(spark);
+            _sparks[i] = (spark, at, scale);
+            _sparkState[i] = (double.NegativeInfinity, 0, 0, 0, 0);
+        }
+
+        // The pen tip: a cream point inside a soft halo (a radial fade, so no blur is needed).
+        var halo = new RadialGradientBrush();
+        halo.GradientStops.Add(new GradientStop(Palette.WithAlpha(P.Cream, 0.55), 0));
+        halo.GradientStops.Add(new GradientStop(Palette.WithAlpha(P.Cream, 0), 1));
+        halo.Freeze();
+        _tip = new Grid { Width = 12, Height = 12, RenderTransform = _tipAt, IsHitTestVisible = false };
+        _tip.Children.Add(new WpfEllipse { Fill = halo });
+        _tip.Children.Add(new WpfEllipse { Width = 4.5, Height = 4.5, Fill = P.CreamBrush });
         mark.Children.Add(_tip);
 
         var shimmer = new LinearGradientBrush { StartPoint = new Point(0, 0.5), EndPoint = new Point(1, 0.5), RelativeTransform = _sweep };
@@ -427,7 +471,8 @@ internal sealed class ThinkingPane : Pane
         // Write, hold, then lift away from the start so the tip carries on to the end of the letter.
         double x = t % Cycle;
         double from = 0, to = 1, tip = 1;
-        if (x < Draw)
+        bool writing = x < Draw;
+        if (writing)
         {
             to = Ease(x / Draw);
         }
@@ -440,6 +485,46 @@ internal sealed class ThinkingPane : Pane
         int last = Points.Length - 1;
         Show((int)Math.Round(from * last), (int)Math.Round(to * last), tip);
 
+        // The ink's colour drifts through the palette, one step every loop and a bit.
+        double hue = (t / (Cycle * 1.3)) % (_drift.Length - 1);
+        int k = (int)hue;
+        _inkStart.Color = Mix(_drift[k], _drift[k + 1], hue - k);
+        _inkEnd.Color = Mix(_drift[k + 1 < _drift.Length - 1 ? k + 1 : 0], _drift[k + 2 < _drift.Length ? k + 2 : 1], hue - k);
+
+        // Breath and float.
+        _ghost.Opacity = 0.1 + (0.08 * (0.5 + (0.5 * Math.Sin(t * 2.2))));
+        _glow.Opacity = 0.4 + (0.25 * (0.5 + (0.5 * Math.Sin(t * 3.1))));
+        _float.Y = 0.7 * Math.Sin(t * 1.4);
+
+        // Stardust lifts off the pen tip while it writes, drifts up and fades.
+        Point pen = Points[(int)Math.Round(to * last)];
+        if (writing && t >= _nextSpark)
+        {
+            _nextSpark = t + 0.07;
+            int i = _spark++ % Sparks;
+            double angle = (-Math.PI / 2) + ((_random.NextDouble() - 0.5) * 1.6);
+            double speed = 6 + (_random.NextDouble() * 8);
+            _sparkState[i] = (t, pen.X, pen.Y, speed * Math.Cos(angle), speed * Math.Sin(angle));
+        }
+
+        for (int i = 0; i < Sparks; i++)
+        {
+            var (born, sx, sy, vx, vy) = _sparkState[i];
+            double age = t - born;
+            var (shape, at, size) = _sparks[i];
+            if (age < 0 || age > SparkLife)
+            {
+                shape.Opacity = 0;
+                continue;
+            }
+
+            double life = age / SparkLife;
+            at.X = sx - 2 + (vx * age);
+            at.Y = sy - 2 + (vy * age) - (4 * age * age);
+            size.ScaleX = size.ScaleY = 0.5 + (0.6 * Math.Sin(Math.PI * life));
+            shape.Opacity = (1 - life) * 0.9;
+        }
+
         // The light crosses the word in a second, then rests for half a second.
         double phase = t % 1.5;
         _sweep.X = phase <= 1 ? -1 + (2 * phase) : 1;
@@ -451,6 +536,7 @@ internal sealed class ThinkingPane : Pane
         if (to - from < 2)
         {
             _stroke.Data = null;
+            _glow.Data = null;
             _tip.Opacity = 0;
             return;
         }
@@ -458,13 +544,20 @@ internal sealed class ThinkingPane : Pane
         if ((from, to) != _drawn)
         {
             _drawn = (from, to);
-            _stroke.Data = Line(from, to);
+            StreamGeometry line = Line(from, to);
+            _stroke.Data = line;
+            _glow.Data = line;
         }
 
-        _tipAt.X = Points[to].X - 2.5;
-        _tipAt.Y = Points[to].Y - 2.5;
+        _tipAt.X = Points[to].X - 6;
+        _tipAt.Y = Points[to].Y - 6;
         _tip.Opacity = tipOpacity;
     }
+
+    private static Color Mix(Color a, Color b, double t) => Color.FromRgb(
+        (byte)Math.Round(a.R + ((b.R - a.R) * t)),
+        (byte)Math.Round(a.G + ((b.G - a.G) * t)),
+        (byte)Math.Round(a.B + ((b.B - a.B) * t)));
 
     private static double Ease(double x) => x < 0.5 ? 4 * x * x * x : 1 - (Math.Pow((-2 * x) + 2, 3) / 2);
 
