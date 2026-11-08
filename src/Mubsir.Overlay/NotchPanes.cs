@@ -354,38 +354,52 @@ internal sealed class ListeningPane : Pane
 }
 
 /// <summary>
-/// Thinking: a crisp four-point sparkle with colour flowing through it, a small one twinkling beside it, and
-/// the word with a light sweeping across it. All sharp vector shapes, no blur.
+/// Thinking: Mubsir's signature. A stroke shaped like the letter م writes itself from amber to coral with a
+/// cream pen tip, then lifts away from where it began, like a pen moving on, over a faint outline of the
+/// whole letter so it reads at a glance. The word beside it has a light passing over it. All sharp shapes.
 /// </summary>
 internal sealed class ThinkingPane : Pane
 {
-    // A four-point star with curved sides, in a 24 x 24 box.
-    private const string Sparkle = "M12 0 C12.9 6.6 17.4 11.1 24 12 C17.4 12.9 12.9 17.4 12 24 C11.1 17.4 6.6 12.9 0 12 C6.6 11.1 11.1 6.6 12 0 Z";
-    private readonly RotateTransform _flow = new(0, 0.5, 0.5);
-    private readonly ScaleTransform _breath = new(1, 1, 9, 9);
-    private readonly ScaleTransform _twinkle = new(0, 0, 4, 4);
+    private const double Draw = 1.4;
+    private const double Hold = 0.4;
+    private const double Lift = 0.8;
+    private const double Cycle = Draw + Hold + Lift;
+
+    // The letter's path in a 44 x 22 box, as chained cubic curves: the joining stroke, the round head, the tail.
+    private static readonly Point[][] Curves =
+    [
+        [new(40, 8), new(34, 8), new(29, 9), new(26, 9)],
+        [new(26, 9), new(24, 2), new(17, 2), new(18, 8)],
+        [new(18, 8), new(19, 12), new(25, 12), new(26, 9)],
+        [new(26, 9), new(20, 18), new(7, 20), new(2, 13)],
+    ];
+
+    private static readonly Point[] Points = Sample();
+    private readonly WpfPath _stroke;
+    private readonly WpfEllipse _tip;
+    private readonly TranslateTransform _tipAt = new();
     private readonly TranslateTransform _sweep = new(-1, 0);
+    private (int From, int To) _drawn = (-1, -1);
 
     public ThinkingPane(PaneContext context, Size2 size)
         : base(context, size)
     {
-        var colors = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(1, 1), RelativeTransform = _flow };
-        colors.GradientStops.Add(new GradientStop(P.Sky, 0));
-        colors.GradientStops.Add(new GradientStop(P.Lilac, 0.38));
-        colors.GradientStops.Add(new GradientStop(P.Pink, 0.68));
-        colors.GradientStops.Add(new GradientStop(P.Amber, 1));
+        var mark = new Canvas { Width = 44, Height = 22 };
+        var ghost = new WpfPath { Data = Line(0, Points.Length - 1), Stroke = Palette.Solid(P.Cream, 0.16), StrokeThickness = 3 };
+        Round(ghost);
+        mark.Children.Add(ghost);
 
-        var big = Star(18, colors);
-        big.RenderTransform = _breath;
-        var small = Star(8, Palette.Solid(P.Cream));
-        small.RenderTransform = _twinkle;
-        var mark = new Canvas { Width = 26, Height = 22 };
-        Canvas.SetTop(big, 3);
-        mark.Children.Add(big);
-        Canvas.SetLeft(small, 17);
-        mark.Children.Add(small);
+        var ink = new LinearGradientBrush { StartPoint = new Point(1, 0), EndPoint = new Point(0, 1) };
+        ink.GradientStops.Add(new GradientStop(P.Amber, 0.15));
+        ink.GradientStops.Add(new GradientStop(P.Crest, 0.95));
+        ink.Freeze();
+        _stroke = new WpfPath { Stroke = ink, StrokeThickness = 3 };
+        Round(_stroke);
+        mark.Children.Add(_stroke);
 
-        // The word in soft cream, with a brighter band of light passing over it.
+        _tip = new WpfEllipse { Width = 5, Height = 5, Fill = P.CreamBrush, RenderTransform = _tipAt, IsHitTestVisible = false };
+        mark.Children.Add(_tip);
+
         var shimmer = new LinearGradientBrush { StartPoint = new Point(0, 0.5), EndPoint = new Point(1, 0.5), RelativeTransform = _sweep };
         Color dim = Palette.WithAlpha(P.Cream, 0.5);
         shimmer.GradientStops.Add(new GradientStop(dim, 0));
@@ -395,39 +409,117 @@ internal sealed class ThinkingPane : Pane
         shimmer.GradientStops.Add(new GradientStop(dim, 1));
         TextBlock word = Ui.Text("Thinking", 13.5, shimmer, FontWeights.Medium);
 
-        StackPanel row = Row(9, mark, word);
+        // Drawn in a 44 x 22 box, shown a quarter larger so the letter reads at a glance.
+        var scaled = new Viewbox { Width = 55, Height = 27.5, Child = mark };
+        StackPanel row = Row(10, scaled, word);
         row.HorizontalAlignment = HorizontalAlignment.Center;
         Set(row, new Thickness(0));
-    }
-
-    private static Viewbox Star(double size, Brush fill)
-    {
-        var box = new Canvas { Width = 24, Height = 24 };
-        box.Children.Add(Shape(Sparkle, fill, null));
-        return new Viewbox { Width = size, Height = size, Child = box };
+        Show(0, Points.Length - 1, 1);
     }
 
     public override FrameNeed Animate(double t, double dt, double voice)
     {
         if (Context.ReduceMotion)
         {
-            _twinkle.ScaleX = _twinkle.ScaleY = 1;
-            _sweep.X = 0;
             return FrameNeed.None;
         }
 
-        _flow.Angle = (t * 90) % 360;
-        double breath = 0.5 - (0.5 * Math.Cos(t * Math.PI * 2 / 1.6));
-        _breath.ScaleX = _breath.ScaleY = 0.88 + (0.14 * breath);
+        // Write, hold, then lift away from the start so the tip carries on to the end of the letter.
+        double x = t % Cycle;
+        double from = 0, to = 1, tip = 1;
+        if (x < Draw)
+        {
+            to = Ease(x / Draw);
+        }
+        else if (x >= Draw + Hold)
+        {
+            from = Ease((x - Draw - Hold) / Lift);
+            tip = 1 - (from * from);
+        }
 
-        // The small star appears, glints and goes, a little out of step with the big one.
-        double glint = Math.Max(0, Math.Sin(((t + 0.4) * Math.PI * 2 / 1.6)));
-        _twinkle.ScaleX = _twinkle.ScaleY = glint;
+        int last = Points.Length - 1;
+        Show((int)Math.Round(from * last), (int)Math.Round(to * last), tip);
 
         // The light crosses the word in a second, then rests for half a second.
-        double phase = (t % 1.5) / 1.0;
+        double phase = t % 1.5;
         _sweep.X = phase <= 1 ? -1 + (2 * phase) : 1;
         return FrameNeed.Fast;
+    }
+
+    private void Show(int from, int to, double tipOpacity)
+    {
+        if (to - from < 2)
+        {
+            _stroke.Data = null;
+            _tip.Opacity = 0;
+            return;
+        }
+
+        if ((from, to) != _drawn)
+        {
+            _drawn = (from, to);
+            _stroke.Data = Line(from, to);
+        }
+
+        _tipAt.X = Points[to].X - 2.5;
+        _tipAt.Y = Points[to].Y - 2.5;
+        _tip.Opacity = tipOpacity;
+    }
+
+    private static double Ease(double x) => x < 0.5 ? 4 * x * x * x : 1 - (Math.Pow((-2 * x) + 2, 3) / 2);
+
+    private static void Round(WpfPath path)
+    {
+        path.StrokeStartLineCap = PenLineCap.Round;
+        path.StrokeEndLineCap = PenLineCap.Round;
+        path.StrokeLineJoin = PenLineJoin.Round;
+        path.IsHitTestVisible = false;
+    }
+
+    private static StreamGeometry Line(int from, int to)
+    {
+        var geometry = new StreamGeometry();
+        using (StreamGeometryContext c = geometry.Open())
+        {
+            c.BeginFigure(Points[from], isFilled: false, isClosed: false);
+            for (int i = from + 1; i <= to; i++)
+            {
+                c.LineTo(Points[i], isStroked: true, isSmoothJoin: true);
+            }
+        }
+
+        geometry.Freeze();
+        return geometry;
+    }
+
+    /// <summary>Evenly spaced points along the letter, so the pen moves at a steady speed.</summary>
+    private static Point[] Sample()
+    {
+        var dense = new List<Point>();
+        foreach (Point[] c in Curves)
+        {
+            for (int i = 0; i <= 60; i++)
+            {
+                double t = i / 60.0, u = 1 - t;
+                dense.Add(new Point(
+                    (u * u * u * c[0].X) + (3 * u * u * t * c[1].X) + (3 * u * t * t * c[2].X) + (t * t * t * c[3].X),
+                    (u * u * u * c[0].Y) + (3 * u * u * t * c[1].Y) + (3 * u * t * t * c[2].Y) + (t * t * t * c[3].Y)));
+            }
+        }
+
+        var even = new List<Point> { dense[0] };
+        double carried = 0;
+        for (int i = 1; i < dense.Count; i++)
+        {
+            carried += (dense[i] - dense[i - 1]).Length;
+            if (carried >= 0.5)
+            {
+                even.Add(dense[i]);
+                carried = 0;
+            }
+        }
+
+        return even.ToArray();
     }
 }
 
