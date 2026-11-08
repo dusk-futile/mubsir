@@ -1,6 +1,31 @@
 # Changelog
 
-## 0.2.0 (unreleased)
+## 0.3.0 (unreleased)
+
+**You choose each service.** Setup shows the recommended free setup (one Gemini key), and "Choose other
+services and models" opens the full choice: brain (Gemini 3.5 Flash-Lite, Gemini 3.5 Flash or Claude Haiku
+5.5), hearing (Gemini or Fish Audio) and Arabic voice (Windows or Fish Audio), with the recommended ones
+marked. Only the chosen services need keys.
+
+**Hearing what happened.** Each step is said as it starts ("Opening Settings") and again when it has really
+finished ("Opened Settings", "فتحت الإعدادات"), so you don't need to see the checklist. A step that fails
+plays the error sound.
+
+**The notch**
+- The light around it lives: blue and moving with your voice while listening, warm and moving with
+  Mubsir's voice while speaking, a slow spectrum while thinking, and amber turning green as a task's steps
+  finish, with a pulse at each one.
+- Thinking is Mubsir's signature: a stroke shaped like the letter م writes itself right to left with a
+  haloed pen tip, then lifts away like a pen moving on. The ink stays Mubsir's amber into coral, with a warm
+  light under it; warm sparks lift off the tip, and the faint outline of the letter breathes. A light sweeps
+  across the word beside it.
+- Shorter words everywhere: "Step 2", and "Book open · Page 34 of 312" while a book is read aloud (now shown
+  by the real app, not only the demo).
+- The payment screens are gone.
+
+**Setup** is dark, like the notch, and built from Windows' own controls.
+
+## 0.2.0 (2026-11-08)
 
 **Free, with your own keys.** No account, server or relay. Gemini is the free brain and hearing; Claude
 Haiku is used instead when you add a Claude key.

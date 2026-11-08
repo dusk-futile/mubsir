@@ -55,13 +55,15 @@ On first start it asks a few questions, and each answer changes how it behaves. 
 
 ## Your keys
 
-There are no keys in this repo and no account to make. Copy a key on the website and Mubsir picks it up, tests it and stores it, encrypted for your Windows account. Nothing goes in a file.
+There are no keys in this repo and no account to make. Every service is optional: you choose one for each part, and add only that one's key. Copy a key on the website and Mubsir picks it up, tests it and stores it, encrypted for your Windows account. Nothing goes in a file.
 
-| Key | What it's for | |
+| Part | Choose | |
 | --- | --- | --- |
-| [Google Gemini](https://aistudio.google.com/apikey) | The brain and hearing you | Required and free, within Google's limits. Google may use free requests to improve its products. |
-| [Fish Audio](https://fish.audio/app/api-keys) | A natural Arabic voice | Optional, and free while Fish offers its free model. Without it, the free Windows voice speaks Arabic. |
-| [Claude](https://console.anthropic.com/settings/keys) | A paid brain | Optional. If you add it, Claude Haiku is used instead of Gemini. |
+| Brain | [Google Gemini](https://aistudio.google.com/apikey) or [Claude Haiku](https://console.anthropic.com/settings/keys) | Gemini is free within Google's limits (Google may use free requests to improve its products). Claude costs about $2 a month at 60 requests a day. |
+| Hearing | Google Gemini or [Fish Audio](https://fish.audio/app/api-keys) | One Gemini key covers the brain and the hearing. |
+| Arabic voice | The Windows voice or Fish Audio | The Windows voice is free; Fish sounds natural. |
+
+If a chosen service has no key yet, Mubsir uses the other one when its key is there, so it keeps working.
 
 English speech is free and private: Ryan, a natural voice that runs on your PC, downloads once in the background.
 

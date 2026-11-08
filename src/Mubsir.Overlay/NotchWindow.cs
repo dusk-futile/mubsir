@@ -29,6 +29,12 @@ internal sealed class NotchWindow : Window, IAnimated
     private readonly WpfPath _shape;
     private readonly WpfPath _rim;
     private readonly RotateTransform _rimTurn = new(0, 0.5, 0.5);
+    private readonly GradientStop[] _rimStops = new GradientStop[4];
+    private Color[] _rimTarget = [];
+    private double _rimAngle;
+    private double _lastFrame;
+    private double _progress;
+    private int _stepsDone;
     private readonly Canvas _panesLayer = new();
     private readonly Dictionary<CompanionState, Pane> _panes = [];
     private readonly IdlePane _idle;
@@ -68,10 +74,13 @@ internal sealed class NotchWindow : Window, IAnimated
 
         Palette p = assets.Palette;
         var rimFill = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(1, 1), RelativeTransform = _rimTurn };
-        rimFill.GradientStops.Add(new GradientStop(p.Amber, 0));
-        rimFill.GradientStops.Add(new GradientStop(p.Crest, 0.33));
-        rimFill.GradientStops.Add(new GradientStop(p.Lilac, 0.66));
-        rimFill.GradientStops.Add(new GradientStop(p.Teal, 1));
+        _rimTarget = RimColors(CompanionState.Idle);
+        for (int i = 0; i < _rimStops.Length; i++)
+        {
+            _rimStops[i] = new GradientStop(_rimTarget[i], i / 3.0);
+            rimFill.GradientStops.Add(_rimStops[i]);
+        }
+
         _rim = new WpfPath
         {
             Fill = rimFill,
@@ -89,8 +98,6 @@ internal sealed class NotchWindow : Window, IAnimated
         var context = new PaneContext(assets, reduceMotion)
         {
             Stop = () => StopClicked?.Invoke(),
-            Tap = () => TapClicked?.Invoke(),
-            Cancel = () => CancelClicked?.Invoke(),
         };
         IReadOnlyDictionary<CompanionState, Size2> sizes = tokens.NotchSizes;
         _idle = new IdlePane(context, sizes[CompanionState.Idle]);
@@ -101,8 +108,6 @@ internal sealed class NotchWindow : Window, IAnimated
         Add(CompanionState.Doing, new DoingPane(context, sizes[CompanionState.Doing]));
         Add(CompanionState.Speaking, new SpeakingPane(context, sizes[CompanionState.Speaking]));
         Add(CompanionState.Reading, new ReadingPane(context, sizes[CompanionState.Reading]));
-        Add(CompanionState.Confirm, new ConfirmPane(context, sizes[CompanionState.Confirm]));
-        Add(CompanionState.Paid, new ResultPane(context, sizes[CompanionState.Paid], p.Ok, "M7.4 12.4 L10.6 15.4 L16.8 8.8", 2.2, "Paid"));
         Add(CompanionState.Undone, new ResultPane(context, sizes[CompanionState.Undone], p.Crest, "M8.2 9.4 H14 A3.3 3.3 0 0 1 14 16 H9.6 M10.6 6.8 L8.2 9.4 L10.6 12", 2, "Stopped. Everything is back as it was."));
 
         // The panes are clipped to the notch, so they are revealed as it opens.
@@ -133,10 +138,6 @@ internal sealed class NotchWindow : Window, IAnimated
 
     public event Action? StopClicked;
 
-    public event Action? TapClicked;
-
-    public event Action? CancelClicked;
-
     /// <summary>Makes the voice wave move by itself, for the demo; the real app feeds <see cref="SetVoiceLevel"/>.</summary>
     public bool DemoVoice { get; set; }
 
@@ -154,6 +155,15 @@ internal sealed class NotchWindow : Window, IAnimated
         if (content is not null)
         {
             _panes[state].Apply(content);
+        }
+
+        if (state == CompanionState.Doing)
+        {
+            Track(content?.Steps);
+        }
+        else if (state == CompanionState.Reading && content is not null)
+        {
+            _progress = Math.Clamp(content.BookProgress, 0, 1);
         }
 
         if (state == CompanionState.Idle && _hovering)
@@ -254,9 +264,13 @@ internal sealed class NotchWindow : Window, IAnimated
         _rimLevel.SetTarget(state switch
         {
             CompanionState.Listening => 1,
-            CompanionState.Speaking => 0.7,
+            CompanionState.Speaking => 0.85,
+            CompanionState.Thinking => 0.75,
+            CompanionState.Doing => 0.4 + (0.45 * _progress),
+            CompanionState.Reading => 0.3,
             _ => 0,
         });
+        _rimTarget = RimColors(state);
         Show(_panes[state]);
     }
 
@@ -336,15 +350,37 @@ internal sealed class NotchWindow : Window, IAnimated
             _panesLayer.Clip = Outline(_center, w, h, r, 0);
         }
 
-        double level = Math.Clamp(_rimLevel.Value, 0, 1) * (0.75 + (0.25 * Math.Min(1, _voice.Value * 1.4)));
+        double dt = Math.Clamp(now - _lastFrame, 0, 0.1);
+        _lastFrame = now;
+        bool voiced = _state is CompanionState.Listening or CompanionState.Speaking;
+        double voice = Math.Min(1, _voice.Value * 1.4);
+
+        // The light lives: it brightens and swells with the voice, and turns faster the louder it is.
+        double level = Math.Clamp(_rimLevel.Value, 0, 1.2) * (voiced ? 0.45 + (0.55 * voice) : 1);
         if (level > 0.005)
         {
+            double swell = voiced ? 6 * voice : 0;
             _rim.Visibility = Visibility.Visible;
-            _rim.Opacity = level;
-            _rim.Data = Outline(_center, w + 12, h + 6, r + 6, 0);
+            _rim.Opacity = Math.Min(1, level);
+            _rim.Data = Outline(_center, w + 10 + swell, h + 5 + (swell / 2), r + 6, 0);
             if (!_reduce)
             {
-                _rimTurn.Angle = (now * 70) % 360;
+                double speed = _state switch
+                {
+                    CompanionState.Thinking => 50,
+                    CompanionState.Doing => 30,
+                    _ when voiced => 25 + (220 * voice),
+                    _ => 15,
+                };
+                _rimAngle = (_rimAngle + (speed * dt)) % 360;
+                _rimTurn.Angle = _rimAngle;
+            }
+
+            // Colours glide to the new state's instead of jumping.
+            double blend = _reduce ? 1 : Math.Min(1, dt * 4);
+            for (int i = 0; i < _rimStops.Length; i++)
+            {
+                _rimStops[i].Color = Lerp(_rimStops[i].Color, _rimTarget[i], blend);
             }
         }
         else
@@ -352,6 +388,44 @@ internal sealed class NotchWindow : Window, IAnimated
             _rim.Visibility = Visibility.Collapsed;
         }
     }
+
+    /// <summary>
+    /// The rim's four colours for a state: cool blues while listening, warm amber while speaking, the full
+    /// spectrum while thinking, and amber turning green as a task's steps finish.
+    /// </summary>
+    private Color[] RimColors(CompanionState state)
+    {
+        Palette p = _assets.Palette;
+        return state switch
+        {
+            CompanionState.Listening => [p.Teal, p.Sky, p.Lilac, p.Sky],
+            CompanionState.Speaking => [p.Amber, p.Crest, p.Cream, p.Amber],
+            CompanionState.Thinking => [p.Sky, p.Lilac, p.Pink, p.Amber],
+            CompanionState.Doing => [Lerp(p.Amber, p.Ok, _progress), p.Amber, Lerp(p.Amber, p.Ok, _progress), p.Ok],
+            CompanionState.Reading => [p.Amber, p.Cream, p.Amber, p.Crest],
+            _ => [p.Amber, p.Crest, p.Lilac, p.Teal],
+        };
+    }
+
+    /// <summary>Follows a task's progress, and pulses the light each time a step finishes.</summary>
+    private void Track(IReadOnlyList<CompanionStep>? steps)
+    {
+        int total = steps?.Count ?? 0;
+        int done = steps?.Count(s => s.State == StepState.Done) ?? 0;
+        _progress = total == 0 ? 0 : (double)done / total;
+        if (done > _stepsDone && !_reduce)
+        {
+            _rimLevel.Kick(3);
+        }
+
+        _stepsDone = total == 0 ? 0 : done;
+    }
+
+    private static Color Lerp(Color from, Color to, double t) => Color.FromArgb(
+        (byte)Math.Round(from.A + ((to.A - from.A) * t)),
+        (byte)Math.Round(from.R + ((to.R - from.R) * t)),
+        (byte)Math.Round(from.G + ((to.G - from.G) * t)),
+        (byte)Math.Round(from.B + ((to.B - from.B) * t)));
 
     /// <summary>The notch's outline: flat along the top edge, with concave fillets into the screen edge and
     /// soft bottom corners. <paramref name="corner"/> is how far back each bottom corner's curve starts.</summary>

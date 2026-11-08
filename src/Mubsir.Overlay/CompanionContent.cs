@@ -37,30 +37,9 @@ public sealed record CompanionContent
 
     public DoingMode Mode { get; init; } = DoingMode.Running;
 
-    /// <summary>Reading: the book's title.</summary>
-    public string? BookTitle { get; init; }
-
-    /// <summary>Reading: chapter and page.</summary>
+    /// <summary>Reading: where in the book, for example "Page 34 of 312".</summary>
     public string? BookPlace { get; init; }
 
-    /// <summary>Reading: what the user can say next.</summary>
-    public string? BookHint { get; init; }
-
-    /// <summary>Reading: 0–1 through the book.</summary>
+    /// <summary>Reading: 0 to 1 through the book.</summary>
     public double BookProgress { get; init; }
-
-    /// <summary>Confirm: the amount, as it should be read.</summary>
-    public string? Amount { get; init; }
-
-    /// <summary>Confirm: the site the payment goes to.</summary>
-    public string? Site { get; init; }
-
-    /// <summary>Confirm: one line with what is being paid and how.</summary>
-    public string? Facts { get; init; }
-
-    /// <summary>Confirm: how many of the four Ctrl presses have happened.</summary>
-    public int Taps { get; init; }
-
-    /// <summary>Paid: the sentence to show.</summary>
-    public string? PaidText { get; init; }
 }

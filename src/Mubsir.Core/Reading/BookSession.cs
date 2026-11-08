@@ -102,6 +102,18 @@ public sealed class BookSession(IBookVoice voice, Action stopVoice, ReadingPosit
         }
     }
 
+    /// <summary>The page being read and how many there are, while a book is being read aloud; otherwise null.</summary>
+    public (int Page, int Pages)? Reading
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return IsActive && _pages is { } pages ? (_page, pages.Count) : null;
+            }
+        }
+    }
+
     public Task<string?> NextPageAsync() => WithBook(p => _page >= p.Count
         ? Task.FromResult<string?>(_lang == Lang.Arabic ? "دي آخر صفحة." : "This is the last page.")
         : Restart(p, _page + 1, 0, null));

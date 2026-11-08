@@ -13,10 +13,13 @@ internal sealed class CompanionBridge(SpeechService speech, WaveInRecorder recor
     private const int MaxSteps = 6;
 
     private readonly object _gate = new();
-    private readonly List<string> _steps = [];
+    private readonly List<CompanionStep> _steps = [];
     private OverlayHost? _overlay;
     private bool _busy;
     private bool _disposed;
+
+    /// <summary>The page being read aloud and how many there are, or null when no book is being read.</summary>
+    public Func<(int Page, int Pages)?>? Book { get; set; }
 
     public void Start()
     {
@@ -70,7 +73,7 @@ internal sealed class CompanionBridge(SpeechService speech, WaveInRecorder recor
         }
     }
 
-    /// <summary>Each step the agent takes becomes a line. The last one is running and the earlier ones are done.</summary>
+    /// <summary>Each step the agent takes becomes a line, spinning while it runs.</summary>
     public void Step(string text)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -80,19 +83,54 @@ internal sealed class CompanionBridge(SpeechService speech, WaveInRecorder recor
 
         lock (_gate)
         {
-            _steps.Add(text);
+            _steps.Add(new CompanionStep(text, StepState.Running));
             if (_steps.Count > MaxSteps)
             {
                 _steps.RemoveAt(0);
             }
 
-            _overlay?.Show(CompanionState.Doing, new CompanionContent { Steps = Lines(StepState.Running), Mode = DoingMode.Running });
+            ShowSteps();
         }
     }
+
+    /// <summary>The running step finished: ticked and reworded ("Opened Settings") when it worked, crossed out when it didn't.</summary>
+    public void StepFinished(bool ok, string? finished)
+    {
+        lock (_gate)
+        {
+            int last = _steps.Count - 1;
+            if (last < 0 || _steps[last].State != StepState.Running)
+            {
+                return;
+            }
+
+            _steps[last] = _steps[last] with
+            {
+                State = ok ? StepState.Done : StepState.Undone,
+                Text = string.IsNullOrWhiteSpace(finished) ? _steps[last].Text : finished,
+            };
+            ShowSteps();
+        }
+    }
+
+    private void ShowSteps() =>
+        _overlay?.Show(CompanionState.Doing, new CompanionContent { Steps = _steps.ToArray(), Mode = DoingMode.Running });
 
     public void TaskEnded()
     {
         _busy = false;
+        lock (_gate)
+        {
+            // A step that was handed off (reading aloud, for one) never reports back: the task ending means it ran.
+            for (int i = 0; i < _steps.Count; i++)
+            {
+                if (_steps[i].State == StepState.Running)
+                {
+                    _steps[i] = _steps[i] with { State = StepState.Done };
+                }
+            }
+        }
+
         if (!speech.IsSpeaking)
         {
             _overlay?.Show(CompanionState.Idle);
@@ -111,18 +149,30 @@ internal sealed class CompanionBridge(SpeechService speech, WaveInRecorder recor
         }
     }
 
-    private CompanionStep[] Lines(StepState last) =>
-        _steps.Select((s, i) => new CompanionStep(s, i == _steps.Count - 1 ? last : StepState.Done)).ToArray();
-
     private void OnMic(double level) => _overlay?.SetVoiceLevel(level);
 
-    /// <summary>What's being said, for anyone looking at the screen.</summary>
+    /// <summary>What's being said, for anyone looking at the screen. While a book is read, where in the book.</summary>
     private void OnSentence(int index)
     {
         if (speech.IsSpeaking)
         {
-            _overlay?.Show(CompanionState.Speaking, Caption(speech.History.Current?.Text));
+            ShowVoice();
         }
+    }
+
+    private void ShowVoice()
+    {
+        if (Book?.Invoke() is { } book)
+        {
+            _overlay?.Show(CompanionState.Reading, new CompanionContent
+            {
+                BookPlace = $"Page {book.Page} of {book.Pages}",
+                BookProgress = book.Pages == 0 ? 0 : (double)book.Page / book.Pages,
+            });
+            return;
+        }
+
+        _overlay?.Show(CompanionState.Speaking, Caption(speech.History.Current?.Text));
     }
 
     private static CompanionContent? Caption(string? text) => string.IsNullOrWhiteSpace(text)
@@ -136,7 +186,7 @@ internal sealed class CompanionBridge(SpeechService speech, WaveInRecorder recor
         if (speaking)
         {
             _overlay?.UseDemoVoice();
-            _overlay?.Show(CompanionState.Speaking, Caption(speech.History.Current?.Text));
+            ShowVoice();
         }
         else
         {

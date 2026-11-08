@@ -288,12 +288,18 @@ public sealed class AgentLoop(
                     {
                     }
 
-                    if (!string.IsNullOrWhiteSpace(phrase))
+                    bool narrated = !string.IsNullOrWhiteSpace(phrase);
+                    if (narrated)
                     {
-                        narrator.Narrate(phrase, NarrationKind.Step);
+                        narrator.Narrate(phrase!, NarrationKind.Step);
                     }
 
                     result = await ExecuteAsync(prepared, call, task, ct).ConfigureAwait(false);
+                    if (narrated)
+                    {
+                        narrator.StepFinished(!result.IsError);
+                    }
+
                     break;
                 }
         }

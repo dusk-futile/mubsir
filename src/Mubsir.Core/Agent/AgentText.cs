@@ -54,6 +54,8 @@ public static class AgentText
 
     public static string Declined(Lang lang) => lang == Lang.Arabic ? "تم الإلغاء." : "Cancelled.";
 
+    public static string StepDone(Lang lang) => lang == Lang.Arabic ? "تم." : "Done.";
+
     public static string StepLimit(Lang lang) => lang == Lang.Arabic
         ? "توقفت لأن المهمة احتاجت خطوات كثيرة. يمكنك أن تطلبها مرة أخرى بطريقة أبسط."
         : "I stopped because the task needed too many steps. You can ask again in a simpler way.";

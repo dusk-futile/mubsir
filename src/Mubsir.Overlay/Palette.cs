@@ -15,6 +15,8 @@ internal sealed class Palette
         Ok = Parse(tokens, "ok");
         Lilac = Parse(tokens, "lilac");
         Teal = Parse(tokens, "teal");
+        Sky = Parse(tokens, "sky");
+        Pink = Parse(tokens, "pink");
         IslandBrush = Solid(Island);
         AmberBrush = Solid(Amber);
         CreamBrush = Solid(Cream);
@@ -37,6 +39,10 @@ internal sealed class Palette
     public Color Lilac { get; }
 
     public Color Teal { get; }
+
+    public Color Sky { get; }
+
+    public Color Pink { get; }
 
     public Brush IslandBrush { get; }
 

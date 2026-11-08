@@ -32,12 +32,6 @@ public sealed class OverlayHost : IDisposable
     /// <summary>The Stop pill was pressed during Doing.</summary>
     public event Action? StopRequested;
 
-    /// <summary>The on-screen "Press Ctrl" button was pressed during a payment.</summary>
-    public event Action? ConfirmTapRequested;
-
-    /// <summary>The Cancel button was pressed during a payment.</summary>
-    public event Action? CancelRequested;
-
     /// <summary>Something went wrong inside the overlay. It carries on, or closes itself if it keeps failing,
     /// and never takes the app down: the voice agent must keep working without the visuals.</summary>
     public event Action<Exception>? Failed;
@@ -117,8 +111,6 @@ public sealed class OverlayHost : IDisposable
             var companion = new Companion(OverlayAssets.Load());
             companion.Notch.Clicked += () => NotchClicked?.Invoke();
             companion.Notch.StopClicked += () => StopRequested?.Invoke();
-            companion.Notch.TapClicked += () => ConfirmTapRequested?.Invoke();
-            companion.Notch.CancelClicked += () => CancelRequested?.Invoke();
             companion.Open();
             _companion = companion;
         }

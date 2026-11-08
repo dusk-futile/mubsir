@@ -10,8 +10,6 @@ public enum CompanionState
     Doing,
     Speaking,
     Reading,
-    Confirm,
-    Paid,
     Undone,
 }
 
@@ -37,8 +35,6 @@ public static class CompanionStates
         CompanionState.Doing => "doing",
         CompanionState.Speaking => "speaking",
         CompanionState.Reading => "reading",
-        CompanionState.Confirm => "confirm",
-        CompanionState.Paid => "paid",
         CompanionState.Undone => "undone",
         _ => throw new ArgumentOutOfRangeException(nameof(state)),
     };

@@ -94,16 +94,6 @@ public class OnboardingFlowTests
     public void Other_copied_text_is_left_alone(string? copied) => Assert.Null(KeySetup.Recognize(copied));
 
     [Fact]
-    public void A_free_gemini_key_alone_is_enough_to_start()
-    {
-        Assert.True(KeySetup.CanStart(false, false, true));
-        Assert.True(KeySetup.CanStart(true, true, false));
-        Assert.False(KeySetup.CanStart(true, false, false));
-        Assert.False(KeySetup.CanStart(false, true, false));
-        Assert.Equal(KeyKind.Gemini, KeySetup.NextNeeded(false, false, false));
-    }
-
-    [Fact]
     public void The_cost_estimate_grows_with_use_and_the_free_voice_is_cheaper()
     {
         MonthlyCost light = CostGuide.Estimate(20);

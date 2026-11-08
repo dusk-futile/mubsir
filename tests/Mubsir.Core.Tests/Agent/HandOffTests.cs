@@ -59,6 +59,10 @@ public class HandOffTests
         {
         }
 
+        public void StepFinished(bool ok)
+        {
+        }
+
         public void AnswerDelta(string text) => Answers.Add(text);
 
         public void AnswerEnd()
