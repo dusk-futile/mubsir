@@ -2,18 +2,20 @@
 
 ## 0.3.0 (unreleased)
 
-**You choose each service.** Brain: Gemini or Claude Haiku. Hearing: Gemini or Fish Audio. Arabic voice: the
-Windows voice or Fish Audio. Only the chosen service needs a key, and one Gemini key covers the brain and
-the hearing.
+**You choose each service.** Setup shows the recommended free setup (one Gemini key), and "Choose other
+services and models" opens the full choice: brain (Gemini 3.5 Flash-Lite, Gemini 3.5 Flash or Claude Haiku
+5.5), hearing (Gemini or Fish Audio) and Arabic voice (Windows or Fish Audio), with the recommended ones
+marked. Only the chosen services need keys.
 
-**Hearing what happened.** Each step is said as it starts and "Done" (تم) is said when it has really
-finished, so you don't need to see the checklist. A step that fails plays the error sound.
+**Hearing what happened.** Each step is said as it starts ("Opening Settings") and again when it has really
+finished ("Opened Settings", "فتحت الإعدادات"), so you don't need to see the checklist. A step that fails
+plays the error sound.
 
 **The notch**
 - The light around it lives: blue and moving with your voice while listening, warm and moving with
   Mubsir's voice while speaking, a slow spectrum while thinking, and amber turning green as a task's steps
   finish, with a pulse at each one.
-- Thinking is a small orb of drifting colour, without words.
+- Thinking is a crisp sparkle with colour flowing through it and a light sweeping across the word.
 - Shorter words everywhere: "Step 2", and "Book open · Page 34 of 312" while a book is read aloud (now shown
   by the real app, not only the demo).
 - The payment screens are gone.

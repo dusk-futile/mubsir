@@ -115,6 +115,10 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
 
     public void SetEars(EarsChoice ears) => app.Settings.Update(s => s with { Ears = ears });
 
+    public string GetGeminiModel() => app.Settings.Settings.GeminiBrainModel;
+
+    public void SetGeminiModel(string model) => app.Settings.Update(s => s with { GeminiBrainModel = model });
+
     public bool GetOption(string name)
     {
         MubsirSettings s = app.Settings.Settings;

@@ -4,6 +4,8 @@ Update this file at the end of every session. Newest on top.
 
 # Latest session, 2026-11-08 (live notch and provider choice)
 
+- **Follow-up:** finished steps are said in the past tense (`Core/Agent/StepWords.cs`: "Opening Settings" → "Opened Settings", "أفتح" → "فتحت"; names in quotes untouched; otherwise "Done"/"تم"), and the notch line is reworded the same way. Thinking is now a sharp gradient sparkle with shimmer text. Setup shows the recommended free setup and an expander with brain models (Gemini 3.5 Flash-Lite / Flash via `GeminiBrainModel`, Claude Haiku 5.5), hearing and Arabic voice.
+
 - **"Done" out loud:** `AgentLoop` calls `INarrator.StepFinished(ok)` after a narrated step runs; `Narrator` says "تم"/"Done." or plays the error sound, and the notch ticks or crosses out that line (`CompanionBridge.StepFinished`). Lines still running when the task ends are ticked. Tests: `StepDoneTests`.
 - **Payment screens removed** (Confirm and Paid states, `ConfirmPane`, the demo's payment scene). Only the demo used them. The policy still keeps the AI off bank pages.
 - **Notch:** the rim's four colours glide per state (`NotchWindow.RimColors`), swell and speed up with the voice, and turn from amber to green with a task's progress, pulsing at each finished step. Thinking is three drifting blurred lights (sky, lilac, pink) with no text. Labels removed from listening and speaking; Doing says "Step N"; Reading says "Book open" and "Page N of M". The listening wave is cool, the speaking wave warm. New colours `sky` and `pink` in `motion-tokens.json`.

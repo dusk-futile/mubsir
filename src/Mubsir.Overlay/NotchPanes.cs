@@ -354,62 +354,79 @@ internal sealed class ListeningPane : Pane
 }
 
 /// <summary>
-/// Thinking, without words: three soft lights in the notch's colours drift around each other and blend,
-/// like light moving under glass.
+/// Thinking: a crisp four-point sparkle with colour flowing through it, a small one twinkling beside it, and
+/// the word with a light sweeping across it. All sharp vector shapes, no blur.
 /// </summary>
 internal sealed class ThinkingPane : Pane
 {
-    private const double Box = 26;
-    private const double Light = 15;
-    private readonly (WpfEllipse Light, TranslateTransform Move)[] _lights;
+    // A four-point star with curved sides, in a 24 x 24 box.
+    private const string Sparkle = "M12 0 C12.9 6.6 17.4 11.1 24 12 C17.4 12.9 12.9 17.4 12 24 C11.1 17.4 6.6 12.9 0 12 C6.6 11.1 11.1 6.6 12 0 Z";
+    private readonly RotateTransform _flow = new(0, 0.5, 0.5);
+    private readonly ScaleTransform _breath = new(1, 1, 9, 9);
+    private readonly ScaleTransform _twinkle = new(0, 0, 4, 4);
+    private readonly TranslateTransform _sweep = new(-1, 0);
 
     public ThinkingPane(PaneContext context, Size2 size)
         : base(context, size)
     {
-        var stage = new Canvas { Width = Box, Height = Box };
-        Color[] colors = [P.Sky, P.Lilac, P.Pink];
-        _lights = new (WpfEllipse, TranslateTransform)[colors.Length];
-        for (int i = 0; i < colors.Length; i++)
-        {
-            var move = new TranslateTransform();
-            var light = new WpfEllipse
-            {
-                Width = Light,
-                Height = Light,
-                Fill = Palette.Solid(colors[i], 0.9),
-                RenderTransform = move,
-                Effect = new BlurEffect { Radius = 5, RenderingBias = RenderingBias.Performance },
-            };
-            Canvas.SetLeft(light, (Box - Light) / 2);
-            Canvas.SetTop(light, (Box - Light) / 2);
-            stage.Children.Add(light);
-            _lights[i] = (light, move);
-        }
+        var colors = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(1, 1), RelativeTransform = _flow };
+        colors.GradientStops.Add(new GradientStop(P.Sky, 0));
+        colors.GradientStops.Add(new GradientStop(P.Lilac, 0.38));
+        colors.GradientStops.Add(new GradientStop(P.Pink, 0.68));
+        colors.GradientStops.Add(new GradientStop(P.Amber, 1));
 
-        var core = new WpfEllipse { Width = 6, Height = 6, Fill = Palette.Solid(P.Cream, 0.9) };
-        Canvas.SetLeft(core, (Box - 6) / 2);
-        Canvas.SetTop(core, (Box - 6) / 2);
-        stage.Children.Add(core);
-        stage.HorizontalAlignment = HorizontalAlignment.Center;
-        Set(stage, new Thickness(0));
+        var big = Star(18, colors);
+        big.RenderTransform = _breath;
+        var small = Star(8, Palette.Solid(P.Cream));
+        small.RenderTransform = _twinkle;
+        var mark = new Canvas { Width = 26, Height = 22 };
+        Canvas.SetTop(big, 3);
+        mark.Children.Add(big);
+        Canvas.SetLeft(small, 17);
+        mark.Children.Add(small);
+
+        // The word in soft cream, with a brighter band of light passing over it.
+        var shimmer = new LinearGradientBrush { StartPoint = new Point(0, 0.5), EndPoint = new Point(1, 0.5), RelativeTransform = _sweep };
+        Color dim = Palette.WithAlpha(P.Cream, 0.5);
+        shimmer.GradientStops.Add(new GradientStop(dim, 0));
+        shimmer.GradientStops.Add(new GradientStop(dim, 0.35));
+        shimmer.GradientStops.Add(new GradientStop(P.Cream, 0.5));
+        shimmer.GradientStops.Add(new GradientStop(dim, 0.65));
+        shimmer.GradientStops.Add(new GradientStop(dim, 1));
+        TextBlock word = Ui.Text("Thinking", 13.5, shimmer, FontWeights.Medium);
+
+        StackPanel row = Row(9, mark, word);
+        row.HorizontalAlignment = HorizontalAlignment.Center;
+        Set(row, new Thickness(0));
+    }
+
+    private static Viewbox Star(double size, Brush fill)
+    {
+        var box = new Canvas { Width = 24, Height = 24 };
+        box.Children.Add(Shape(Sparkle, fill, null));
+        return new Viewbox { Width = size, Height = size, Child = box };
     }
 
     public override FrameNeed Animate(double t, double dt, double voice)
     {
         if (Context.ReduceMotion)
         {
+            _twinkle.ScaleX = _twinkle.ScaleY = 1;
+            _sweep.X = 0;
             return FrameNeed.None;
         }
 
-        for (int i = 0; i < _lights.Length; i++)
-        {
-            double a = (t * 1.7) + (i * Math.PI * 2 / _lights.Length);
-            double r = 4.5 + (1.5 * Math.Sin((t * 2.3) + i));
-            _lights[i].Move.X = r * Math.Cos(a);
-            _lights[i].Move.Y = r * 0.7 * Math.Sin(a);
-            _lights[i].Light.Opacity = 0.65 + (0.35 * Math.Sin((t * 1.9) + (i * 2)));
-        }
+        _flow.Angle = (t * 90) % 360;
+        double breath = 0.5 - (0.5 * Math.Cos(t * Math.PI * 2 / 1.6));
+        _breath.ScaleX = _breath.ScaleY = 0.88 + (0.14 * breath);
 
+        // The small star appears, glints and goes, a little out of step with the big one.
+        double glint = Math.Max(0, Math.Sin(((t + 0.4) * Math.PI * 2 / 1.6)));
+        _twinkle.ScaleX = _twinkle.ScaleY = glint;
+
+        // The light crosses the word in a second, then rests for half a second.
+        double phase = (t % 1.5) / 1.0;
+        _sweep.X = phase <= 1 ? -1 + (2 * phase) : 1;
         return FrameNeed.Fast;
     }
 }

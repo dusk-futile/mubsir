@@ -93,8 +93,8 @@ internal sealed class CompanionBridge(SpeechService speech, WaveInRecorder recor
         }
     }
 
-    /// <summary>The running step finished: ticked when it worked, crossed out when it didn't.</summary>
-    public void StepFinished(bool ok)
+    /// <summary>The running step finished: ticked and reworded ("Opened Settings") when it worked, crossed out when it didn't.</summary>
+    public void StepFinished(bool ok, string? finished)
     {
         lock (_gate)
         {
@@ -104,7 +104,11 @@ internal sealed class CompanionBridge(SpeechService speech, WaveInRecorder recor
                 return;
             }
 
-            _steps[last] = _steps[last] with { State = ok ? StepState.Done : StepState.Undone };
+            _steps[last] = _steps[last] with
+            {
+                State = ok ? StepState.Done : StepState.Undone,
+                Text = string.IsNullOrWhiteSpace(finished) ? _steps[last].Text : finished,
+            };
             ShowSteps();
         }
     }

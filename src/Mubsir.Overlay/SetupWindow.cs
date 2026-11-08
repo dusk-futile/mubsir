@@ -54,6 +54,11 @@ public interface ISetupDriver
 
     void SetEars(EarsChoice ears);
 
+    /// <summary>The Gemini model used as the brain.</summary>
+    string GetGeminiModel();
+
+    void SetGeminiModel(string model);
+
     string? GetFishVoiceId();
 
     void SetFishVoiceId(string? voiceId);
@@ -111,6 +116,7 @@ public sealed class SetupWindow : Window
     private string? _notice;
     private CancellationTokenSource? _listening;
     private string? _focusChoice;
+    private bool _servicesOpen;
 
     /// <summary>Opens straight on the first question. Only the demo that takes the pictures uses this.</summary>
     public bool StartOnQuestions { get; init; }
@@ -203,7 +209,7 @@ public sealed class SetupWindow : Window
     private void ShowKeys(bool speak)
     {
         Begin(T("أهلا بك في مبصر", "Welcome to Mubsir"));
-        Add(Words(T("اختار الخدمة لكل جزء، وحط مفتاحها بس. Gemini مجاني.", "Choose a service for each part, then add only its key. Gemini is free."), 14, Quiet));
+        Add(Words(T("الموصى به مجاني: مفتاح واحد من Google Gemini يكفي.", "The recommended setup is free: one Google Gemini key is enough."), 14, Quiet));
         Button? first = ShowServices();
 
         bool ready = Providers.CanStart(_driver.GetBrain(), _driver.GetEars(), Held());
@@ -226,61 +232,97 @@ public sealed class SetupWindow : Window
     private KeysHeld Held() => new(_driver.HasKey(KeyKind.Anthropic), _driver.HasKey(KeyKind.FishAudio), _driver.HasKey(KeyKind.Gemini));
 
     /// <summary>
-    /// The three choices, each followed by the one key it needs. A key already asked for above isn't asked for
-    /// twice. Returns the first key button, to focus when nothing is set up yet.
+    /// What Mubsir will use, in one line, then the keys that choice needs. "Choose other services and models"
+    /// opens the full choice: brain and model, hearing, and Arabic voice, with the recommended ones marked.
+    /// Returns the first key button, to focus when nothing is set up yet.
     /// </summary>
-    private Button? ShowServices()
+    private Button? ShowServices(bool open = false)
     {
         KeysHeld held = Held();
+        BrainChoice brain = Providers.Chosen(_driver.GetBrain(), held);
+        EarsChoice ears = Providers.Chosen(_driver.GetEars(), held);
+        bool fishVoice = _driver.GetOption("UseFishVoice");
+        string model = _driver.GetGeminiModel();
+        bool flash = brain == BrainChoice.Gemini && model == FlashModel;
+
+        string brainName = brain == BrainChoice.Claude ? "Claude Haiku 5.5" : flash ? "Gemini 3.5 Flash" : "Gemini 3.5 Flash-Lite";
+        string earsName = ears == EarsChoice.Fish ? "Fish Audio" : "Gemini";
+        string voiceName = fishVoice ? "Fish Audio" : T("صوت ويندوز", "the Windows voice");
+        Add(Words(T($"العقل: {brainName}. السمع: {earsName}. صوت العربي: {voiceName}. صوت الإنجليزي: Ryan، مجاني على جهازك.",
+            $"Brain: {brainName}. Hearing: {earsName}. Arabic voice: {voiceName}. English voice: Ryan, free on this PC."), 14, Ink, top: 10));
+
+        var expander = new Expander
+        {
+            Header = T("اختار خدمات وموديلات تانية", "Choose other services and models"),
+            IsExpanded = open || _servicesOpen,
+            FontFamily = Font,
+            FontSize = 14,
+            Margin = new Thickness(0, 8, 0, 4),
+        };
+        expander.Expanded += (_, _) => _servicesOpen = true;
+        expander.Collapsed += (_, _) => _servicesOpen = false;
+        var choices = new StackPanel { Margin = new Thickness(4, 0, 0, 0) };
+        expander.Content = choices;
+        Add(expander);
+
+        int brainIndex = brain == BrainChoice.Claude ? 2 : flash ? 1 : 0;
+        Section(T("العقل", "Brain"), choices);
+        Choice("brain", brainIndex,
+        [
+            T("Gemini 3.5 Flash-Lite · مجاني · موصى به", "Gemini 3.5 Flash-Lite · free · recommended"),
+            T("Gemini 3.5 Flash · مجاني، أذكى، طلبات مجانية أقل في اليوم", "Gemini 3.5 Flash · free, smarter, fewer free requests a day"),
+            T($"Claude Haiku 5.5 · مدفوع، حوالي {CostGuide.Estimate(60).Brain:0} دولار في الشهر · الأفضل لو هتدفع", $"Claude Haiku 5.5 · paid, about ${CostGuide.Estimate(60).Brain:0} a month · best if you pay"),
+        ],
+        i =>
+        {
+            _driver.SetBrain(i == 2 ? BrainChoice.Claude : BrainChoice.Gemini);
+            if (i < 2)
+            {
+                _driver.SetGeminiModel(i == 1 ? FlashModel : FlashLiteModel);
+            }
+        }, choices);
+
+        Section(T("السمع", "Hearing"), choices);
+        Choice("ears", (int)ears, [T("Gemini · مجاني · موصى به", "Gemini · free · recommended"), "Fish Audio"], i => _driver.SetEars((EarsChoice)i), choices);
+
+        Section(T("صوت العربي", "Arabic voice"), choices);
+        Choice("voice", fishVoice ? 1 : 0, [T("صوت ويندوز · مجاني", "Windows voice · free"), T("Fish Audio · صوت طبيعي · موصى به للعربي", "Fish Audio · natural · recommended for Arabic")],
+            i => _driver.SetOption("UseFishVoice", i == 1), choices);
+
+        // Only the keys the choice needs, each once.
         var shown = new HashSet<KeyKind>();
         Button? first = null;
-
         void Need(KeyKind kind, string name, string about)
         {
-            if (!shown.Add(kind))
+            if (shown.Add(kind))
             {
-                Add(Words(T("بيستخدم نفس المفتاح اللي فوق.", "Uses the same key as above."), 13, Quiet));
-                return;
+                Button button = KeyRow(kind, name, about);
+                first ??= button;
             }
-
-            Button button = KeyRow(kind, name, about);
-            first ??= button;
         }
 
-        BrainChoice brain = Providers.Chosen(_driver.GetBrain(), held);
-        Section(T("العقل", "Brain"));
-        Choice("brain", (int)brain,
-            [T("Google Gemini · مجاني", "Google Gemini · free"), T($"Claude Haiku · حوالي {CostGuide.Estimate(60).Brain:0} دولار في الشهر", $"Claude Haiku · about ${CostGuide.Estimate(60).Brain:0} a month")],
-            i => _driver.SetBrain((BrainChoice)i));
         Need(Providers.KeyFor(brain), brain == BrainChoice.Claude ? "Claude" : "Google Gemini",
             brain == BrainChoice.Claude
                 ? T("بتدفع اللي بتستخدمه.", "You pay for what you use.")
-                : T("جوجل ممكن تستخدم الطلبات المجانية لتحسين خدماتها.", "Google may use free requests to improve its products."));
-
-        EarsChoice ears = Providers.Chosen(_driver.GetEars(), held);
-        Section(T("السمع", "Hearing"));
-        Choice("ears", (int)ears, [T("Google Gemini · مجاني", "Google Gemini · free"), "Fish Audio"], i => _driver.SetEars((EarsChoice)i));
+                : T("مجاني في حدود جوجل. جوجل ممكن تستخدم الطلبات المجانية لتحسين خدماتها.", "Free within Google's limits. Google may use free requests to improve its products."));
         Need(Providers.KeyFor(ears), ears == EarsChoice.Fish ? "Fish Audio" : "Google Gemini", string.Empty);
-
-        bool fishVoice = _driver.GetOption("UseFishVoice");
-        Section(T("صوت العربي", "Arabic voice"));
-        Choice("voice", fishVoice ? 1 : 0, [T("صوت ويندوز · مجاني", "Windows voice · free"), T("Fish Audio · صوت طبيعي", "Fish Audio · natural")],
-            i => _driver.SetOption("UseFishVoice", i == 1));
         if (fishVoice)
         {
             Need(KeyKind.FishAudio, "Fish Audio", string.Empty);
         }
 
-        Add(Words(T("صوت الإنجليزي: Ryan، مجاني وشغال على جهازك.", "English voice: Ryan, free, on this PC."), 13, Quiet));
         return first;
     }
 
-    private void Section(string title) => Add(Words(title, 15, Accent, FontWeights.SemiBold, top: 18));
+    private const string FlashLiteModel = "gemini-3.5-flash-lite";
+    private const string FlashModel = "gemini-3.5-flash";
+
+    private void Section(string title, Panel? into = null) => (into ?? _body).Children.Add(Words(title, 15, Accent, FontWeights.SemiBold, top: 14));
 
     /// <summary>One choice as radio buttons, so a screen reader says "1 of 2". Choosing redraws the page.</summary>
-    private void Choice(string group, int chosen, string[] options, Action<int> choose)
+    private void Choice(string group, int chosen, string[] options, Action<int> choose, Panel into)
     {
-        var row = new WrapPanel { Margin = new Thickness(0, 2, 0, 4) };
+        var row = new StackPanel { Margin = new Thickness(0, 2, 0, 4) };
         for (int i = 0; i < options.Length; i++)
         {
             int index = i;
@@ -291,7 +333,7 @@ public sealed class SetupWindow : Window
                 IsChecked = i == chosen,
                 FontFamily = Font,
                 FontSize = 14,
-                Margin = new Thickness(0, 4, 18, 4),
+                Margin = new Thickness(0, 3, 0, 3),
             };
             AutomationProperties.SetName(radio, options[i]);
             radio.Checked += (_, _) =>
@@ -314,7 +356,7 @@ public sealed class SetupWindow : Window
             row.Children.Add(radio);
         }
 
-        Add(row);
+        into.Children.Add(row);
     }
 
     private Button KeyRow(KeyKind kind, string name, string about, StackPanel? into = null)
@@ -563,7 +605,7 @@ public sealed class SetupWindow : Window
     {
         Begin(T("الإعدادات", "Settings"));
 
-        ShowServices();
+        ShowServices(open: true);
 
         // Talk key
         Section(T("مفتاح الكلام", "Talk key"));
