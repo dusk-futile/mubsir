@@ -16,9 +16,9 @@ plays the error sound.
   Mubsir's voice while speaking, a slow spectrum while thinking, and amber turning green as a task's steps
   finish, with a pulse at each one.
 - Thinking is Mubsir's signature: a stroke shaped like the letter م writes itself right to left with a
-  haloed pen tip, then lifts away like a pen moving on. The sharp ink has a soft light under it, its colour
-  drifts through the palette from loop to loop, stardust lifts off the tip, and the faint outline of the
-  letter breathes. A light sweeps across the word beside it.
+  haloed pen tip, then lifts away like a pen moving on. The ink stays Mubsir's amber into coral, with a warm
+  light under it; warm sparks lift off the tip, and the faint outline of the letter breathes. A light sweeps
+  across the word beside it.
 - Shorter words everywhere: "Step 2", and "Book open · Page 34 of 312" while a book is read aloud (now shown
   by the real app, not only the demo).
 - The payment screens are gone.
