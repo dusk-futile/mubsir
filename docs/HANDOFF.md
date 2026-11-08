@@ -2,7 +2,16 @@
 
 Update this file at the end of every session. Newest on top.
 
-# Latest session, 2026-11-08 (finishing pass)
+# Latest session, 2026-11-08 (live notch and provider choice)
+
+- **"Done" out loud:** `AgentLoop` calls `INarrator.StepFinished(ok)` after a narrated step runs; `Narrator` says "تم"/"Done." or plays the error sound, and the notch ticks or crosses out that line (`CompanionBridge.StepFinished`). Lines still running when the task ends are ticked. Tests: `StepDoneTests`.
+- **Payment screens removed** (Confirm and Paid states, `ConfirmPane`, the demo's payment scene). Only the demo used them. The policy still keeps the AI off bank pages.
+- **Notch:** the rim's four colours glide per state (`NotchWindow.RimColors`), swell and speed up with the voice, and turn from amber to green with a task's progress, pulsing at each finished step. Thinking is three drifting blurred lights (sky, lilac, pink) with no text. Labels removed from listening and speaking; Doing says "Step N"; Reading says "Book open" and "Page N of M". The listening wave is cool, the speaking wave warm. New colours `sky` and `pink` in `motion-tokens.json`.
+- **Reading is wired:** `BookSession.Reading` gives the page while a book is read; `CompanionBridge.Book` shows it instead of captions.
+- **Providers:** `Core/Setup/KeySetup.cs` has `BrainChoice`, `EarsChoice`, `KeysHeld` and `Providers` (choice first, the other as fallback; no choice = old behaviour). Settings `Brain` and `Ears` (null until chosen). `BrainRouter` and `EarsRouter` follow them. The setup window shows radio buttons for brain, hearing and Arabic voice, then only the needed key; it's dark (`ThemeMode.Dark`, Fluent) with notch colours. Tests: `ProvidersTests`.
+- Checked on Windows 11 with `--setup-demo` and `--overlay-demo` screenshots. 550 Core tests pass. Not heard by ear.
+
+# Earlier, 2026-11-08 (finishing pass)
 
 - **Ponytail-style audit:** `.editorconfig` makes unused code a warning, and `Directory.Build.props` now treats warnings as errors (package advisories stay warnings). Fixed what it found: the setup window's cost box was never shown and its numbers were from the old Fish-for-everything setup, so it's replaced by one line on the Claude key row ("about $2 a month at 60 requests a day", from `CostGuide`); unused parameters in Fish and the host.
 - **Pointer removed:** only the demo used it since teaching was removed. `PointerWindow`, the Pointing notch state, its springs and pane are gone.

@@ -27,7 +27,7 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
     public void OpenIfNeeded()
     {
         MubsirSettings s = app.Settings.Settings;
-        bool keys = KeySetup.CanStart(HasKey(KeyKind.Anthropic), HasKey(KeyKind.FishAudio), HasKey(KeyKind.Gemini));
+        bool keys = Providers.CanStart(s.Brain, s.Ears, secrets.Held());
         if (!keys || !s.OnboardingDone)
         {
             Open(settingsOnly: false);
@@ -106,6 +106,14 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
         Directory.CreateDirectory(folder);
         Launch(folder);
     }
+
+    public BrainChoice? GetBrain() => app.Settings.Settings.Brain;
+
+    public void SetBrain(BrainChoice brain) => app.Settings.Update(s => s with { Brain = brain });
+
+    public EarsChoice? GetEars() => app.Settings.Settings.Ears;
+
+    public void SetEars(EarsChoice ears) => app.Settings.Update(s => s with { Ears = ears });
 
     public bool GetOption(string name)
     {

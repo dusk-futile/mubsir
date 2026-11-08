@@ -86,6 +86,32 @@ internal sealed class Narrator : INarrator
         }
     }
 
+    public void StepFinished(bool ok)
+    {
+        _app.Companion?.StepFinished(ok);
+        Lang lang;
+        lock (_gate)
+        {
+            lang = _lang;
+        }
+
+        try
+        {
+            if (ok)
+            {
+                _app.Speech.Speak(AgentText.StepDone(lang), UtteranceKind.Narration, lang);
+            }
+            else
+            {
+                _app.Speech.PlayEarcon(Earcon.Error);
+            }
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            _app.Log.Failure("narrate_done", e);
+        }
+    }
+
     public void AnswerDelta(string text)
     {
         if (string.IsNullOrEmpty(text))

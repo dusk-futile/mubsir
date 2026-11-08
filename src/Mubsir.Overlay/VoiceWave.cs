@@ -16,14 +16,22 @@ internal sealed class VoiceWave : FrameworkElement
     private double _level = 0.08;
     private double _time;
 
-    public VoiceWave(Palette palette)
+    /// <summary>Warm for Mubsir's voice; cool (<paramref name="listening"/>) for the person's, like the light around the notch.</summary>
+    public VoiceWave(Palette palette, bool listening = false)
     {
-        _layers =
-        [
-            new Layer(1.2, 1.7, 1, Ribbon(palette.Amber, palette.Crest, 0.72)),
-            new Layer(1.8, -2.2, 0.72, Ribbon(palette.Crest, palette.Lilac, 0.58)),
-            new Layer(2.5, 2.9, 0.46, Ribbon(palette.Cream, palette.Amber, 0.5)),
-        ];
+        _layers = listening
+            ?
+            [
+                new Layer(1.2, 1.7, 1, Ribbon(palette.Sky, palette.Teal, 0.72)),
+                new Layer(1.8, -2.2, 0.72, Ribbon(palette.Teal, palette.Lilac, 0.58)),
+                new Layer(2.5, 2.9, 0.46, Ribbon(palette.Cream, palette.Sky, 0.5)),
+            ]
+            :
+            [
+                new Layer(1.2, 1.7, 1, Ribbon(palette.Amber, palette.Crest, 0.72)),
+                new Layer(1.8, -2.2, 0.72, Ribbon(palette.Crest, palette.Lilac, 0.58)),
+                new Layer(2.5, 2.9, 0.46, Ribbon(palette.Cream, palette.Amber, 0.5)),
+            ];
         _line = Ribbon(palette.Cream, palette.Cream, 0.5);
         IsHitTestVisible = false;
     }
