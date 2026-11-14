@@ -2,13 +2,27 @@
 
 Update this file at the end of every session. Newest on top.
 
-# Latest session, 2026-11-14 (fewer files)
+# Latest session, 2026-11-14 (reading, memory, name, custom brain)
+
+Branch `feat/personal-reading-memory`, on top of the cleanup and the live-notch branch. Built and tested on a Mac: the .NET 10 SDK is in `~/.dotnet` (not on the PATH), and the whole app compiles there with `EnableWindowsTargeting`. 641 Core tests pass. **Nothing below has run on Windows or been heard.**
+
+- **Reading (`Core/Reading`):** `BookCommandKind` gained `GoToLine`, `GoToSentence`, `GoToParagraph` (number, or -1 for the last), `ReadHeading`, `ReadEnding`, `Speed` (signed percent) and `FindPhrase`. `PageParts` (in `SentenceLocator.cs`) finds where the parts of a page start. A PDF page has no blank lines, so there a paragraph is a line. One percent of speed is one step of `SpeechRate`, because every voice uses 0.5 + rate / 100.
+- **Phrase search:** `BookAloud.FindPhraseAsync` reads each book's text (`DocumentReader.ReadAsync`, no OCR) and keeps it gzipped in `%LOCALAPPDATA%\Mubsir\book-text\<fingerprint>.gz`. `BookCommandRunner.FindPhrase` runs it on a background task and speaks when done; picking a number opens the book at that page. Never timed on a real library.
+- **Memory:** tool `recall` (43 tools now) reads `SessionArchive.Recall`: a day's lines, or lines holding all the words from the last 90 saved days, capped at 6,000 characters, plus the reading journal. Its result is marked untrusted, and private mode refuses it. `EncryptSessions` writes `yyyy-MM-dd.chat`, one DPAPI-sealed line per line (`Dpapi.Seal`); plain `.md` days still read. The Word export now reads both and uses the local date.
+- **Name:** `AssistantName`, set in settings or by `CommandGrammar.ParseNewName` ("your name is ...", "اسمك ..."). It's appended last to the system prompt so the cached part is the same for everyone.
+- **Custom brain:** `BrainChoice.Custom`, `Core/Agent/OpenAiWire.cs`, `App/Brain/CustomBrain.cs`. Address, model and key from the setup window; the key is the secret `custom`. https only, or http on this PC. No streaming and no cost counting. **Never run against a real service.**
+- **PC check:** `PcCheck.IsLight` on first start sets `LightMode` and turns the notch off; light mode skips the Ryan download. A PC that finished setup before this is left alone.
+- **Cost:** older `read_screen` results become one line in all three histories (`ConversationTrimmer.PruneOlderSnapshots`, `GeminiWire.Trim`, `OpenAiWire.ShortenOldSnapshots`).
+- **Tests:** `BlindListenerTests` runs whole tasks through `AgentLoop` with a scripted brain and checks only what is heard.
+- **Not built:** the wake name (reasons in `docs/ROADMAP.md`), screen diffs, task replay, and the real "blind tester". `docs/WINDOWS-TEST.md` section J lists what to check for all of the above.
+
+# Earlier, 2026-11-14 (fewer files)
 
 - **31 fewer source files, no code changed:** every merge is inside one namespace, so no `using` or type name changed. Win32 imports are `native/Native.cs` (was 5 files) and `native/NativeWindow.cs` (now holds `WinEventHook`); `Actions/Interop/ActionsNative.cs` holds the Core Audio COM types; `Abstractions/Abstractions.cs` replaces `Services.cs` and `Storage.cs`; `Core/Common/Common.cs` replaces five files. Small types moved beside their user: `ISentenceVoice` in `SentencePlayer.cs`, `Dpapi` in `AtomicFile.cs`, `YesNoMatcher` in `Confirmer.cs`, `LocalCommandMap` in `LocalCommandRunner.cs`, `TaskContexts` in `TaskRunner.cs`, `RequestDomains` in `RequestModeClassifier.cs`, `EmergencyVoice` in `Supervisor.cs`, `SystemFacts` in `DiagnosticsReport.cs`, `DocumentPages` in `DocumentReader.cs`, `ClaudeServerBlocks` in `ClaudeMapping.cs`, `LinkGuard` in `FileOps.cs`, `HandOffText` in `ActionNarration.cs`, `UiNode` in `ScreenContext.cs`, `LogRetention` in `JsonlEventLog.cs`, `ReadingJournal` in `ReadingPositions.cs`, `WavFile` in `SpeechAudio.cs`, `SpeechAhead` in `SpeechComposer.cs`, `TextRun` in `ScriptSegmenter.cs`, `Bilingual` in `SymbolTables.cs`, `UserKind` in `UserProfile.cs`.
 - **Icons:** `scripts/build-icons.py` writes the `.ico` and one PNG (512 px, for the Store package). The ten other PNG sizes were unused and are deleted.
 - **Docs:** `docs/RESULTS.md` no longer carries the relay's results or Hudhud's overlay numbers. `docs/ROADMAP.md` has the next work: assistant name, custom brain address, PC check, wake name, finer reading commands, chat recall, and a "blind tester".
 - **Left alone on purpose:** the files pull request 22 changes (the two demo hosts, the overlay, setup), so the two don't collide.
-- **Not built on a PC here:** this session had no .NET SDK. CI on the pull request is the proof.
+- **Built on the Mac after all:** the SDK is in `~/.dotnet`; 0 warnings, 0 errors. CI on pull request 23 passed too.
 
 # Earlier, 2026-11-08 (live notch and provider choice)
 

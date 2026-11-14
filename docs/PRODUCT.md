@@ -16,9 +16,12 @@ They hold **Right Ctrl**, say what they want and let go. Pressing **Ctrl** stops
 - Phonetic writing, maths and Greek are said by name. Tashkeel in the text goes to the voice as written.
 - It keeps the exact place by what was actually heard, and the place survives renaming or moving the file.
 - Next page, go to a page, where am I, notes, bookmarks, sleep timer, reading journal, and questions answered from the book with the page number.
+- A part of the page by number: "go to the fourth line", "the last sentence", "paragraph 3". "Read the heading" and "read the ending". Speed by percent: "20% faster".
 
 **Find things**
 - It searches the books on the PC by name or by subject in both languages, even when the file name is useless. With the person's OK, the AI writes a short description of each book once. Short files, and anything that looks like a bill, statement or ID, are skipped.
+- "Which book has the phrase ..." searches the text of every book on the PC with no AI. It runs behind and says the book and the page when it's done. Scanned pages with no text in them are skipped.
+- "What did we do yesterday?" is answered from the chats saved on the PC.
 - Google and YouTube results are read as a short numbered list. They say "رقم واحد" and it opens.
 
 **Work the PC like a person**
@@ -92,5 +95,6 @@ The notch at the top of the screen lets anyone watching see what's going on. The
 
 - Adding tashkeel to hard Arabic words, and saving pronunciation corrections. This waits on `scripts/voice-test.py`.
 - Dragging with the mouse.
+- Waking it by name instead of holding the key. It needs measuring on a real PC with a microphone first (`docs/ROADMAP.md`).
 - Hearing speech with no internet.
 - Parental controls, and a hash check on the installer.

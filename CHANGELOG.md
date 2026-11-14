@@ -25,6 +25,32 @@ plays the error sound.
 
 **Setup** is dark, like the notch, and built from Windows' own controls.
 
+**Reading**
+- Go to a part of the page: "go to the fourth line", "السطر الرابع", "the last sentence", "paragraph 3".
+- "Read the heading" says the first line of the page. "Read the ending" reads its last sentences.
+- Speed by percent: "20% faster", "أبطأ عشرة في المية".
+- "Which book has the phrase ...": Mubsir searches the text of every book on the PC, behind, and says the
+  book and page when it's done. Say the number to open it there.
+
+**Memory**
+- "What did we do yesterday?" and "when did I ask about the invoice?" are answered from the chats saved
+  on the PC.
+- New option, off by default: saved chats encrypted for your Windows account.
+
+**Yours**
+- Give it a name: "your name is Jarvis", "اسمك محمد", or in settings.
+- The brain can be any service that speaks the OpenAI chat format, by its address: OpenRouter, a router
+  such as OmniRoute, or a model on your PC.
+- A new PC with little memory starts light: no notch, and the Windows voice for English.
+
+**Cheaper**
+- Only the newest screen snapshot is kept in a task. Older ones become one line.
+
+**Repo**
+- 41 fewer files: small source files merged into the code that uses them (31 fewer), and one PNG icon
+  export instead of eleven. No behaviour change.
+- Tests that run whole tasks through the agent loop and judge them only by what is heard.
+
 ## 0.2.0 (2026-11-08)
 
 **Free, with your own keys.** No account, server or relay. Gemini is the free brain and hearing; Claude
@@ -46,8 +72,6 @@ Haiku is used instead when you add a Claude key.
 **Repo**
 - `scripts/package.ps1` builds the release zip, with a plain-text `START-HERE.txt` inside.
 - Warnings are errors, and unused code is a warning.
-- 41 fewer files: small source files merged into the code that uses them (31 fewer), and one PNG icon
-  export instead of eleven. No behaviour change.
 
 ## 0.1.0
 
