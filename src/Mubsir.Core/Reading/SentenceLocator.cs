@@ -1,3 +1,5 @@
+using Mubsir.Core.Text;
+
 namespace Mubsir.Core.Reading;
 
 public static class SentenceLocator
@@ -27,5 +29,54 @@ public static class SentenceLocator
         }
 
         return offsets;
+    }
+}
+
+/// <summary>Where the lines, sentences and paragraphs of a page start, so the reader can ask for one by number.</summary>
+public static class PageParts
+{
+    private const int EndingSentences = 3;
+
+    public static int[] Starts(string page, BookCommandKind part)
+    {
+        ArgumentNullException.ThrowIfNull(page);
+        if (part == BookCommandKind.GoToSentence)
+        {
+            return SentenceLocator.Locate(page, SentenceSplitter.Split(page), 0);
+        }
+
+        // A PDF page has no blank lines, and each line of a Word page is a paragraph, so there a paragraph is a line.
+        bool blocks = part == BookCommandKind.GoToParagraph && page.Contains("\n\n", StringComparison.Ordinal);
+        var starts = new List<int>();
+        bool open = false;
+        int at = 0;
+        foreach (string line in page.Split('\n'))
+        {
+            int text = line.Length - line.TrimStart().Length;
+            if (text == line.Length)
+            {
+                open = false;
+            }
+            else if (!blocks || !open)
+            {
+                starts.Add(at + text);
+                open = true;
+            }
+
+            at += line.Length + 1;
+        }
+
+        return [.. starts];
+    }
+
+    /// <summary>The first line of the page that has words on it.</summary>
+    public static string? Heading(string page) =>
+        page.Split('\n').Select(l => l.Trim()).FirstOrDefault(l => l.Length > 0);
+
+    /// <summary>Where the last few sentences of the page start.</summary>
+    public static int Ending(string page)
+    {
+        int[] sentences = Starts(page, BookCommandKind.GoToSentence);
+        return sentences.Length == 0 ? 0 : sentences[^Math.Min(EndingSentences, sentences.Length)];
     }
 }

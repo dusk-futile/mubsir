@@ -107,6 +107,15 @@ public sealed class BookLibrary(string file)
         }
     }
 
+    /// <summary>Every book, newest first.</summary>
+    public IReadOnlyList<LibraryCard> All()
+    {
+        lock (_gate)
+        {
+            return Cards().Values.OrderByDescending(c => c.Written).ToArray();
+        }
+    }
+
     public LibraryCard? ByPrint(string print)
     {
         lock (_gate)
@@ -281,6 +290,52 @@ public static class BookSearch
 
         string title = ArabicFolding.Fold(found[0].Title);
         return ArabicFolding.Fold(query).Split(' ', StringSplitOptions.RemoveEmptyEntries).All(t => title.Contains(t, StringComparison.Ordinal));
+    }
+}
+
+/// <summary>A book that holds the words asked for, and the first page they're on. Page 0 means the book as a whole.</summary>
+public sealed record PhraseHit(LibraryCard Card, int Page = 0);
+
+/// <summary>Finds exact words inside a book's own text, on this PC with no AI.</summary>
+public static class PhraseSearch
+{
+    /// <summary>The first page, counting from 1, that holds the words, or 0. Capitals, tashkeel, punctuation and line
+    /// breaks don't matter. Words split across two pages aren't found.</summary>
+    public static int FirstPage(IReadOnlyList<string> pages, string phrase)
+    {
+        string wanted = ArabicFolding.Fold(phrase);
+        if (wanted.Length == 0)
+        {
+            return 0;
+        }
+
+        for (int i = 0; i < pages.Count; i++)
+        {
+            if (ArabicFolding.Fold(pages[i]).Contains(wanted, StringComparison.Ordinal))
+            {
+                return i + 1;
+            }
+        }
+
+        return 0;
+    }
+
+    public static string Heard(IReadOnlyList<PhraseHit> hits, int searched, Common.Lang lang)
+    {
+        bool ar = lang == Common.Lang.Arabic;
+        if (hits.Count == 0)
+        {
+            return ar ? $"دورت في {searched} كتاب وملقتش الكلام ده." : $"I searched {searched} books and didn't find those words.";
+        }
+
+        var lines = new List<string> { ar ? $"لقيته في {hits.Count} من {searched} كتاب." : $"I found it in {hits.Count} of {searched} books." };
+        for (int i = 0; i < hits.Count; i++)
+        {
+            lines.Add(ar ? $"{i + 1}: {hits[i].Card.Title}، صفحة {hits[i].Page}." : $"{i + 1}: {hits[i].Card.Title}, page {hits[i].Page}.");
+        }
+
+        lines.Add(ar ? "قول الرقم وأفتحه عند الصفحة دي." : "Say the number and I'll open it at that page.");
+        return string.Join(' ', lines);
     }
 }
 

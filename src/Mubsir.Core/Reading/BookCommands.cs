@@ -19,6 +19,13 @@ public enum BookCommandKind
     ReadingJournal,
     FindBook,
     Pick,
+    GoToLine,
+    GoToSentence,
+    GoToParagraph,
+    ReadHeading,
+    ReadEnding,
+    Speed,
+    FindPhrase,
 }
 
 public sealed record BookCommand(BookCommandKind Kind, int? Number = null, string? Text = null);
@@ -32,6 +39,15 @@ public static class BookCommands
     private static readonly string[][] Leading = Folded(CommandPhrases.LeadingFillers);
     private static readonly string[][] Trailing = Folded(CommandPhrases.TrailingFillers);
     private static readonly string[][] NotePrefixes = Folded(["take a note", "make a note", "add a note", "write a note", "note", "سجل ملاحظة", "اكتب ملاحظة", "خد ملاحظة", "ضيف ملاحظة", "ملاحظة"]);
+    private static readonly string[][] PhrasePrefixes = Folded([
+        "which book has the phrase", "which book has the words", "which book has the word", "which book has", "which book contains the phrase", "which book contains the words",
+        "which book contains the word", "which book contains", "which book says", "which book mentions", "what book has", "what book contains", "what book says", "what book mentions",
+        "find the book that says", "find the book that contains", "find the book that has", "find the book with the phrase", "find the book with the words",
+        "search my books for", "search the books for", "search all my books for", "search inside my books for",
+        "أنهي كتاب فيه كلمة", "أنهي كتاب فيه جملة", "أنهي كتاب فيه", "أي كتاب فيه كلمة", "أي كتاب فيه جملة", "أي كتاب فيه", "الكتاب اللي فيه كلمة", "الكتاب اللي فيه جملة",
+        "الكتاب اللي فيه", "دور في الكتب على", "دور في كتبي على", "دور جوه الكتب على", "ابحث في الكتب عن", "ابحث في كتبي عن",
+    ]);
+
     private static readonly string[][] PickPrefixes = Folded(["number", "open number", "read number", "open", "read", "the", "رقم", "افتح رقم", "اقرأ رقم", "افتح"]);
 
     // Each word on its own, so a sentence can change language at any point: "روح page 40", "next صفحة".
@@ -48,10 +64,31 @@ public static class BookCommands
     private static readonly HashSet<string> BookWords = Words("book", "books", "كتاب", "الكتاب", "كتب", "الكتب");
     private static readonly HashSet<string> FindJoinWords = Words("on", "about", "for", "called", "named", "of", "عن", "بتاع", "بتاعت", "اسمه", "في", "فيه", "بيتكلم", "بتتكلم", "the", "a", "ال", "اللي");
 
+    // "go to the fourth line", "السطر الرابع", "آخر جملة": a part of the page in hand.
+    private static readonly (HashSet<string> Names, BookCommandKind Kind)[] Parts =
+    [
+        (PartNames("سطر", "line", "lines"), BookCommandKind.GoToLine),
+        (PartNames("جملة", "sentence"), BookCommandKind.GoToSentence),
+        (PartNames("فقرة", "paragraph"), BookCommandKind.GoToParagraph),
+    ];
+
+    private static readonly HashSet<string> PartLead = Words("go", "to", "the", "read", "from", "start", "at", "jump", "number", "روح", "ل", "على", "الى", "اقرأ", "اقرا", "من", "ابدأ", "عند", "رقم", "انتقل");
+    private static readonly HashSet<string> LastWords = Words("last", "final", "آخر", "الأخير", "الأخيرة");
+
+    // "20% faster", "أبطأ عشرة في المية": one percent is one step of the speech rate.
+    private static readonly HashSet<string> FasterWords = Words("faster", "quicker", "fast", "up", "أسرع", "سرع", "زود");
+    private static readonly HashSet<string> SlowerWords = Words("slower", "slow", "down", "أبطأ", "ابطئ", "بطئ", "هدي", "قلل");
+    private static readonly HashSet<string> SpeedFill = Words("speak", "talk", "read", "go", "by", "make", "it", "the", "voice", "speed", "reading", "be", "اتكلم", "اقرأ", "خلي", "خليك", "بنسبة", "الصوت", "السرعة", "القراءة");
+    private static readonly string[][] PercentWords = Folded(["percent", "per cent", "في المية", "بالمية", "في المائة", "بالمائة"]);
+
     private static readonly Dictionary<string, int> NumberWords = BuildNumbers();
     private static readonly Dictionary<string, int> Ordinals = new(StringComparer.Ordinal)
     {
         ["first"] = 1, ["second"] = 2, ["third"] = 3, ["fourth"] = 4, ["fifth"] = 5,
+        ["sixth"] = 6, ["seventh"] = 7, ["eighth"] = 8, ["ninth"] = 9, ["tenth"] = 10,
+        [ArabicFolding.Fold("السادس")] = 6, [ArabicFolding.Fold("السادسة")] = 6, [ArabicFolding.Fold("السابع")] = 7, [ArabicFolding.Fold("السابعة")] = 7,
+        [ArabicFolding.Fold("الثامن")] = 8, [ArabicFolding.Fold("التامن")] = 8, [ArabicFolding.Fold("الثامنة")] = 8, [ArabicFolding.Fold("التامنة")] = 8,
+        [ArabicFolding.Fold("التاسع")] = 9, [ArabicFolding.Fold("التاسعة")] = 9, [ArabicFolding.Fold("العاشر")] = 10, [ArabicFolding.Fold("العاشرة")] = 10,
         [ArabicFolding.Fold("الأول")] = 1, [ArabicFolding.Fold("الأولى")] = 1, [ArabicFolding.Fold("الثاني")] = 2, [ArabicFolding.Fold("التاني")] = 2,
         [ArabicFolding.Fold("الثانية")] = 2, [ArabicFolding.Fold("التانية")] = 2, [ArabicFolding.Fold("الثالث")] = 3, [ArabicFolding.Fold("التالت")] = 3,
         [ArabicFolding.Fold("الثالثة")] = 3, [ArabicFolding.Fold("التالتة")] = 3, [ArabicFolding.Fold("الرابع")] = 4, [ArabicFolding.Fold("الرابعة")] = 4,
@@ -65,6 +102,11 @@ public static class BookCommands
         if (string.IsNullOrWhiteSpace(utterance) || utterance.Length > MaxChars)
         {
             return null;
+        }
+
+        if (ParseSpeed(utterance) is { } percent)
+        {
+            return new BookCommand(BookCommandKind.Speed, percent);
         }
 
         string[] raw = utterance.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
@@ -98,6 +140,11 @@ public static class BookCommands
             return new BookCommand(kind);
         }
 
+        if (AfterPrefix(plain, PhrasePrefixes) is { } phraseAt && phraseAt < plain.Length)
+        {
+            return new BookCommand(BookCommandKind.FindPhrase, Text: string.Join(' ', raw[words[phraseAt].Raw..]).Trim(' ', '"', '“', '”', '«', '»', '?', '؟', '.'));
+        }
+
         if (AfterPrefix(plain, NotePrefixes) is { } noteAt && noteAt < plain.Length)
         {
             return new BookCommand(BookCommandKind.Note, Text: string.Join(' ', raw[words[noteAt].Raw..]).TrimStart(':', ' ', '،', ','));
@@ -106,6 +153,11 @@ public static class BookCommands
         if (AfterWords(plain, GoWords, PageWords) is { } pageAt && ParseNumber(plain[pageAt..]) is { } page)
         {
             return new BookCommand(BookCommandKind.GoToPage, page);
+        }
+
+        if (ParsePart(plain) is { } partOfPage)
+        {
+            return partOfPage;
         }
 
         if (AfterWords(plain, TimerWords, null) is { } timerAt && timerAt > 0 && ParseMinutes(plain[timerAt..]) is { } minutes)
@@ -158,6 +210,69 @@ public static class BookCommands
 
     private static readonly HashSet<string> MinuteUnits = new(new[] { "minute", "minutes", "min", "mins", "دقيقة", "دقايق", "دقائق" }.Select(ArabicFolding.Fold), StringComparer.Ordinal);
     private static readonly HashSet<string> HourUnits = new(new[] { "hour", "hours", "ساعة", "ساعات" }.Select(ArabicFolding.Fold), StringComparer.Ordinal);
+
+    /// <summary>How much faster (above zero) or slower (below) to speak, in percent, or null if that isn't what was said.</summary>
+    public static int? ParseSpeed(string utterance)
+    {
+        string[] words = ArabicFolding.Fold(utterance.Replace("%", " percent ", StringComparison.Ordinal).Replace("٪", " percent ", StringComparison.Ordinal))
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        for (int at = 1; at < words.Length; at++)
+        {
+            string[]? marker = PercentWords.FirstOrDefault(m => at + m.Length <= words.Length && words.AsSpan(at, m.Length).SequenceEqual(m));
+            if (marker is null)
+            {
+                continue;
+            }
+
+            for (int from = Math.Max(0, at - 3); from < at; from++)
+            {
+                if (ParseNumber(words[from..at]) is not { } amount || amount is < 1 or > 100)
+                {
+                    continue;
+                }
+
+                string[] rest = [.. words[..from], .. words[(at + marker.Length)..]];
+                bool faster = rest.Any(FasterWords.Contains);
+                bool slower = rest.Any(SlowerWords.Contains);
+                bool onlySpeed = rest.All(w => FasterWords.Contains(w) || SlowerWords.Contains(w) || SpeedFill.Contains(w));
+                return faster != slower && onlySpeed ? (faster ? amount : -amount) : null;
+            }
+
+            return null;
+        }
+
+        return null;
+    }
+
+    /// <summary>A line, sentence or paragraph by its number; -1 is the last one.</summary>
+    private static BookCommand? ParsePart(string[] words)
+    {
+        string[] rest = words.Where(w => !PartLead.Contains(w)).ToArray();
+        if (rest.Length is < 2 or > 4)
+        {
+            return null;
+        }
+
+        foreach ((HashSet<string> names, BookCommandKind kind) in Parts)
+        {
+            string[] number = names.Contains(rest[0]) ? rest[1..] : names.Contains(rest[^1]) ? rest[..^1] : [];
+            if (number.Length == 0)
+            {
+                continue;
+            }
+
+            int? n = number.Length == 1 && LastWords.Contains(number[0]) ? -1
+                : number.Length == 1 && Ordinals.TryGetValue(number[0], out int ordinal) ? ordinal
+                : ParseNumber(number);
+            return n is -1 or >= 1 ? new BookCommand(kind, n) : null;
+        }
+
+        return null;
+    }
+
+    /// <summary>Arabic joins "the" and "to the" to the word: "السطر", "للسطر".</summary>
+    private static HashSet<string> PartNames(string arabic, params string[] english) =>
+        Words([.. english, arabic, "ال" + arabic, "ل" + arabic, "لل" + arabic, "بال" + arabic]);
 
     /// <summary>Page and continue commands by what the words mean, whatever language each word is in.</summary>
     private static BookCommandKind? Mixed(string[] words)
@@ -358,6 +473,8 @@ public static class BookCommands
         Add(BookCommandKind.Mark, "mark this", "mark this page", "mark here", "bookmark", "bookmark this", "bookmark this page", "add a bookmark", "علم هنا", "حط علامة", "حط علامة هنا", "علم الصفحة دي", "علم على الصفحة دي", "ضع علامة", "ضع علامة هنا");
         Add(BookCommandKind.ReadNotes, "read my notes", "read me my notes", "read the notes", "my notes", "read my bookmarks", "what are my notes", "اقرأ ملاحظاتي", "اقرا ملاحظاتي", "اقرالي ملاحظاتي", "اقرأ لي ملاحظاتي", "ملاحظاتي", "علاماتي");
         Add(BookCommandKind.CancelTimer, "cancel the timer", "cancel the sleep timer", "no timer", "stop the timer", "الغي المؤقت", "إلغي المؤقت", "الغاء المؤقت", "من غير مؤقت");
+        Add(BookCommandKind.ReadHeading, "read the heading", "read the header", "read the title", "the heading", "the header", "what is the heading", "what's the heading", "read the page heading", "اقرأ العنوان", "العنوان", "عنوان الصفحة", "اقرأ عنوان الصفحة", "ايه العنوان", "العنوان ايه");
+        Add(BookCommandKind.ReadEnding, "read the ending", "read the end", "the ending", "read the end of the page", "go to the end of the page", "the end of the page", "اقرأ النهاية", "اقرأ الآخر", "آخر الصفحة", "اقرأ آخر الصفحة", "نهاية الصفحة", "اقرأ نهاية الصفحة", "روح لآخر الصفحة");
         Add(BookCommandKind.ReadingJournal, "what was i reading", "what have i been reading", "reading journal", "my reading journal", "where did i stop", "كنت بقرأ إيه", "كنت بقرا ايه", "كنت بقرأ ايه", "وقفت فين", "أنا وقفت فين", "كنت واقف فين");
         return map;
     }

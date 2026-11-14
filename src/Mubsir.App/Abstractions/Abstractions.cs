@@ -80,6 +80,8 @@ public static class AppPaths
 
     public static string VoiceCacheDir => Path.Combine(DataDir, "voice-cache");
 
+    public static string BookTextDir => Path.Combine(DataDir, "book-text");
+
     public static string DefaultChatsDir => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Mubsir", "Chats");
 
     public static string ReportsDir => Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);

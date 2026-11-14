@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using Mubsir.App.Screen.Documents;
 using Mubsir.Core.Common;
 using Mubsir.Core.Library;
@@ -12,6 +13,7 @@ namespace Mubsir.App.Speech;
 internal sealed class BookAloud : IBookVoice
 {
     private const int OcrPagesAtATime = 3;
+    private const int MaxPhraseHits = 5;
 
     private readonly SpeechService _speech;
     private readonly ReadingPositions _positions;
@@ -72,6 +74,63 @@ internal sealed class BookAloud : IBookVoice
     {
         Func<string, Task<string?>>? ask = KeywordReader is { } read && _cloudAllowed() ? prompt => read(prompt, lang, ct) : null;
         return BookSearch.FindAsync(Library, query, ask);
+    }
+
+    /// <summary>Looks for exact words inside the text of every book, on this PC. Pages that are only pictures are
+    /// skipped: reading them all would take hours.</summary>
+    public async Task<(IReadOnlyList<PhraseHit> Hits, int Searched)> FindPhraseAsync(string phrase, CancellationToken ct)
+    {
+        var hits = new List<PhraseHit>();
+        int searched = 0;
+        foreach (LibraryCard card in Library.All())
+        {
+            ct.ThrowIfCancellationRequested();
+            if (card.Locked || await TextOfAsync(card, ct).ConfigureAwait(false) is not { } pages)
+            {
+                continue;
+            }
+
+            searched++;
+            int page = PhraseSearch.FirstPage(pages, phrase);
+            if (page > 0)
+            {
+                hits.Add(new PhraseHit(card, page));
+                if (hits.Count == MaxPhraseHits)
+                {
+                    break;
+                }
+            }
+        }
+
+        return (hits, searched);
+    }
+
+    /// <summary>A book's text, page by page. Kept compressed on this PC after the first time, so the next search is quick.</summary>
+    private async Task<IReadOnlyList<string>?> TextOfAsync(LibraryCard card, CancellationToken ct)
+    {
+        string? kept = card.Print is { } print ? Path.Combine(AppPaths.BookTextDir, print.Replace(':', '-') + ".gz") : null;
+        try
+        {
+            if (kept is not null && File.Exists(kept))
+            {
+                using var reader = new StreamReader(new GZipStream(File.OpenRead(kept), CompressionMode.Decompress));
+                return (await reader.ReadToEndAsync(ct).ConfigureAwait(false)).Split('\f');
+            }
+
+            DocumentText doc = await _documents.ReadAsync(card.Path, 1, 0, null, ct).ConfigureAwait(false);
+            if (kept is not null)
+            {
+                Directory.CreateDirectory(AppPaths.BookTextDir);
+                using var writer = new StreamWriter(new GZipStream(File.Create(kept), CompressionLevel.Fastest));
+                await writer.WriteAsync(string.Join('\f', doc.Pages).AsMemory(), ct).ConfigureAwait(false);
+            }
+
+            return doc.Pages;
+        }
+        catch (Exception e) when (e is DocumentReadException or IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            return null;
+        }
     }
 
     public IReadOnlyList<SpokenSentence> Say(string text, Lang lang) => Say(text, lang, null);
