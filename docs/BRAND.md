@@ -20,10 +20,10 @@ is also **a sound** (below).
 | `mubsir-icon-small.svg` | 16–20 px (tray at 100–125 % scaling): solid pupil, heavy lines |
 | `mubsir-mark.svg` | The mark without its tile, for dark surfaces such as the companion panel |
 | `mubsir.ico` | Windows icon, 16–256 px, each size from the right drawing. `Mubsir.App.csproj` embeds it |
-| `png/mubsir-<size>.png` | 16–1024 px exports |
+| `png/mubsir-512.png` | The one PNG export; the Store package is cut from it |
 
 After editing an SVG, run `python scripts/build-icons.py` (needs Pillow and Chrome or Edge) to
-rebuild the PNGs and the `.ico`. Never edit the PNGs or the `.ico` by hand.
+rebuild the PNG and the `.ico`. Never edit them by hand.
 
 | Colour | Hex | Use |
 | --- | --- | --- |

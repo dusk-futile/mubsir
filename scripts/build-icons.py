@@ -1,7 +1,7 @@
 """Build Mubsir's app icon files from the SVG masters in assets/brand/.
 
-Writes assets/brand/png/mubsir-<size>.png and assets/brand/mubsir.ico. Small sizes use simpler
-drawings so the icon stays readable in the tray:
+Writes assets/brand/mubsir.ico (16 to 256 px) and assets/brand/png/mubsir-512.png, which the Store
+package is cut from. Small sizes use simpler drawings so the icon stays readable in the tray:
   16, 20 px      -> mubsir-icon-small.svg  (solid pupil, heavier lines)
   24 to 48 px    -> mubsir-icon-medium.svg (one sound ring)
   64 px and up   -> mubsir-icon.svg        (full detail)
@@ -33,7 +33,7 @@ VARIANTS = {
     "full": BRAND / "mubsir-icon.svg",
 }
 ICO_SIZES = [16, 20, 24, 32, 40, 48, 64, 128, 256]
-PNG_SIZES = ICO_SIZES + [512, 1024]
+PNG_SIZE = 512
 
 
 def variant_for(size: int) -> str:
@@ -133,13 +133,9 @@ def main() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         masters = {name: render(browser, svg, RENDER, Path(tmp)) for name, svg in VARIANTS.items()}
 
-    frames: dict[int, Image.Image] = {}
-    for size in PNG_SIZES:
-        master = masters[variant_for(size)]
-        frame = master if size == RENDER else downscale(master, size)
-        frame.save(BRAND / "png" / f"mubsir-{size}.png", optimize=True)
-        frames[size] = frame
-        print(f"png  {size:>4} px  {variant_for(size)}")
+    frames = {size: downscale(masters[variant_for(size)], size) for size in ICO_SIZES}
+    downscale(masters["full"], PNG_SIZE).save(BRAND / "png" / f"mubsir-{PNG_SIZE}.png", optimize=True)
+    print(f"png  {PNG_SIZE} px")
 
     write_ico(BRAND / "mubsir.ico", [frames[s] for s in ICO_SIZES])
     print(f"ico  {', '.join(map(str, ICO_SIZES))} px -> {(BRAND / 'mubsir.ico').relative_to(ROOT)}")

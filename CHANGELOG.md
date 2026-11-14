@@ -21,6 +21,8 @@ Haiku is used instead when you add a Claude key.
 **Repo**
 - `scripts/package.ps1` builds the release zip, with a plain-text `START-HERE.txt` inside.
 - Warnings are errors, and unused code is a warning.
+- 41 fewer files: small source files merged into the code that uses them (31 fewer), and one PNG icon
+  export instead of eleven. No behaviour change.
 
 ## 0.1.0
 

@@ -39,3 +39,11 @@ public static class SpeechComposer
             && int.TryParse(digits, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out historyIndex);
     }
 }
+
+/// <summary>How far ahead of the listener speech is prepared.</summary>
+public static class SpeechAhead
+{
+    /// <summary>Sentences made ready while one plays: enough to hide the pause before the next, and little
+    /// wasted if the user stops.</summary>
+    public const int Sentences = 2;
+}

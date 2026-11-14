@@ -2,7 +2,15 @@
 
 Update this file at the end of every session. Newest on top.
 
-# Latest session, 2026-11-08 (finishing pass)
+# Latest session, 2026-11-14 (fewer files)
+
+- **31 fewer source files, no code changed:** every merge is inside one namespace, so no `using` or type name changed. Win32 imports are `native/Native.cs` (was 5 files) and `native/NativeWindow.cs` (now holds `WinEventHook`); `Actions/Interop/ActionsNative.cs` holds the Core Audio COM types; `Abstractions/Abstractions.cs` replaces `Services.cs` and `Storage.cs`; `Core/Common/Common.cs` replaces five files. Small types moved beside their user: `ISentenceVoice` in `SentencePlayer.cs`, `Dpapi` in `AtomicFile.cs`, `YesNoMatcher` in `Confirmer.cs`, `LocalCommandMap` in `LocalCommandRunner.cs`, `TaskContexts` in `TaskRunner.cs`, `RequestDomains` in `RequestModeClassifier.cs`, `EmergencyVoice` in `Supervisor.cs`, `SystemFacts` in `DiagnosticsReport.cs`, `DocumentPages` in `DocumentReader.cs`, `ClaudeServerBlocks` in `ClaudeMapping.cs`, `LinkGuard` in `FileOps.cs`, `HandOffText` in `ActionNarration.cs`, `UiNode` in `ScreenContext.cs`, `LogRetention` in `JsonlEventLog.cs`, `ReadingJournal` in `ReadingPositions.cs`, `WavFile` in `SpeechAudio.cs`, `SpeechAhead` in `SpeechComposer.cs`, `TextRun` in `ScriptSegmenter.cs`, `Bilingual` in `SymbolTables.cs`, `UserKind` in `UserProfile.cs`.
+- **Icons:** `scripts/build-icons.py` writes the `.ico` and one PNG (512 px, for the Store package). The ten other PNG sizes were unused and are deleted.
+- **Docs:** `docs/RESULTS.md` no longer carries the relay's results or Hudhud's overlay numbers. `docs/ROADMAP.md` has the next work: assistant name, custom brain address, PC check, wake name, finer reading commands, chat recall, and a "blind tester".
+- **Left alone on purpose:** the files pull request 22 changes (the two demo hosts, the overlay, setup), so the two don't collide.
+- **Not built on a PC here:** this session had no .NET SDK. CI on the pull request is the proof.
+
+# Earlier, 2026-11-08 (finishing pass)
 
 - **Ponytail-style audit:** `.editorconfig` makes unused code a warning, and `Directory.Build.props` now treats warnings as errors (package advisories stay warnings). Fixed what it found: the setup window's cost box was never shown and its numbers were from the old Fish-for-everything setup, so it's replaced by one line on the Claude key row ("about $2 a month at 60 requests a day", from `CostGuide`); unused parameters in Fish and the host.
 - **Pointer removed:** only the demo used it since teaching was removed. `PointerWindow`, the Pointing notch state, its springs and pane are gone.
