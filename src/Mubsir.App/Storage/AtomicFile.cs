@@ -1,0 +1,110 @@
+using System.Security.Cryptography;
+using System.Text;
+
+namespace Mubsir.App.Storage;
+
+internal static class AtomicFile
+{
+    private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
+
+    public static void WriteAllBytes(string path, ReadOnlySpan<byte> data)
+    {
+        string dir = Path.GetDirectoryName(Path.GetFullPath(path)) ?? ".";
+        Directory.CreateDirectory(dir);
+        string temp = Path.Combine(dir, "." + Path.GetFileName(path) + "." + Convert.ToHexString(RandomNumberGenerator.GetBytes(4)) + ".tmp");
+        try
+        {
+            using (var fs = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None, 4096, FileOptions.WriteThrough))
+            {
+                fs.Write(data);
+                fs.Flush(flushToDisk: true);
+            }
+
+            File.Move(temp, path, overwrite: true);
+        }
+        catch
+        {
+            TryDelete(temp);
+            throw;
+        }
+    }
+
+    public static void WriteAllText(string path, string text) => WriteAllBytes(path, Utf8NoBom.GetBytes(text));
+
+    public static byte[]? ReadAllBytesOrNull(string path)
+    {
+        try
+        {
+            return File.Exists(path) ? File.ReadAllBytes(path) : null;
+        }
+        catch (FileNotFoundException)
+        {
+            return null;
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return null;
+        }
+    }
+
+    public static void QuarantineQuietly(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Move(path, path + ".bad-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture), overwrite: true);
+            }
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+        }
+    }
+
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            File.Delete(path);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+        }
+    }
+}
+
+internal static class Dpapi
+{
+    private static readonly byte[] Entropy = "Mubsir/6f1c2d8e/user-data/v1"u8.ToArray();
+    private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
+
+    public static byte[] Protect(string text) =>
+        ProtectedData.Protect(Utf8NoBom.GetBytes(text), Entropy, DataProtectionScope.CurrentUser);
+
+    public static string Unprotect(byte[] data) =>
+    Utf8NoBom.GetString(ProtectedData.Unprotect(data, Entropy, DataProtectionScope.CurrentUser));
+
+    /// <summary>One line of text as one line of letters, for a file that's added to line by line.</summary>
+    public static string Seal(string text) => Convert.ToBase64String(Protect(text));
+
+    /// <summary>Null if the line was made by another Windows account or is damaged.</summary>
+    public static string? Unseal(string line)
+    {
+        try
+        {
+            return Unprotect(Convert.FromBase64String(line));
+        }
+        catch (Exception e) when (e is FormatException or CryptographicException)
+        {
+            return null;
+        }
+    }
+
+    public static string? ReadFile(string path)
+    {
+        byte[]? data = AtomicFile.ReadAllBytesOrNull(path);
+        return data is null || data.Length == 0 ? null : Unprotect(data);
+    }
+
+    public static void WriteFile(string path, string text) => AtomicFile.WriteAllBytes(path, Protect(text));
+}
