@@ -312,6 +312,7 @@ internal sealed partial class WindowsToolExecutor : IToolExecutor
         ToolNames.WindowsUpdateStatus => WindowsUpdateAsync(ct),
         ToolNames.RestartPc => Task.Run(Restart, ct),
         ToolNames.Remember => Task.FromResult(Remember(a)),
+        ToolNames.Recall => Task.Run(() => Recall(a), ct),
         ToolNames.AskUser => AskUserAsync(a, ct),
         ToolNames.ChooseChat => Task.FromResult(ChooseChat(a)),
         ToolNames.SetReminder => Task.FromResult(SetReminder(a)),

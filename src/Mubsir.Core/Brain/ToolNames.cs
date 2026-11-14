@@ -47,13 +47,14 @@ public static class ToolNames
     public const string CancelReminder = "cancel_reminder";
     public const string DescribePhoto = "describe_photo";
     public const string ReadNotifications = "read_notifications";
+    public const string Recall = "recall";
 
     public static IReadOnlySet<string> All { get; } = new[]
     {
         ReadScreen, Invoke, SetText, TypeText, PressKeys, Scroll, Focus, ListWindows, SwitchTo, OpenApp, OpenUrl,
         BrowseSearch, DescribeScreen, OcrWindow, ReadDocument, FindBook, Media, ListFolder, FindFiles, MoveFile, CopyFile,
         RenameFile, Recycle, SystemStatus, SetVolume, OpenSettings, WindowsUpdateStatus, RestartPc, Remember, AskUser,
-        ClickOn, OpenFile, CreateFolder, ReadClipboard, Wait, ChooseVoice, ChooseChat, SetReminder, ListReminders, CancelReminder, DescribePhoto, ReadNotifications,
+        ClickOn, OpenFile, CreateFolder, ReadClipboard, Wait, ChooseVoice, ChooseChat, SetReminder, ListReminders, CancelReminder, DescribePhoto, ReadNotifications, Recall,
     }.ToFrozenSet(StringComparer.Ordinal);
 
     public static IReadOnlySet<string> FileTools { get; } = new[]

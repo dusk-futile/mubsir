@@ -165,7 +165,7 @@ internal sealed class TaskRunner
         var settings = _app.Settings.Settings;
         if (settings.SaveSessions && !settings.PrivateMode && text is not null)
         {
-            _app.Sessions?.Add(who, text);
+            _app.Sessions?.Add(who, text, settings.EncryptSessions);
         }
     }
 

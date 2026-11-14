@@ -84,6 +84,22 @@ internal static class Dpapi
     public static string Unprotect(byte[] data) =>
     Utf8NoBom.GetString(ProtectedData.Unprotect(data, Entropy, DataProtectionScope.CurrentUser));
 
+    /// <summary>One line of text as one line of letters, for a file that's added to line by line.</summary>
+    public static string Seal(string text) => Convert.ToBase64String(Protect(text));
+
+    /// <summary>Null if the line was made by another Windows account or is damaged.</summary>
+    public static string? Unseal(string line)
+    {
+        try
+        {
+            return Unprotect(Convert.FromBase64String(line));
+        }
+        catch (Exception e) when (e is FormatException or CryptographicException)
+        {
+            return null;
+        }
+    }
+
     public static string? ReadFile(string path)
     {
         byte[]? data = AtomicFile.ReadAllBytesOrNull(path);

@@ -148,7 +148,48 @@ public class OnboardingFlowTests
             Assert.DoesNotContain("4111", text, StringComparison.Ordinal);
             Assert.Contains("[card]", text, StringComparison.Ordinal);
             Assert.Contains("شكرا تم", text, StringComparison.Ordinal);
-            Assert.Single(archive.RecentFiles(5));
+            Assert.Single(archive.Days(5));
+        }
+        finally
+        {
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void Earlier_days_can_be_recalled_by_day_or_by_words_plain_or_encrypted()
+    {
+        string folder = Path.Combine(Path.GetTempPath(), "mubsir-chats-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var when = new DateTimeOffset(2026, 11, 12, 9, 0, 0, TimeSpan.Zero);
+            string Seal(string line) => Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(line));
+            string? Unseal(string line) => line == "broken" ? null : System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(line));
+            var archive = new SessionArchive(folder, () => when, Seal, Unseal);
+
+            archive.Add("You", "open the electricity invoice");
+            when = when.AddDays(1);
+            archive.Add("You", "اقرأ كتاب النحو", encrypt: true);
+            archive.Add("Mubsir", "Reading Grammar from page 12.", encrypt: true);
+            File.AppendAllText(Path.Combine(folder, "2026-11-13.chat"), "broken\n");
+            when = when.AddDays(1);
+
+            Assert.DoesNotContain("النحو", File.ReadAllText(Path.Combine(folder, "2026-11-13.chat")), StringComparison.Ordinal);
+            Assert.False(File.Exists(Path.Combine(folder, "2026-11-13.md")));
+
+            string yesterday = archive.Recall(SessionArchive.ParseDay("yesterday", when), null);
+            Assert.Equal("2026-11-13 **09:00 You:** اقرأ كتاب النحو\n2026-11-13 **09:00 Mubsir:** Reading Grammar from page 12.", yesterday);
+
+            Assert.Equal("2026-11-12 **09:00 You:** open the electricity invoice", archive.Recall(null, "Invoice electricity"));
+            Assert.StartsWith("2026-11-13", archive.Recall(null, "النَّحو"), StringComparison.Ordinal);
+            Assert.Equal("No saved chat has those words.", archive.Recall(null, "passport"));
+            Assert.Equal("No chat was saved for that day.", archive.Recall(SessionArchive.ParseDay("2026-01-01", when), null));
+            Assert.EndsWith("(more was said; ask about one part of it)", archive.Recall(SessionArchive.ParseDay("2026-11-13", when), null, maxChars: 60), StringComparison.Ordinal);
+            Assert.Null(SessionArchive.ParseDay("last week", when));
+            Assert.Equal(2, archive.Days(5).Count);
         }
         finally
         {

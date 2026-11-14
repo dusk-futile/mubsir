@@ -108,6 +108,8 @@ internal static class ActionNarration
                 return ar ? "سيُعاد تشغيل الجهاز بعد ثلاثين ثانية" : "The computer restarts in thirty seconds";
             case ToolNames.Remember:
                 return ar ? "سأتذكر ذلك" : "I'll remember that";
+            case ToolNames.Recall:
+                return ar ? "أبحث في المحادثات المحفوظة" : "Looking through saved chats";
             case ToolNames.AskUser:
                 return "";
             default:

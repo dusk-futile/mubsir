@@ -87,6 +87,10 @@ public sealed record MubsirSettings
     /// <summary>Keep conversations as files the user can open. Private mode saves nothing.</summary>
     public bool SaveSessions { get; set; } = true;
 
+    /// <summary>Save chats encrypted, so only this Windows account can read them. They no longer open in Notepad;
+    /// Mubsir can still look through them and export a day as a Word file.</summary>
+    public bool EncryptSessions { get; set; }
+
     /// <summary>Where chats go. Empty means Documents\\Mubsir\\Chats.</summary>
     public string? SessionsFolder { get; set; }
 }

@@ -130,6 +130,7 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
             "ReadArabicBooksWithFish" => s.ReadArabicBooksWithFish,
             "ReadFullTashkeel" => s.ReadFullTashkeel,
             "SaveSessions" => s.SaveSessions,
+            "EncryptSessions" => s.EncryptSessions,
             _ => false,
         };
     }
@@ -142,6 +143,7 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
         "ReadArabicBooksWithFish" => s with { ReadArabicBooksWithFish = value },
         "ReadFullTashkeel" => s with { ReadFullTashkeel = value },
         "SaveSessions" => s with { SaveSessions = value },
+        "EncryptSessions" => s with { EncryptSessions = value },
         _ => s,
     });
 
@@ -232,11 +234,11 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
         bool isArabic = lang == Lang.Arabic;
 
         string folder = app.Sessions?.Folder ?? AppPaths.DefaultChatsDir;
-        DateTimeOffset now = app.Clock.UtcNow;
-        string mdPath = Path.Combine(folder, now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + ".md");
+        DateTimeOffset now = app.Clock.UtcNow.ToLocalTime();
         string docxPath = Path.Combine(folder, now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + ".docx");
+        IReadOnlyList<string> lines = app.Sessions?.Lines(now) ?? [];
 
-        if (!File.Exists(mdPath))
+        if (lines.Count == 0)
         {
             string emptyMsg = isArabic
                 ? "مفيش محادثات محفوظة النهاردة لتصديرها."
@@ -247,21 +249,8 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
 
         try
         {
-            bool ok = DocxWriter.TryExportMarkdownFile(mdPath, docxPath);
-            if (ok)
-            {
-                string okMsg = isArabic
-                    ? "تم تصدير محادثة اليوم بصيغة Word بجوار ملف المحادثة."
-                    : "Exported today's chat as a Word document next to the chat file.";
-                Say(okMsg, lang);
-            }
-            else
-            {
-                string failMsg = isArabic
-                    ? "تعذر تصدير محادثة اليوم."
-                    : "Could not export today's chat.";
-                Say(failMsg, lang);
-            }
+            DocxWriter.WriteToFile(docxPath, lines);
+            Say(isArabic ? "تم تصدير محادثة اليوم بصيغة Word بجوار ملف المحادثة." : "Exported today's chat as a Word document next to the chat file.", lang);
         }
         catch (Exception e) when (e is not OutOfMemoryException)
         {

@@ -684,6 +684,7 @@ public sealed class SetupWindow : Window
         Option("ReadArabicBooksWithFish", T("اقرأ الكتب العربية بصوت Fish (10 صفحات بحوالي 50 سنت)", "Read Arabic books in the Fish voice (about $0.50 for 10 pages)"));
         Option("ReadFullTashkeel", T("اقرأ التشكيل كاملاً (لو مقفول، متروك للصوت)", "Read Arabic diacritics fully (when off, left to the voice)"));
         Option("SaveSessions", T("احفظ المحادثات في فولدر على جهازي", "Save chats in a folder on this PC"));
+        Option("EncryptSessions", T("شفّر المحادثات المحفوظة (مش هتتفتح في Notepad، ومبصر يقدر يقرأها ويصدّرها)", "Encrypt saved chats (they won't open in Notepad; Mubsir can still read and export them)"));
 
         // Chats and Export
         var chatsPanel = new WrapPanel { Margin = new Thickness(0, 8, 0, 4) };

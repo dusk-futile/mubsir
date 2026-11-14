@@ -130,7 +130,7 @@ internal sealed class MubsirHost
         UiaScreenReader? screen = Create("screen", () => new UiaScreenReader(_log));
         app.Screen = screen;
         app.Ears = Create("ears", () => new EarsRouter(new GeminiEars(secrets, settings, _log), new FishEars(secrets, _log, ledger, OnCostChanged), secrets, settings, _log));
-        app.Sessions = new SessionArchive(settings.Settings.SessionsFolder ?? AppPaths.DefaultChatsDir, () => _clock.UtcNow.ToLocalTime());
+        app.Sessions = new SessionArchive(settings.Settings.SessionsFolder ?? AppPaths.DefaultChatsDir, () => _clock.UtcNow.ToLocalTime(), Dpapi.Seal, Dpapi.Unseal);
         localVoice.Installed += () => app.SayNow(AppPhrase.LocalVoiceReady);
         localVoice.TooSlow += () => app.SayNow(AppPhrase.LocalVoiceTooSlow);
         fishVoice.KeyRejected += status => app.SayNow(status == 402 ? AppPhrase.FishNoCredit : AppPhrase.FishKeyRejected);
@@ -172,7 +172,7 @@ internal sealed class MubsirHost
             }
 
             app.Executor = Create<IToolExecutor>("executor", () => new WindowsToolExecutor(
-                screen, documents, positions, books, app.Brain, speech, settings, memory, prompter, usage, _log) { Voices = fishVoice, Reminders = reminders });
+                screen, documents, positions, books, app.Brain, speech, settings, memory, prompter, usage, _log) { Voices = fishVoice, Reminders = reminders, Sessions = app.Sessions });
             scanner = new LibraryScanner(library, documents, _log) { Describe = app.Executor is WindowsToolExecutor hands ? hands.DescribeBookAsync : null };
         }
 
