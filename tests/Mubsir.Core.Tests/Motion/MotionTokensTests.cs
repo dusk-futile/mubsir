@@ -17,7 +17,7 @@ public class MotionTokensTests
         }
 
         Assert.Equal(new Size2(120, 28), tokens.NotchSizes[CompanionState.Idle]);
-        Assert.Equal(new Size2(424, 172), tokens.NotchSizes[CompanionState.Doing]);
+        Assert.Equal(new Size2(424, 166), tokens.NotchSizes[CompanionState.Doing]);
         Assert.Equal(new SpringToken(0.44, 0.86), tokens.Spring("notchWidth"));
         Assert.Equal(new SpringToken(0.32, 1.0), tokens.Spring("content"));
         Assert.Equal("#F3C343", tokens.Colors["amber"]);
@@ -41,7 +41,7 @@ public class MotionTokensTests
 
     [Theory]
     [InlineData("listening", CompanionState.Listening)]
-    [InlineData("CONFIRM", CompanionState.Confirm)]
+    [InlineData("THINKING", CompanionState.Thinking)]
     [InlineData("undone", CompanionState.Undone)]
     public void State_names_round_trip(string key, CompanionState expected)
     {

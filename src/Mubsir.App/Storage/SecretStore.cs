@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Mubsir.Core.Logging;
+using Mubsir.Core.Setup;
 
 namespace Mubsir.App.Storage;
 
@@ -57,6 +58,9 @@ internal sealed class SecretStore
     }
 
     public bool Has(string name) => Get(name) is not null;
+
+    /// <summary>Which of the three service keys are saved.</summary>
+    public KeysHeld Held() => new(Has(SecretNames.Anthropic), Has(SecretNames.Fish), Has(SecretNames.Gemini));
 
     private static string Normalize(string name) => name.Trim().ToLowerInvariant();
 

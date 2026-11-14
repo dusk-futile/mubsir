@@ -1,5 +1,6 @@
 using Mubsir.Core.Common;
 using Mubsir.Core.Input;
+using Mubsir.Core.Setup;
 
 namespace Mubsir.Core.Config;
 
@@ -55,6 +56,12 @@ public sealed record MubsirSettings
 
     /// <summary>Speak Arabic through Fish Audio when it has a key. Otherwise, or if it fails, the free Windows voice speaks. English always uses the free voice.</summary>
     public bool UseFishVoice { get; set; } = true;
+
+    /// <summary>The brain the person chose. Null until they choose: then a Claude key means Claude, otherwise Gemini.</summary>
+    public BrainChoice? Brain { get; set; }
+
+    /// <summary>The hearing the person chose. Null until they choose: Gemini when its key is there.</summary>
+    public EarsChoice? Ears { get; set; }
 
     /// <summary>When an answer has any Arabic, the Fish voice says all of it, English sentences too, so the speaker never changes mid-answer. Costs Fish for those English sentences, so it's off unless chosen.</summary>
     public bool OneVoicePerAnswer { get; set; }

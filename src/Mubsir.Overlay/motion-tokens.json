@@ -1,5 +1,5 @@
 {
-  "about": "Motion and size tokens for the notch, taken from the approved design. Sizes are device-independent pixels. Springs are response (seconds) and damping fraction (1 = no bounce), like SwiftUI.",
+  "about": "Motion, size and colour tokens for the notch. Sizes are device-independent pixels. Springs are response (seconds) and damping fraction (1 = no bounce), like SwiftUI.",
   "springs": {
     "notchWidth":  { "response": 0.44, "damping": 0.86 },
     "notchHeight": { "response": 0.4,  "damping": 0.9 },
@@ -11,13 +11,11 @@
     "sizes": {
       "idle": [120, 28],
       "peek": [236, 34],
-      "listening": [404, 98],
-      "thinking": [178, 38],
-      "doing": [424, 172],
-      "speaking": [452, 136],
-      "reading": [404, 86],
-      "confirm": [444, 206],
-      "paid": [276, 48],
+      "listening": [404, 92],
+      "thinking": [184, 40],
+      "doing": [424, 166],
+      "speaking": [452, 120],
+      "reading": [300, 58],
       "undone": [372, 48]
     },
     "maxRadius": 36,
@@ -33,6 +31,8 @@
     "crest": "#E2703A",
     "ok": "#6FD39A",
     "lilac": "#A98BFF",
-    "teal": "#57D6C6"
+    "teal": "#57D6C6",
+    "sky": "#5AC8FA",
+    "pink": "#FF6FB1"
   }
 }

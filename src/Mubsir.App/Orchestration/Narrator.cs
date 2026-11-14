@@ -14,6 +14,7 @@ internal sealed class Narrator : INarrator
     private readonly List<int> _answerIndices = [];
     private Lang _lang;
     private bool _aiEarconPlayed;
+    private string? _step;
 
     public Narrator(AppServices app)
     {
@@ -67,6 +68,10 @@ internal sealed class Narrator : INarrator
         lock (_gate)
         {
             lang = _lang;
+            if (kind == NarrationKind.Step)
+            {
+                _step = text;
+            }
         }
 
         try
@@ -83,6 +88,38 @@ internal sealed class Narrator : INarrator
         catch (Exception e) when (e is not OutOfMemoryException)
         {
             _app.Log.Failure("narrate", e);
+        }
+    }
+
+    public void StepFinished(bool ok)
+    {
+        Lang lang;
+        string? step;
+        lock (_gate)
+        {
+            lang = _lang;
+            step = _step;
+            _step = null;
+        }
+
+        // "Opening Settings" is followed by "Opened Settings", so the person hears what is now true.
+        string finished = StepWords.Finished(step, ScriptSegmenter.DominantLanguage(step ?? string.Empty, lang));
+        bool reworded = finished != AgentText.StepDone(Lang.English) && finished != AgentText.StepDone(Lang.Arabic);
+        _app.Companion?.StepFinished(ok, ok && reworded ? finished.TrimEnd('.') : null);
+        try
+        {
+            if (ok)
+            {
+                _app.Speech.Speak(finished, UtteranceKind.Narration, ScriptSegmenter.DominantLanguage(finished, lang));
+            }
+            else
+            {
+                _app.Speech.PlayEarcon(Earcon.Error);
+            }
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            _app.Log.Failure("narrate_done", e);
         }
     }
 

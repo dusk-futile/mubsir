@@ -136,7 +136,7 @@ internal sealed class MubsirHost
         fishVoice.KeyRejected += status => app.SayNow(status == 402 ? AppPhrase.FishNoCredit : AppPhrase.FishKeyRejected);
         using var companion = settings.Settings.ShowNotch ? new CompanionBridge(speech, recorder, _log) : null;
         app.Companion = companion;
-        app.Brain = Create<IBrain>("brain", () => new BrainRouter(new ClaudeBrain(secrets, _log), new GeminiBrain(secrets, settings, _log), secrets));
+        app.Brain = Create<IBrain>("brain", () => new BrainRouter(new ClaudeBrain(secrets, _log), new GeminiBrain(secrets, settings, _log), secrets, settings));
         if (screen is not null)
         {
             var positions = new ReadingPositions(AppPaths.PositionsFile);
@@ -166,6 +166,11 @@ internal sealed class MubsirHost
                 () => !settings.Settings.PrivateMode && settings.Profile.CloudConsentGiven && !settings.Settings.MubsirPaused,
                 input.SetReading, _log);
             app.Books = books;
+            if (companion is not null)
+            {
+                companion.Book = () => books.Session.Reading;
+            }
+
             app.Executor = Create<IToolExecutor>("executor", () => new WindowsToolExecutor(
                 screen, documents, positions, books, app.Brain, speech, settings, memory, prompter, usage, _log) { Voices = fishVoice, Reminders = reminders });
             scanner = new LibraryScanner(library, documents, _log) { Describe = app.Executor is WindowsToolExecutor hands ? hands.DescribeBookAsync : null };
