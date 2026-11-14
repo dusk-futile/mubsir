@@ -40,6 +40,41 @@ public static class ConversationTrimmer
     public const string OmittedScreenshotNote = "[previous screenshot omitted]";
     public const int DefaultMaxMessages = 20;
 
+    /// <summary>What an old screen snapshot becomes. A snapshot is the biggest thing in a task, and an old one is
+    /// wrong as soon as the screen changes, so only the newest is kept and paid for.</summary>
+    public const string OldSnapshotNote = "[An older screen snapshot was here. Only the latest one is kept. Call read_screen to see the screen as it is now.]";
+
+    /// <summary>Replaces every read_screen result but the newest with one line. Returns how many were replaced.</summary>
+    public static int PruneOlderSnapshots(IList<ConversationMessage> messages)
+    {
+        ArgumentNullException.ThrowIfNull(messages);
+        var snapshotCalls = new HashSet<string>(StringComparer.Ordinal);
+        var found = new List<(int Message, int Block)>();
+        for (int m = 0; m < messages.Count; m++)
+        {
+            for (int b = 0; b < messages[m].Blocks.Count; b++)
+            {
+                switch (messages[m].Blocks[b])
+                {
+                    case ConversationBlock.ToolUse { Name: Brain.ToolNames.ReadScreen } use:
+                        snapshotCalls.Add(use.Id);
+                        break;
+                    case ConversationBlock.ToolResult { IsError: false } result when snapshotCalls.Contains(result.ToolCallId) && result.Content != OldSnapshotNote:
+                        found.Add((m, b));
+                        break;
+                }
+            }
+        }
+
+        for (int i = 0; i < found.Count - 1; i++)
+        {
+            (int m, int b) = found[i];
+            messages[m].Blocks[b] = ((ConversationBlock.ToolResult)messages[m].Blocks[b]) with { Content = OldSnapshotNote, Raw = null };
+        }
+
+        return Math.Max(0, found.Count - 1);
+    }
+
     /// <summary>
     /// Replaces all older screenshots with a text note, keeping only the newest screenshot in the conversation.
     /// Returns the number of images replaced.
@@ -143,6 +178,7 @@ public static class ConversationTrimmer
     public static void PrepareHistory(IList<ConversationMessage> messages, int maxMessages = DefaultMaxMessages)
     {
         PruneOlderScreenshots(messages);
+        PruneOlderSnapshots(messages);
         TrimConversation(messages, maxMessages);
     }
 

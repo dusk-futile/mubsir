@@ -86,6 +86,35 @@ public static class OpenAiWire
         return results.Select(r => new JsonObject { ["role"] = "tool", ["tool_call_id"] = r.ToolCallId, ["content"] = r.IsError ? "Error: " + r.Content : r.Content });
     }
 
+    /// <summary>Keeps only the newest screen snapshot whole; see <see cref="ConversationTrimmer.OldSnapshotNote"/>.</summary>
+    public static void ShortenOldSnapshots(JsonArray messages)
+    {
+        ArgumentNullException.ThrowIfNull(messages);
+        var snapshotCalls = new HashSet<string>(StringComparer.Ordinal);
+        JsonNode? newest = null;
+        foreach (JsonNode? message in messages)
+        {
+            foreach (JsonNode? call in message?["tool_calls"] as JsonArray ?? [])
+            {
+                if (call?["function"]?["name"]?.GetValue<string>() == ToolNames.ReadScreen && call["id"]?.GetValue<string>() is { } id)
+                {
+                    snapshotCalls.Add(id);
+                }
+            }
+
+            if (message?["role"]?.GetValue<string>() == "tool" && message["tool_call_id"]?.GetValue<string>() is { } answered && snapshotCalls.Contains(answered)
+                && message["content"]?.GetValue<string>().StartsWith("Error: ", StringComparison.Ordinal) == false)
+            {
+                if (newest is not null)
+                {
+                    newest["content"] = ConversationTrimmer.OldSnapshotNote;
+                }
+
+                newest = message;
+            }
+        }
+    }
+
     /// <summary>Reads one answer. Throws <see cref="JsonException"/> or <see cref="InvalidOperationException"/> if it isn't one.</summary>
     public static Answer Parse(string json, Func<string> newId)
     {

@@ -29,8 +29,8 @@ internal sealed class CustomBrain(SecretStore secrets, SettingsProvider settings
 
     private sealed class Session(CustomBrain owner, BrainSessionOptions options) : IBrainSession
     {
-        // ponytail: every turn of the task is sent each time, and the answer isn't streamed. A task ends after 15
-        // steps, so this stays small; trim like GeminiWire.Trim and stream if tasks grow or the first word feels late.
+        // ponytail: every turn of the task is sent each time (old screen snapshots shortened), and the answer isn't
+        // streamed. A task ends after 15 steps; drop old turns and stream if tasks grow or the first word feels late.
         private readonly JsonArray _messages = [];
 
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
@@ -55,6 +55,7 @@ internal sealed class CustomBrain(SecretStore secrets, SettingsProvider settings
                     throw new ArgumentOutOfRangeException(nameof(input));
             }
 
+            OpenAiWire.ShortenOldSnapshots(_messages);
             (OpenAiWire.Answer? answer, BrainFailed? failed) = await owner.AskAsync(options, _messages, ct).ConfigureAwait(false);
             if (answer is null)
             {

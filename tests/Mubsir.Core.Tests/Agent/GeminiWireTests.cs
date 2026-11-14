@@ -167,4 +167,48 @@ public class GeminiWireTests
         Assert.Null(OpenAiWire.Parse("{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null}}]}", () => "x").Text);
         Assert.Throws<InvalidOperationException>(() => OpenAiWire.Parse("{\"error\":{\"message\":\"bad key\"}}", () => "x"));
     }
+
+    [Fact]
+    public void Only_the_newest_screen_snapshot_is_kept_in_geminis_and_the_common_formats()
+    {
+        var names = new Dictionary<string, string> { ["a"] = "read_screen", ["b"] = "list_windows", ["c"] = "read_screen" };
+        var contents = new JsonArray(
+            GeminiWire.UserTurn(new UserTurn("open mail", null, null)),
+            GeminiWire.ToolAnswers([new ToolResult("a", "OLD SCREEN"), new ToolResult("b", "Mail, Chrome")], names),
+            GeminiWire.ToolAnswers([new ToolResult("c", "NEW SCREEN")], names));
+
+        GeminiWire.Trim(contents);
+
+        string sent = contents.ToJsonString();
+        Assert.DoesNotContain("OLD SCREEN", sent, StringComparison.Ordinal);
+        Assert.Contains("NEW SCREEN", sent, StringComparison.Ordinal);
+        Assert.Contains("Mail, Chrome", sent, StringComparison.Ordinal);
+
+        var messages = new JsonArray();
+        void Add(string json) => messages.Add(JsonNode.Parse(json));
+        Add("{\"role\":\"assistant\",\"tool_calls\":[{\"id\":\"a\",\"function\":{\"name\":\"read_screen\"}},{\"id\":\"b\",\"function\":{\"name\":\"list_windows\"}}]}");
+        Add("{\"role\":\"tool\",\"tool_call_id\":\"a\",\"content\":\"OLD SCREEN\"}");
+        Add("{\"role\":\"tool\",\"tool_call_id\":\"b\",\"content\":\"Mail, Chrome\"}");
+        Add("{\"role\":\"assistant\",\"tool_calls\":[{\"id\":\"c\",\"function\":{\"name\":\"read_screen\"}}]}");
+        Add("{\"role\":\"tool\",\"tool_call_id\":\"c\",\"content\":\"NEW SCREEN\"}");
+
+        OpenAiWire.ShortenOldSnapshots(messages);
+
+        Assert.Equal(ConversationTrimmer.OldSnapshotNote, messages[1]!["content"]!.GetValue<string>());
+        Assert.Equal("Mail, Chrome", messages[2]!["content"]!.GetValue<string>());
+        Assert.Equal("NEW SCREEN", messages[4]!["content"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void The_part_of_the_prompt_that_is_cached_is_the_same_on_every_request_and_for_every_user()
+    {
+        string arabic = SystemPrompt.Build(Lang.Arabic, ReplyStyle.Dialect, Verbosity.Brief, Mubsir.Core.Config.UserKind.Blind, "Jarvis");
+        string english = SystemPrompt.Build(Lang.English, ReplyStyle.SimpleMsa, Verbosity.Detailed);
+        int shared = arabic.Zip(english).TakeWhile(pair => pair.First == pair.Second).Count();
+
+        Assert.Equal(arabic, SystemPrompt.Build(Lang.Arabic, ReplyStyle.Dialect, Verbosity.Brief, Mubsir.Core.Config.UserKind.Blind, "Jarvis"));
+        Assert.True(shared > arabic.Length * 0.8, $"only {shared} of {arabic.Length} characters are shared");
+        Assert.Contains("HOW TO SPEAK", arabic[..shared], StringComparison.Ordinal);
+        Assert.Equal(ToolCatalog.All.Select(t => t.InputSchemaJson), ToolCatalog.All.Select(t => t.InputSchemaJson));
+    }
 }

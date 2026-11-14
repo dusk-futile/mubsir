@@ -180,4 +180,27 @@ public class ConversationTrimmerTests
         var tr = Assert.IsType<ConversationBlock.ToolResult>(messages[2].Blocks[0]);
         Assert.Equal("c2", tr.ToolCallId);
     }
+
+    [Fact]
+    public void Only_the_newest_screen_snapshot_is_kept_in_claudes_history()
+    {
+        var messages = new List<ConversationMessage>
+        {
+            new(ConversationRole.User, new ConversationBlock.Text("open mail")),
+            new(ConversationRole.Assistant, new ConversationBlock.ToolUse("a", "read_screen"), new ConversationBlock.ToolUse("b", "list_windows")),
+            new(ConversationRole.User, new ConversationBlock.ToolResult("a", "[1] button \"Mail\""), new ConversationBlock.ToolResult("b", "Mail, Chrome")),
+            new(ConversationRole.Assistant, new ConversationBlock.ToolUse("c", "read_screen")),
+            new(ConversationRole.User, new ConversationBlock.ToolResult("c", "nothing there", IsError: true)),
+            new(ConversationRole.Assistant, new ConversationBlock.ToolUse("d", "read_screen")),
+            new(ConversationRole.User, new ConversationBlock.ToolResult("d", "[1] list \"Inbox\"")),
+        };
+
+        Assert.Equal(1, ConversationTrimmer.PruneOlderSnapshots(messages));
+        Assert.Equal(0, ConversationTrimmer.PruneOlderSnapshots(messages));
+
+        Assert.Equal(ConversationTrimmer.OldSnapshotNote, ((ConversationBlock.ToolResult)messages[2].Blocks[0]).Content);
+        Assert.Equal("Mail, Chrome", ((ConversationBlock.ToolResult)messages[2].Blocks[1]).Content);
+        Assert.Equal("nothing there", ((ConversationBlock.ToolResult)messages[4].Blocks[0]).Content);
+        Assert.Equal("[1] list \"Inbox\"", ((ConversationBlock.ToolResult)messages[6].Blocks[0]).Content);
+    }
 }
