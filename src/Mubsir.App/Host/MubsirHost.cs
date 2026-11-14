@@ -89,6 +89,13 @@ internal sealed class MubsirHost
             }
         }
 
+        if (settings.Settings.LightMode is null)
+        {
+            // Decided once. A PC already set up keeps what it has; a new one with little memory starts without the notch and Ryan.
+            bool light = !settings.Settings.OnboardingDone && Mubsir.Core.Setup.PcCheck.IsLight(NativeQueries.TotalMemoryMb(), Environment.ProcessorCount);
+            settings.Update(s => s with { LightMode = light, ShowNotch = s.ShowNotch && !light });
+        }
+
         using var fishVoice = new FishVoice(secrets, settings, _log, ledger, OnCostChanged);
         var reminders = new Mubsir.Core.Reminders.ReminderBook(AppPaths.RemindersFile);
         using var localVoice = new LocalVoice(_log);
@@ -136,7 +143,7 @@ internal sealed class MubsirHost
         fishVoice.KeyRejected += status => app.SayNow(status == 402 ? AppPhrase.FishNoCredit : AppPhrase.FishKeyRejected);
         using var companion = settings.Settings.ShowNotch ? new CompanionBridge(speech, recorder, _log) : null;
         app.Companion = companion;
-        app.Brain = Create<IBrain>("brain", () => new BrainRouter(new ClaudeBrain(secrets, _log), new GeminiBrain(secrets, settings, _log), secrets, settings));
+        app.Brain = Create<IBrain>("brain", () => new BrainRouter(new ClaudeBrain(secrets, _log), new GeminiBrain(secrets, settings, _log), new CustomBrain(secrets, settings, _log), secrets, settings));
         if (screen is not null)
         {
             var positions = new ReadingPositions(AppPaths.PositionsFile);
@@ -191,7 +198,11 @@ internal sealed class MubsirHost
 
         using var scanStopping = new CancellationTokenSource();
         scanner?.Start(scanStopping.Token);
-        _ = Task.Run(() => localVoice.InstallAsync(scanStopping.Token));
+        if (settings.Settings.LightMode != true)
+        {
+            _ = Task.Run(() => localVoice.InstallAsync(scanStopping.Token));
+        }
+
         _ = Task.Run(() => SayRemindersAsync(reminders, speech, settings, _log, scanStopping.Token));
         using var foreground = new ForegroundWatcher(app, mubsir.Tasks, hook);
         foreground.Start();

@@ -50,7 +50,7 @@ public static class SystemPrompt
         - Keep names of apps, websites, buttons and menus exactly as they appear on screen, even when they are in another language.
         """;
 
-    public static string Build(Lang lang, ReplyStyle style, Verbosity verbosity, UserKind kind = UserKind.Unknown)
+    public static string Build(Lang lang, ReplyStyle style, Verbosity verbosity, UserKind kind = UserKind.Unknown, string? name = null)
     {
         var sb = new StringBuilder(Core.Length + 1200);
         sb.Append(Core).Append('\n');
@@ -83,6 +83,12 @@ public static class SystemPrompt
         });
 
         sb.Append(AboutUser(kind));
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            // Last, so the long part before it stays the same for everyone and stays cached.
+            sb.Append("- The user has named you \"").Append(name).Append("\". Answer to that name and use it if asked who you are.\n");
+        }
+
         return sb.ToString();
     }
 

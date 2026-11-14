@@ -222,10 +222,13 @@ internal sealed class GeminiBrain(SecretStore secrets, SettingsProvider settings
     }
 }
 
-/// <summary>Claude if there's a key for it, otherwise the free Gemini.</summary>
 /// <summary>Starts the brain the person chose, or the other one if the chosen one has no key yet.</summary>
-internal sealed class BrainRouter(IBrain claude, IBrain gemini, SecretStore secrets, SettingsProvider settings) : IBrain
+internal sealed class BrainRouter(IBrain claude, IBrain gemini, IBrain custom, SecretStore secrets, SettingsProvider settings) : IBrain
 {
-    public IBrainSession StartSession(BrainSessionOptions options) =>
-        Providers.Brain(settings.Settings.Brain, secrets.Held()) == BrainChoice.Claude ? claude.StartSession(options) : gemini.StartSession(options);
+    public IBrainSession StartSession(BrainSessionOptions options) => Providers.Brain(settings.Settings.Brain, secrets.Held()) switch
+    {
+        BrainChoice.Custom => custom.StartSession(options),
+        BrainChoice.Claude => claude.StartSession(options),
+        _ => gemini.StartSession(options),
+    };
 }

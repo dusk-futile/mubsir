@@ -61,6 +61,12 @@ internal static class SetupDemo
             }
         }
 
+        private readonly Dictionary<string, string?> _texts = [];
+
+        public string? GetText(string name) => _texts.GetValueOrDefault(name);
+
+        public void SetText(string name, string? value) => _texts[name] = value;
+
         public bool GetOption(string name) => name is "ShowNotch" or "SaveSessions" || (name == "UseFishVoice" && _fishVoice);
 
         public void InstallNvdaAddon()

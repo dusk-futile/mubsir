@@ -28,7 +28,39 @@ public static class CommandGrammar
     private static readonly string[] Names = Enum.GetNames<LocalCommand>();
     private static readonly Dictionary<string, LocalCommand> NameLookup = BuildNameLookup();
 
+    private const int MaxNameChars = 24;
+    private static readonly string[][] NamePrefixes = FoldPhrases(["your name is now", "your new name is", "your name is", "i will call you", "i'll call you", "call yourself", "اسمك الجديد", "اسمك بقى", "اسمك هو", "اسمك", "هسميك", "حسميك", "سأسميك", "هناديك"]);
+    private static readonly HashSet<string> NotNames = FoldWords(["what", "who", "ايه", "إيه", "مين", "ما", "ماذا"]);
+
     public static IReadOnlyList<string> KnownLocalCommandNames => Names;
+
+    /// <summary>The new name in "your name is Jarvis" or "اسمك محمد", or null. "اسمك ايه" is a question, not a name.</summary>
+    public static string? ParseNewName(string utterance)
+    {
+        ArgumentNullException.ThrowIfNull(utterance);
+        string[] raw = utterance.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        string[] folded = raw.Select(ArabicFolding.Fold).ToArray();
+        foreach (string[] prefix in NamePrefixes)
+        {
+            if (prefix.Length < folded.Length && folded.AsSpan(0, prefix.Length).SequenceEqual(prefix))
+            {
+                return folded.Skip(prefix.Length).Any(NotNames.Contains) ? null : CleanName(string.Join(' ', raw[prefix.Length..]));
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>A name that can be said and called out: one to three words of letters. Null for anything else.</summary>
+    public static string? CleanName(string? name)
+    {
+        string text = (name ?? string.Empty).Trim(' ', '.', '،', ',', '!', '?', '؟', '"', '«', '»');
+        return text.Length is > 1 and <= MaxNameChars
+            && text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length <= 3
+            && text.All(c => char.IsLetter(c) || c is ' ' or '-')
+            ? text
+            : null;
+    }
 
     public static CommandMatch? Match(string utterance)
     {

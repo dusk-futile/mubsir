@@ -119,6 +119,35 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
 
     public void SetGeminiModel(string model) => app.Settings.Update(s => s with { GeminiBrainModel = model });
 
+    public string? GetText(string name)
+    {
+        MubsirSettings s = app.Settings.Settings;
+        return name switch
+        {
+            "AssistantName" => s.AssistantName,
+            "CustomBrainUrl" => s.CustomBrainUrl,
+            "CustomBrainModel" => s.CustomBrainModel,
+            _ => null,
+        };
+    }
+
+    public void SetText(string name, string? value)
+    {
+        if (name == "CustomBrainKey")
+        {
+            secrets.Set(SecretNames.Custom, value);
+            return;
+        }
+
+        app.Settings.Update(s => name switch
+        {
+            "AssistantName" => s with { AssistantName = value },
+            "CustomBrainUrl" => s with { CustomBrainUrl = value },
+            "CustomBrainModel" => s with { CustomBrainModel = value },
+            _ => s,
+        });
+    }
+
     public bool GetOption(string name)
     {
         MubsirSettings s = app.Settings.Settings;
@@ -131,6 +160,7 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
             "ReadFullTashkeel" => s.ReadFullTashkeel,
             "SaveSessions" => s.SaveSessions,
             "EncryptSessions" => s.EncryptSessions,
+            "LightMode" => s.LightMode == true,
             _ => false,
         };
     }
@@ -144,6 +174,7 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
         "ReadFullTashkeel" => s with { ReadFullTashkeel = value },
         "SaveSessions" => s with { SaveSessions = value },
         "EncryptSessions" => s with { EncryptSessions = value },
+        "LightMode" => s with { LightMode = value },
         _ => s,
     });
 

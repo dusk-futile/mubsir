@@ -213,7 +213,7 @@ internal sealed class TaskRunner
 
         var options = new BrainSessionOptions(
             mode,
-            SystemPrompt.Build(lang, s.ReplyStyle, s.Verbosity, _app.Settings.Settings.UserKind),
+            SystemPrompt.Build(lang, s.ReplyStyle, s.Verbosity, _app.Settings.Settings.UserKind, _app.Settings.Settings.AssistantName),
             ProfileBlock.Build(ProfileFields.From(_app.Settings.Profile), SafeMemory(), _app.Settings.Profile.Apps ?? []),
             mode == BrainMode.Agent ? ToolCatalog.All : [],
             AllowWebSearch: true,

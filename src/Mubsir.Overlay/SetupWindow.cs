@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using Mubsir.Core.Agent;
 using Mubsir.Core.Common;
 using Mubsir.Core.Input;
 using Mubsir.Core.Onboarding;
@@ -58,6 +59,12 @@ public interface ISetupDriver
     string GetGeminiModel();
 
     void SetGeminiModel(string model);
+
+    /// <summary>A typed setting: "AssistantName", "CustomBrainUrl" or "CustomBrainModel".</summary>
+    string? GetText(string name);
+
+    /// <summary>The same names, and "CustomBrainKey", which is saved as a secret and never read back.</summary>
+    void SetText(string name, string? value);
 
     string? GetFishVoiceId();
 
@@ -245,7 +252,9 @@ public sealed class SetupWindow : Window
         string model = _driver.GetGeminiModel();
         bool flash = brain == BrainChoice.Gemini && model == FlashModel;
 
-        string brainName = brain == BrainChoice.Claude ? "Claude Haiku 5.5" : flash ? "Gemini 3.5 Flash" : "Gemini 3.5 Flash-Lite";
+        string brainName = brain == BrainChoice.Claude ? "Claude Haiku 5.5"
+            : brain == BrainChoice.Custom ? _driver.GetText("CustomBrainModel") ?? T("خدمة تانية", "another service")
+            : flash ? "Gemini 3.5 Flash" : "Gemini 3.5 Flash-Lite";
         string earsName = ears == EarsChoice.Fish ? "Fish Audio" : "Gemini";
         string voiceName = fishVoice ? "Fish Audio" : T("صوت ويندوز", "the Windows voice");
         Add(Words(T($"العقل: {brainName}. السمع: {earsName}. صوت العربي: {voiceName}. صوت الإنجليزي: Ryan، مجاني على جهازك.",
@@ -265,22 +274,28 @@ public sealed class SetupWindow : Window
         expander.Content = choices;
         Add(expander);
 
-        int brainIndex = brain == BrainChoice.Claude ? 2 : flash ? 1 : 0;
+        int brainIndex = brain == BrainChoice.Custom ? 3 : brain == BrainChoice.Claude ? 2 : flash ? 1 : 0;
         Section(T("العقل", "Brain"), choices);
         Choice("brain", brainIndex,
         [
             T("Gemini 3.5 Flash-Lite · مجاني · موصى به", "Gemini 3.5 Flash-Lite · free · recommended"),
             T("Gemini 3.5 Flash · مجاني، أذكى، طلبات مجانية أقل في اليوم", "Gemini 3.5 Flash · free, smarter, fewer free requests a day"),
             T($"Claude Haiku 5.5 · مدفوع، حوالي {CostGuide.Estimate(60).Brain:0} دولار في الشهر · الأفضل لو هتدفع", $"Claude Haiku 5.5 · paid, about ${CostGuide.Estimate(60).Brain:0} a month · best if you pay"),
+            T("خدمة تانية بعنوانها · OpenRouter أو OmniRoute أو موديل على جهازك", "Another service by its address · OpenRouter, OmniRoute or a model on this PC"),
         ],
         i =>
         {
-            _driver.SetBrain(i == 2 ? BrainChoice.Claude : BrainChoice.Gemini);
+            _driver.SetBrain(i == 3 ? BrainChoice.Custom : i == 2 ? BrainChoice.Claude : BrainChoice.Gemini);
             if (i < 2)
             {
                 _driver.SetGeminiModel(i == 1 ? FlashModel : FlashLiteModel);
             }
         }, choices);
+
+        if (brain == BrainChoice.Custom)
+        {
+            CustomBrain(choices);
+        }
 
         Section(T("السمع", "Hearing"), choices);
         Choice("ears", (int)ears, [T("Gemini · مجاني · موصى به", "Gemini · free · recommended"), "Fish Audio"], i => _driver.SetEars((EarsChoice)i), choices);
@@ -301,10 +316,14 @@ public sealed class SetupWindow : Window
             }
         }
 
-        Need(Providers.KeyFor(brain), brain == BrainChoice.Claude ? "Claude" : "Google Gemini",
-            brain == BrainChoice.Claude
-                ? T("بتدفع اللي بتستخدمه.", "You pay for what you use.")
-                : T("مجاني في حدود جوجل. جوجل ممكن تستخدم الطلبات المجانية لتحسين خدماتها.", "Free within Google's limits. Google may use free requests to improve its products."));
+        if (brain != BrainChoice.Custom)
+        {
+            Need(Providers.KeyFor(brain), brain == BrainChoice.Claude ? "Claude" : "Google Gemini",
+                brain == BrainChoice.Claude
+                    ? T("بتدفع اللي بتستخدمه.", "You pay for what you use.")
+                    : T("مجاني في حدود جوجل. جوجل ممكن تستخدم الطلبات المجانية لتحسين خدماتها.", "Free within Google's limits. Google may use free requests to improve its products."));
+        }
+
         Need(Providers.KeyFor(ears), ears == EarsChoice.Fish ? "Fish Audio" : "Google Gemini", string.Empty);
         if (fishVoice)
         {
@@ -312,6 +331,47 @@ public sealed class SetupWindow : Window
         }
 
         return first;
+    }
+
+    /// <summary>The address, model and key of another AI service. What Mubsir would send to Gemini goes there instead.</summary>
+    private void CustomBrain(Panel into)
+    {
+        into.Children.Add(Words(T(
+            "أي خدمة بتتكلم صيغة OpenAI. طلبك واللي على الشاشة هيتبعتوا للعنوان ده. لازم https، إلا لو الخدمة على جهازك.",
+            "Any service that speaks the OpenAI chat format. Your request and what's on the screen are sent to this address. It must be https, unless the service runs on this PC."), 12.5, Quiet));
+        TextBox address = TextField(T("عنوان الخدمة، مثلا https://openrouter.ai/api/v1", "Service address, for example https://openrouter.ai/api/v1"), _driver.GetText("CustomBrainUrl"), into);
+        TextBox model = TextField(T("اسم الموديل", "Model name"), _driver.GetText("CustomBrainModel"), into);
+        var key = new PasswordBox { Height = 32, FontFamily = Font, VerticalContentAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 2, 0, 6) };
+        string keyLabel = T("مفتاح الخدمة. سيبه فاضي لو مفيش أو لو محفوظ", "The service's key. Leave it empty if there is none or it's already saved");
+        AutomationProperties.SetName(key, keyLabel);
+        into.Children.Add(Words(keyLabel, 12.5, Quiet, top: 6));
+        into.Children.Add(key);
+        into.Children.Add(SmallButton(T("احفظ الخدمة", "Save the service"), () =>
+        {
+            _driver.SetText("CustomBrainUrl", address.Text);
+            _driver.SetText("CustomBrainModel", model.Text);
+            if (key.Password.Length > 0)
+            {
+                _driver.SetText("CustomBrainKey", key.Password);
+            }
+
+            bool usable = OpenAiWire.Endpoint(address.Text) is not null && model.Text.Trim().Length > 0;
+            _notice = usable
+                ? T("اتحفظت الخدمة.", "The service is saved.")
+                : T("العنوان ده مينفعش. لازم يبدأ بـ https، واكتب اسم الموديل.", "That address won't work. It must start with https, and the model needs a name.");
+            _driver.Say(_notice, _lang);
+            Refresh();
+        }));
+    }
+
+    /// <summary>A labelled text box that a screen reader names.</summary>
+    private TextBox TextField(string label, string? value, Panel into)
+    {
+        var box = new TextBox { Text = value ?? string.Empty, Height = 32, FontFamily = Font, FontSize = 13, VerticalContentAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 2, 0, 6) };
+        AutomationProperties.SetName(box, label);
+        into.Children.Add(Words(label, 12.5, Quiet, top: 6));
+        into.Children.Add(box);
+        return box;
     }
 
     private const string FlashLiteModel = "gemini-3.5-flash-lite";
@@ -607,6 +667,11 @@ public sealed class SetupWindow : Window
 
         ShowServices(open: true);
 
+        // Name
+        Section(T("اسم المساعد", "The assistant's name"));
+        TextBox name = TextField(T("الاسم اللي تحب تناديه بيه. سيبه فاضي عشان يفضل مبصر. تقدر كمان تقول: اسمك كذا", "What you'd like to call it. Leave empty to keep Mubsir. You can also say: your name is ..."), _driver.GetText("AssistantName"), _body);
+        name.LostFocus += (_, _) => _driver.SetText("AssistantName", name.Text);
+
         // Talk key
         Section(T("مفتاح الكلام", "Talk key"));
         Add(Words(T("اضغط مع الاستمرار على المفتاح ده عشان تتكلم، أو اضغط ضغطة واحدة عشان توقف الكلام.", "Hold this key to talk, or tap it once to stop speech."), 12.5, Quiet));
@@ -683,6 +748,7 @@ public sealed class SetupWindow : Window
         Option("OneVoicePerAnswer", T("صوت واحد للرد كله لو فيه عربي (الجمل الإنجليزي كمان بصوت Fish، بتكلفة)", "One voice for a whole answer that has Arabic (English sentences in the Fish voice too, at a cost)"));
         Option("ReadArabicBooksWithFish", T("اقرأ الكتب العربية بصوت Fish (10 صفحات بحوالي 50 سنت)", "Read Arabic books in the Fish voice (about $0.50 for 10 pages)"));
         Option("ReadFullTashkeel", T("اقرأ التشكيل كاملاً (لو مقفول، متروك للصوت)", "Read Arabic diacritics fully (when off, left to the voice)"));
+        Option("LightMode", T("وضع خفيف للأجهزة الضعيفة: من غير تحميل صوت Ryan، والإنجليزي بصوت ويندوز (بعد إعادة التشغيل)", "Light mode for a weak PC: no Ryan voice download, English in the Windows voice (after a restart)"));
         Option("SaveSessions", T("احفظ المحادثات في فولدر على جهازي", "Save chats in a folder on this PC"));
         Option("EncryptSessions", T("شفّر المحادثات المحفوظة (مش هتتفتح في Notepad، ومبصر يقدر يقرأها ويصدّرها)", "Encrypt saved chats (they won't open in Notepad; Mubsir can still read and export them)"));
 

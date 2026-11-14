@@ -155,4 +155,26 @@ public class DialectAndSettingsRouterTests
         var match = CommandGrammar.Match(utterance);
         Assert.Null(match);
     }
+
+    [Theory]
+    [InlineData("your name is Jarvis", "Jarvis")]
+    [InlineData("I'll call you Mohammed.", "Mohammed")]
+    [InlineData("اسمك محمد", "محمد")]
+    [InlineData("هسميك نور الهدى", "نور الهدى")]
+    [InlineData("اسمك ايه", null)]
+    [InlineData("what is your name", null)]
+    [InlineData("your name is R2D2", null)]
+    [InlineData("your name is the one who reads all of my books to me", null)]
+    public void The_assistant_can_be_given_a_name_by_voice(string said, string? name) =>
+        Assert.Equal(name, Mubsir.Core.Router.CommandGrammar.ParseNewName(said));
+
+    [Fact]
+    public void The_name_goes_last_in_the_prompt_so_the_rest_stays_the_same_for_everyone()
+    {
+        string plain = Mubsir.Core.Brain.SystemPrompt.Build(Mubsir.Core.Common.Lang.Arabic, Mubsir.Core.Common.ReplyStyle.SimpleMsa, Mubsir.Core.Common.Verbosity.Brief);
+        string named = Mubsir.Core.Brain.SystemPrompt.Build(Mubsir.Core.Common.Lang.Arabic, Mubsir.Core.Common.ReplyStyle.SimpleMsa, Mubsir.Core.Common.Verbosity.Brief, name: "Jarvis");
+
+        Assert.StartsWith(plain, named, StringComparison.Ordinal);
+        Assert.Contains("\"Jarvis\"", named[plain.Length..], StringComparison.Ordinal);
+    }
 }

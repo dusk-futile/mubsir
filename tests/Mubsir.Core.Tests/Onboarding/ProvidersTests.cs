@@ -68,4 +68,20 @@ public sealed class ProvidersTests
         Assert.Equal(KeyKind.FishAudio, Providers.KeyFor(EarsChoice.Fish));
         Assert.Equal(KeyKind.Gemini, Providers.KeyFor(EarsChoice.Gemini));
     }
+
+    [Fact]
+    public void A_custom_brain_needs_no_brain_key_but_hearing_still_needs_its_own()
+    {
+        Assert.Equal(BrainChoice.Custom, Providers.Brain(BrainChoice.Custom, None));
+        Assert.True(Providers.CanStart(BrainChoice.Custom, EarsChoice.Fish, ClaudeAndFish));
+        Assert.False(Providers.CanStart(BrainChoice.Custom, null, None));
+    }
+
+    [Theory]
+    [InlineData(3900L, 4, true)]
+    [InlineData(8100L, 2, true)]
+    [InlineData(8100L, 4, false)]
+    [InlineData(null, 8, false)]
+    public void A_pc_with_little_memory_or_two_cores_starts_light(long? memoryMb, int cores, bool light) =>
+        Assert.Equal(light, PcCheck.IsLight(memoryMb, cores));
 }

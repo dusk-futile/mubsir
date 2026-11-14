@@ -60,6 +60,18 @@ public sealed record MubsirSettings
     /// <summary>The brain the person chose. Null until they choose: then a Claude key means Claude, otherwise Gemini.</summary>
     public BrainChoice? Brain { get; set; }
 
+    /// <summary>The address of another AI service to use as the brain, such as https://openrouter.ai/api/v1. Used when <see cref="Brain"/> is Custom.</summary>
+    public string? CustomBrainUrl { get; set; }
+
+    /// <summary>The model to ask for at <see cref="CustomBrainUrl"/>.</summary>
+    public string? CustomBrainModel { get; set; }
+
+    /// <summary>What the person calls the assistant. Null means Mubsir.</summary>
+    public string? AssistantName { get; set; }
+
+    /// <summary>A weak PC: no Ryan voice download, so English uses the Windows voice. Null until the PC has been checked.</summary>
+    public bool? LightMode { get; set; }
+
     /// <summary>The hearing the person chose. Null until they choose: Gemini when its key is there.</summary>
     public EarsChoice? Ears { get; set; }
 

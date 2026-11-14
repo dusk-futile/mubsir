@@ -179,6 +179,13 @@ internal sealed class UtteranceFlow
         }
 
         Lang lang = ScriptSegmenter.DominantLanguage(text, _app.UiLang);
+        if (CommandGrammar.ParseNewName(text) is { } name)
+        {
+            _app.Settings.Update(s => s with { AssistantName = name });
+            _app.Speech.Speak(lang == Lang.Arabic ? $"تمام، اسمي {name}." : $"All right, my name is {name}.", UtteranceKind.System, lang, interrupt: true);
+            return;
+        }
+
         if (await _bookCommands.TryRunAsync(text, lang).ConfigureAwait(false))
         {
             return;

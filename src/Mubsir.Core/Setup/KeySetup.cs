@@ -14,6 +14,9 @@ public enum BrainChoice
 {
     Gemini,
     Claude,
+
+    /// <summary>Any service that speaks the common chat format, at an address the person gives.</summary>
+    Custom,
 }
 
 /// <summary>Which service hears what the person says.</summary>
@@ -52,6 +55,11 @@ public static class Providers
     /// <summary>The brain to use now, or null when there is no key for either.</summary>
     public static BrainChoice? Brain(BrainChoice? chosen, KeysHeld keys)
     {
+        if (chosen == BrainChoice.Custom)
+        {
+            return BrainChoice.Custom;
+        }
+
         BrainChoice first = Chosen(chosen, keys);
         BrainChoice other = first == BrainChoice.Claude ? BrainChoice.Gemini : BrainChoice.Claude;
         return keys.Has(KeyFor(first)) ? first : keys.Has(KeyFor(other)) ? other : null;
@@ -67,7 +75,17 @@ public static class Providers
 
     /// <summary>Enough to start: the chosen brain and the chosen hearing both have their keys.</summary>
     public static bool CanStart(BrainChoice? brain, EarsChoice? ears, KeysHeld keys) =>
-        keys.Has(KeyFor(Chosen(brain, keys))) && keys.Has(KeyFor(Chosen(ears, keys)));
+        (brain == BrainChoice.Custom || keys.Has(KeyFor(Chosen(brain, keys)))) && keys.Has(KeyFor(Chosen(ears, keys)));
+}
+
+/// <summary>What to turn down on a PC with little memory, decided once when Mubsir is first set up.</summary>
+public static class PcCheck
+{
+    private const long LightBelowMb = 6000;
+
+    /// <summary>True for a PC that should start light: under about 6 GB of memory, or 2 cores or fewer. Light means no
+    /// notch (WPF costs about 100 MB) and the Windows voice for English instead of Ryan (about 300 MB while it speaks).</summary>
+    public static bool IsLight(long? memoryMb, int cores) => memoryMb is < LightBelowMb || cores <= 2;
 }
 
 /// <summary>Recognises a key the user copied, so nobody has to type or read one out.</summary>
