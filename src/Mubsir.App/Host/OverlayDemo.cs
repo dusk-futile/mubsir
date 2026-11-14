@@ -43,8 +43,6 @@ internal static class OverlayDemo
         private bool _escDown;
         private bool _exit;
         private volatile bool _stopPressed;
-        private volatile bool _tapPressed;
-        private volatile bool _cancelPressed;
         private volatile bool _replay;
         private bool _ctrlPressed;
         private long _rateFrom = Environment.TickCount64;
@@ -56,8 +54,6 @@ internal static class OverlayDemo
             overlay.UseDemoVoice();
             overlay.NotchClicked += () => _replay = true;
             overlay.StopRequested += () => _stopPressed = true;
-            overlay.ConfirmTapRequested += () => _tapPressed = true;
-            overlay.CancelRequested += () => _cancelPressed = true;
         }
 
         public void Run()
@@ -73,25 +69,14 @@ internal static class OverlayDemo
         private void PlayOnce()
         {
             // As in the prototype, Ctrl stops whatever is happening. Only the checklist has something to undo.
-            bool finished = Listening()
+            _ = Listening()
                 && Stage(CompanionState.Thinking, null, 1.5)
                 && Doing()
                 && Speaking()
                 && Stage(
                     CompanionState.Reading,
-                    new CompanionContent
-                    {
-                        BookTitle = "Introducing Phonology",
-                        BookPlace = "Chapter 3 · page 34 of 312",
-                        BookHint = "Say “next page”, “repeat” or ask about this page",
-                        BookProgress = 34.0 / 312,
-                    },
+                    new CompanionContent { BookPlace = "Page 34 of 312", BookProgress = 34.0 / 312 },
                     3);
-            if (finished && !_exit)
-            {
-                Payment();
-            }
-
             if (!_exit)
             {
                 Show(CompanionState.Idle);
@@ -229,48 +214,6 @@ internal static class OverlayDemo
 
             return Stage(CompanionState.Speaking, new CompanionContent { Caption = Said, CaptionArabic = SaidArabic }, 2.6);
         }
-
-        /// <summary>Four presses approve it. They happen on their own after a moment, or press Ctrl yourself.</summary>
-        private void Payment()
-        {
-            double[] autoTaps = [1.4, 1.75, 2.05, 2.35];
-            long start = Environment.TickCount64;
-            int taps = 0;
-            ShowPayment(taps);
-            _tapPressed = false;
-            _cancelPressed = false;
-            while (taps < 4 && !_exit)
-            {
-                Wait(0.03);
-                if (_cancelPressed)
-                {
-                    Show(CompanionState.Idle);
-                    return;
-                }
-
-                double elapsed = (Environment.TickCount64 - start) / 1000.0;
-                bool tapped = ConsumeCtrl() || _tapPressed || elapsed >= autoTaps[taps];
-                _tapPressed = false;
-                if (tapped)
-                {
-                    taps++;
-                    ShowPayment(taps);
-                    _overlay.NudgeNotch();
-                }
-            }
-
-            Wait(0.3);
-            _overlay.Show(CompanionState.Paid, new CompanionContent { PaidText = "Paid EGP 250 · Electricity" });
-            Wait(3.2);
-        }
-
-        private void ShowPayment(int taps) => _overlay.Show(CompanionState.Confirm, new CompanionContent
-        {
-            Amount = "EGP 250.00",
-            Site = "pay.example.com",
-            Facts = "Electricity bill, October · Visa ending 4417",
-            Taps = taps,
-        });
 
         private void Show(CompanionState state) => _overlay.Show(state);
 

@@ -27,7 +27,7 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
     public void OpenIfNeeded()
     {
         MubsirSettings s = app.Settings.Settings;
-        bool keys = KeySetup.CanStart(HasKey(KeyKind.Anthropic), HasKey(KeyKind.FishAudio), HasKey(KeyKind.Gemini));
+        bool keys = Providers.CanStart(s.Brain, s.Ears, secrets.Held());
         if (!keys || !s.OnboardingDone)
         {
             Open(settingsOnly: false);
@@ -107,6 +107,47 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
         Launch(folder);
     }
 
+    public BrainChoice? GetBrain() => app.Settings.Settings.Brain;
+
+    public void SetBrain(BrainChoice brain) => app.Settings.Update(s => s with { Brain = brain });
+
+    public EarsChoice? GetEars() => app.Settings.Settings.Ears;
+
+    public void SetEars(EarsChoice ears) => app.Settings.Update(s => s with { Ears = ears });
+
+    public string GetGeminiModel() => app.Settings.Settings.GeminiBrainModel;
+
+    public void SetGeminiModel(string model) => app.Settings.Update(s => s with { GeminiBrainModel = model });
+
+    public string? GetText(string name)
+    {
+        MubsirSettings s = app.Settings.Settings;
+        return name switch
+        {
+            "AssistantName" => s.AssistantName,
+            "CustomBrainUrl" => s.CustomBrainUrl,
+            "CustomBrainModel" => s.CustomBrainModel,
+            _ => null,
+        };
+    }
+
+    public void SetText(string name, string? value)
+    {
+        if (name == "CustomBrainKey")
+        {
+            secrets.Set(SecretNames.Custom, value);
+            return;
+        }
+
+        app.Settings.Update(s => name switch
+        {
+            "AssistantName" => s with { AssistantName = value },
+            "CustomBrainUrl" => s with { CustomBrainUrl = value },
+            "CustomBrainModel" => s with { CustomBrainModel = value },
+            _ => s,
+        });
+    }
+
     public bool GetOption(string name)
     {
         MubsirSettings s = app.Settings.Settings;
@@ -118,6 +159,8 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
             "ReadArabicBooksWithFish" => s.ReadArabicBooksWithFish,
             "ReadFullTashkeel" => s.ReadFullTashkeel,
             "SaveSessions" => s.SaveSessions,
+            "EncryptSessions" => s.EncryptSessions,
+            "LightMode" => s.LightMode == true,
             _ => false,
         };
     }
@@ -130,6 +173,8 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
         "ReadArabicBooksWithFish" => s with { ReadArabicBooksWithFish = value },
         "ReadFullTashkeel" => s with { ReadFullTashkeel = value },
         "SaveSessions" => s with { SaveSessions = value },
+        "EncryptSessions" => s with { EncryptSessions = value },
+        "LightMode" => s with { LightMode = value },
         _ => s,
     });
 
@@ -220,11 +265,11 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
         bool isArabic = lang == Lang.Arabic;
 
         string folder = app.Sessions?.Folder ?? AppPaths.DefaultChatsDir;
-        DateTimeOffset now = app.Clock.UtcNow;
-        string mdPath = Path.Combine(folder, now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + ".md");
+        DateTimeOffset now = app.Clock.UtcNow.ToLocalTime();
         string docxPath = Path.Combine(folder, now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + ".docx");
+        IReadOnlyList<string> lines = app.Sessions?.Lines(now) ?? [];
 
-        if (!File.Exists(mdPath))
+        if (lines.Count == 0)
         {
             string emptyMsg = isArabic
                 ? "مفيش محادثات محفوظة النهاردة لتصديرها."
@@ -235,21 +280,8 @@ internal sealed class SetupCoordinator(AppServices app, SecretStore secrets, Use
 
         try
         {
-            bool ok = DocxWriter.TryExportMarkdownFile(mdPath, docxPath);
-            if (ok)
-            {
-                string okMsg = isArabic
-                    ? "تم تصدير محادثة اليوم بصيغة Word بجوار ملف المحادثة."
-                    : "Exported today's chat as a Word document next to the chat file.";
-                Say(okMsg, lang);
-            }
-            else
-            {
-                string failMsg = isArabic
-                    ? "تعذر تصدير محادثة اليوم."
-                    : "Could not export today's chat.";
-                Say(failMsg, lang);
-            }
+            DocxWriter.WriteToFile(docxPath, lines);
+            Say(isArabic ? "تم تصدير محادثة اليوم بصيغة Word بجوار ملف المحادثة." : "Exported today's chat as a Word document next to the chat file.", lang);
         }
         catch (Exception e) when (e is not OutOfMemoryException)
         {

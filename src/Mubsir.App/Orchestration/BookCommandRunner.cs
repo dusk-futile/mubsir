@@ -1,6 +1,7 @@
 using Mubsir.App.Speech;
 using Mubsir.Core.Common;
 using Mubsir.Core.Library;
+using Mubsir.Core.Localization;
 using Mubsir.Core.Reading;
 using Mubsir.Core.Router;
 using Mubsir.Core.Speech;
@@ -13,10 +14,10 @@ internal sealed class BookCommandRunner(AppServices app)
 {
     private static readonly TimeSpan ChoiceLasts = TimeSpan.FromMinutes(1);
 
-    private IReadOnlyList<LibraryCard> _choices = [];
-    private DateTimeOffset _choicesAt;
+    private volatile Choices _choices = new([], default);
+    private CancellationTokenSource? _phraseSearch;
 
-    private bool Choosing => _choices.Count > 0 && app.Clock.UtcNow - _choicesAt < ChoiceLasts;
+    private bool Choosing => _choices is { Items.Count: > 0 } c && app.Clock.UtcNow - c.At < ChoiceLasts;
 
     public async Task<bool> TryRunAsync(string text, Lang lang)
     {
@@ -40,7 +41,7 @@ internal sealed class BookCommandRunner(AppServices app)
 
         if (command.Kind != BookCommandKind.Pick)
         {
-            _choices = [];
+            _choices = new([], default);
         }
 
         switch (command.Kind)
@@ -50,11 +51,17 @@ internal sealed class BookCommandRunner(AppServices app)
                 return true;
             case BookCommandKind.FindBook:
                 return await FindAsync(books, command.Text ?? string.Empty, lang).ConfigureAwait(false);
+            case BookCommandKind.FindPhrase:
+                FindPhrase(books, command.Text ?? string.Empty, lang);
+                return true;
             case BookCommandKind.ReadingJournal:
                 Say(ReadingJournal.Summary(books.Journal(3), app.Clock.UtcNow, lang), lang);
                 return true;
             case BookCommandKind.Continue:
                 return await ContinueAsync(books, lang).ConfigureAwait(false);
+            case BookCommandKind.Speed:
+                await ReplyAndResume(session, ChangeSpeed(command.Number ?? 0, lang), lang).ConfigureAwait(false);
+                return true;
         }
 
         if (!session.Engaged)
@@ -75,6 +82,15 @@ internal sealed class BookCommandRunner(AppServices app)
                 break;
             case BookCommandKind.GoToPage:
                 SayIf(await session.GoToPageAsync(command.Number ?? 0).ConfigureAwait(false), lang);
+                break;
+            case BookCommandKind.GoToLine or BookCommandKind.GoToSentence or BookCommandKind.GoToParagraph:
+                SayIf(await session.GoToPartAsync(command.Kind, command.Number ?? 1).ConfigureAwait(false), lang);
+                break;
+            case BookCommandKind.ReadEnding:
+                SayIf(await session.EndingAsync().ConfigureAwait(false), lang);
+                break;
+            case BookCommandKind.ReadHeading:
+                await ReplyAndResume(session, await session.HeadingAsync().ConfigureAwait(false) ?? string.Empty, lang).ConfigureAwait(false);
                 break;
             case BookCommandKind.WhereInBook:
                 await ReplyAndResume(session, session.Where(), lang).ConfigureAwait(false);
@@ -133,29 +149,71 @@ internal sealed class BookCommandRunner(AppServices app)
             return true;
         }
 
-        _choices = found;
-        _choicesAt = app.Clock.UtcNow;
+        _choices = new(found.Select(c => new PhraseHit(c)).ToArray(), app.Clock.UtcNow);
         Say(BookListText.List(found, lang), lang);
         return true;
     }
 
+    /// <summary>Runs behind, so the reader can go on with something else: it says it has started, and says the answer
+    /// when it's done. A new search ends the one before.</summary>
+    private void FindPhrase(BookAloud books, string phrase, Lang lang)
+    {
+        _phraseSearch?.Cancel();
+        var search = _phraseSearch = new CancellationTokenSource();
+        Say(lang == Lang.Arabic ? $"بدور في {books.Library.Count} كتاب. هقولك لما أخلص." : $"Searching {books.Library.Count} books. I'll tell you when I'm done.", lang);
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                (IReadOnlyList<PhraseHit> hits, int searched) = await books.FindPhraseAsync(phrase, search.Token).ConfigureAwait(false);
+                _choices = new(hits, app.Clock.UtcNow);
+                app.Speech.PlayEarcon(Earcon.Done);
+                app.Speech.Speak(PhraseSearch.Heard(hits, searched, lang), UtteranceKind.System, lang);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception e) when (e is not OutOfMemoryException)
+            {
+                app.Log.Failure("phrase_search", e);
+            }
+        });
+    }
+
     private async Task PickAsync(BookAloud books, int number, Lang lang)
     {
-        if (number < 1 || number > _choices.Count)
+        IReadOnlyList<PhraseHit> items = _choices.Items;
+        if (number < 1 || number > items.Count)
         {
-            Say(lang == Lang.Arabic ? $"فيه {_choices.Count} بس. أنهي واحد؟" : $"There are only {_choices.Count}. Which one?", lang);
+            Say(lang == Lang.Arabic ? $"فيه {items.Count} بس. أنهي واحد؟" : $"There are only {items.Count}. Which one?", lang);
             return;
         }
 
-        LibraryCard card = _choices[number - 1];
-        _choices = [];
-        await OpenCardAsync(books, card, lang).ConfigureAwait(false);
+        _choices = new([], default);
+        await OpenCardAsync(books, items[number - 1].Card, lang, items[number - 1].Page).ConfigureAwait(false);
     }
 
-    private async Task OpenCardAsync(BookAloud books, LibraryCard card, Lang lang)
+    private async Task OpenCardAsync(BookAloud books, LibraryCard card, Lang lang, int page = 0)
     {
         Say(lang == Lang.Arabic ? $"بفتح {card.Title}." : $"Opening {card.Title}.", lang);
-        SayIf(await books.OpenAsync(card.Path, null, lang, CancellationToken.None).ConfigureAwait(false), lang);
+        SayIf(await books.OpenAsync(card.Path, page > 0 ? page : null, lang, CancellationToken.None).ConfigureAwait(false), lang);
+    }
+
+    private sealed record Choices(IReadOnlyList<PhraseHit> Items, DateTimeOffset At);
+
+    /// <summary>One percent is one step of the rate: 50 is the voice's normal speed, and each step is 1% of it.</summary>
+    private string ChangeSpeed(int percent, Lang lang)
+    {
+        int before = app.Speech.Rate;
+        int after = Math.Clamp(before + percent, 0, 100);
+        if (after == before)
+        {
+            return AppText.Get(AppPhrase.SpeedAtLimit, lang);
+        }
+
+        app.Speech.Rate = after;
+        app.Settings.Update(s => s with { SpeechRate = after });
+        return Strings.Get(percent > 0 ? StringKey.SpeakingFaster : StringKey.SpeakingSlower, lang);
     }
 
     /// <summary>A short reply, then straight back to the book if talking to Mubsir is what stopped it.</summary>

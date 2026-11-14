@@ -8,6 +8,7 @@ using Mubsir.Core.Agent;
 using Mubsir.Core.Brain;
 using Mubsir.Core.Config;
 using Mubsir.Core.Logging;
+using Mubsir.Core.Setup;
 
 namespace Mubsir.App.Brain;
 
@@ -221,9 +222,13 @@ internal sealed class GeminiBrain(SecretStore secrets, SettingsProvider settings
     }
 }
 
-/// <summary>Claude if there's a key for it, otherwise the free Gemini.</summary>
-internal sealed class BrainRouter(IBrain claude, IBrain gemini, SecretStore secrets) : IBrain
+/// <summary>Starts the brain the person chose, or the other one if the chosen one has no key yet.</summary>
+internal sealed class BrainRouter(IBrain claude, IBrain gemini, IBrain custom, SecretStore secrets, SettingsProvider settings) : IBrain
 {
-    public IBrainSession StartSession(BrainSessionOptions options) =>
-        secrets.Has(SecretNames.Anthropic) ? claude.StartSession(options) : gemini.StartSession(options);
+    public IBrainSession StartSession(BrainSessionOptions options) => Providers.Brain(settings.Settings.Brain, secrets.Held()) switch
+    {
+        BrainChoice.Custom => custom.StartSession(options),
+        BrainChoice.Claude => claude.StartSession(options),
+        _ => gemini.StartSession(options),
+    };
 }

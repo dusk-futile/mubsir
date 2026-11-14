@@ -9,6 +9,85 @@ public enum KeyKind
     Gemini,
 }
 
+/// <summary>Which service is the brain.</summary>
+public enum BrainChoice
+{
+    Gemini,
+    Claude,
+
+    /// <summary>Any service that speaks the common chat format, at an address the person gives.</summary>
+    Custom,
+}
+
+/// <summary>Which service hears what the person says.</summary>
+public enum EarsChoice
+{
+    Gemini,
+    Fish,
+}
+
+/// <summary>Which keys are saved on this PC.</summary>
+public readonly record struct KeysHeld(bool Claude, bool Fish, bool Gemini)
+{
+    public bool Has(KeyKind kind) => kind switch
+    {
+        KeyKind.Anthropic => Claude,
+        KeyKind.FishAudio => Fish,
+        _ => Gemini,
+    };
+}
+
+/// <summary>
+/// The person chooses each service, then gives only that service's key. If the chosen one has no key yet,
+/// the other one is used when its key is there, so Mubsir keeps working. Someone who never chose gets what
+/// the keys they have suggest: Claude when there's a Claude key, otherwise Gemini.
+/// </summary>
+public static class Providers
+{
+    public static KeyKind KeyFor(BrainChoice brain) => brain == BrainChoice.Claude ? KeyKind.Anthropic : KeyKind.Gemini;
+
+    public static KeyKind KeyFor(EarsChoice ears) => ears == EarsChoice.Fish ? KeyKind.FishAudio : KeyKind.Gemini;
+
+    public static BrainChoice Chosen(BrainChoice? chosen, KeysHeld keys) => chosen ?? (keys.Claude ? BrainChoice.Claude : BrainChoice.Gemini);
+
+    public static EarsChoice Chosen(EarsChoice? chosen, KeysHeld keys) => chosen ?? (keys.Fish && !keys.Gemini ? EarsChoice.Fish : EarsChoice.Gemini);
+
+    /// <summary>The brain to use now, or null when there is no key for either.</summary>
+    public static BrainChoice? Brain(BrainChoice? chosen, KeysHeld keys)
+    {
+        if (chosen == BrainChoice.Custom)
+        {
+            return BrainChoice.Custom;
+        }
+
+        BrainChoice first = Chosen(chosen, keys);
+        BrainChoice other = first == BrainChoice.Claude ? BrainChoice.Gemini : BrainChoice.Claude;
+        return keys.Has(KeyFor(first)) ? first : keys.Has(KeyFor(other)) ? other : null;
+    }
+
+    /// <summary>The services to try for hearing, in order: the chosen one, then the other as a fallback.</summary>
+    public static IReadOnlyList<EarsChoice> Ears(EarsChoice? chosen, KeysHeld keys)
+    {
+        EarsChoice first = Chosen(chosen, keys);
+        EarsChoice other = first == EarsChoice.Fish ? EarsChoice.Gemini : EarsChoice.Fish;
+        return new[] { first, other }.Where(e => keys.Has(KeyFor(e))).ToArray();
+    }
+
+    /// <summary>Enough to start: the chosen brain and the chosen hearing both have their keys.</summary>
+    public static bool CanStart(BrainChoice? brain, EarsChoice? ears, KeysHeld keys) =>
+        (brain == BrainChoice.Custom || keys.Has(KeyFor(Chosen(brain, keys)))) && keys.Has(KeyFor(Chosen(ears, keys)));
+}
+
+/// <summary>What to turn down on a PC with little memory, decided once when Mubsir is first set up.</summary>
+public static class PcCheck
+{
+    private const long LightBelowMb = 6000;
+
+    /// <summary>True for a PC that should start light: under about 6 GB of memory, or 2 cores or fewer. Light means no
+    /// notch (WPF costs about 100 MB) and the Windows voice for English instead of Ryan (about 300 MB while it speaks).</summary>
+    public static bool IsLight(long? memoryMb, int cores) => memoryMb is < LightBelowMb || cores <= 2;
+}
+
 /// <summary>Recognises a key the user copied, so nobody has to type or read one out.</summary>
 public static partial class KeySetup
 {
@@ -36,20 +115,6 @@ public static partial class KeySetup
         }
 
         return FishShape().IsMatch(text) ? KeyKind.FishAudio : null;
-    }
-
-    /// <summary>Keys that are enough to start. A free Gemini key alone is enough for hearing and the brain, and voice falls back to free ones.</summary>
-    public static bool CanStart(bool anthropic, bool fish, bool gemini) => gemini || (anthropic && fish);
-
-    /// <summary>What to ask for next, or null when nothing is missing.</summary>
-    public static KeyKind? NextNeeded(bool anthropic, bool fish, bool gemini)
-    {
-        if (gemini)
-        {
-            return fish ? null : KeyKind.FishAudio;
-        }
-
-        return anthropic && fish ? null : KeyKind.Gemini;
     }
 
     [GeneratedRegex("^[0-9a-fA-F]{32}$")]

@@ -102,6 +102,18 @@ public sealed class BookSession(IBookVoice voice, Action stopVoice, ReadingPosit
         }
     }
 
+    /// <summary>The page being read and how many there are, while a book is being read aloud; otherwise null.</summary>
+    public (int Page, int Pages)? Reading
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return IsActive && _pages is { } pages ? (_page, pages.Count) : null;
+            }
+        }
+    }
+
     public Task<string?> NextPageAsync() => WithBook(p => _page >= p.Count
         ? Task.FromResult<string?>(_lang == Lang.Arabic ? "دي آخر صفحة." : "This is the last page.")
         : Restart(p, _page + 1, 0, null));
@@ -115,6 +127,24 @@ public sealed class BookSession(IBookVoice voice, Action stopVoice, ReadingPosit
     public Task<string?> GoToPageAsync(int page) => WithBook(p => page < 1 || page > p.Count
         ? Task.FromResult<string?>(_lang == Lang.Arabic ? $"الكتاب {p.Count} صفحة بس. أروح لأي صفحة؟" : $"There are only {p.Count} pages. Which one?")
         : Restart(p, page, 0, null));
+
+    /// <summary>Reads on from a line, sentence or paragraph of the page in hand. -1 is the last one.</summary>
+    public Task<string?> GoToPartAsync(BookCommandKind part, int number) => OnThisPage((p, page, text) =>
+    {
+        int[] starts = PageParts.Starts(text, part);
+        if (number > starts.Length || starts.Length == 0)
+        {
+            return Task.FromResult<string?>(TooFew(part, starts.Length));
+        }
+
+        return Restart(p, page, number < 1 ? starts[^1] : starts[number - 1], null);
+    });
+
+    /// <summary>Reads the last few sentences of the page in hand, and on from there.</summary>
+    public Task<string?> EndingAsync() => OnThisPage((p, page, text) => Restart(p, page, PageParts.Ending(text), null));
+
+    /// <summary>The first line of the page in hand, to say on its own.</summary>
+    public Task<string?> HeadingAsync() => OnThisPage((_, _, text) => Task.FromResult(PageParts.Heading(text)));
 
     public string Where()
     {
@@ -229,6 +259,31 @@ public sealed class BookSession(IBookVoice voice, Action stopVoice, ReadingPosit
     {
         IBookPages? pages = Volatile.Read(ref _pages);
         return pages is null ? Task.FromResult<string?>(NoBook()) : run(pages);
+    }
+
+    private Task<string?> OnThisPage(Func<IBookPages, int, string, Task<string?>> run) => WithBook(async p =>
+    {
+        int page;
+        lock (_gate)
+        {
+            page = _page;
+        }
+
+        string? text = await p.GetAsync(page, CancellationToken.None).ConfigureAwait(false);
+        return string.IsNullOrWhiteSpace(text)
+            ? (_lang == Lang.Arabic ? "مقدرتش أقرأ الصفحة دي." : "I couldn't read this page.")
+            : await run(p, page, text).ConfigureAwait(false);
+    });
+
+    private string TooFew(BookCommandKind part, int count)
+    {
+        (string ar, string en) = part switch
+        {
+            BookCommandKind.GoToLine => ("سطر", "lines"),
+            BookCommandKind.GoToSentence => ("جملة", "sentences"),
+            _ => ("فقرة", "paragraphs"),
+        };
+        return _lang == Lang.Arabic ? $"الصفحة دي فيها {count} {ar} بس." : $"This page has only {count} {en}.";
     }
 
     private async Task<string?> Restart(IBookPages pages, int page, int offset, string? message)

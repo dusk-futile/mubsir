@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Mubsir.Core.Common;
 using Mubsir.Core.Input;
+using Mubsir.Core.Router;
 
 namespace Mubsir.Core.Config;
 
@@ -94,6 +95,9 @@ public static class SettingsSerializer
             UserKind = Enum.IsDefined(s.UserKind) ? s.UserKind : UserKind.Unknown,
             FishVoiceIdArabic = string.IsNullOrWhiteSpace(s.FishVoiceIdArabic) ? null : s.FishVoiceIdArabic.Trim(),
             SessionsFolder = string.IsNullOrWhiteSpace(s.SessionsFolder) ? null : s.SessionsFolder.Trim(),
+            CustomBrainUrl = string.IsNullOrWhiteSpace(s.CustomBrainUrl) ? null : s.CustomBrainUrl.Trim(),
+            CustomBrainModel = string.IsNullOrWhiteSpace(s.CustomBrainModel) ? null : s.CustomBrainModel.Trim(),
+            AssistantName = CommandGrammar.CleanName(s.AssistantName),
         };
     }
 

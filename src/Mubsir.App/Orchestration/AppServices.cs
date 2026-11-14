@@ -66,7 +66,7 @@ internal sealed class AppServices
 
     public bool HasEars => Ears is { HasAnyKey: true };
 
-    public bool HasBrain => Brain is not null && (HasSecret(SecretNames.Anthropic) || HasSecret(SecretNames.Gemini));
+    public bool HasBrain => Brain is not null && (Settings.Settings.Brain == Mubsir.Core.Setup.BrainChoice.Custom || HasSecret(SecretNames.Anthropic) || HasSecret(SecretNames.Gemini));
 
     public bool HasSecret(string name)
     {

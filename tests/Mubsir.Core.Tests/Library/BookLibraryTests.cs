@@ -120,6 +120,41 @@ public class BookLibraryTests
     [InlineData("a\nphonology\nPHONOLOGY", new[] { "phonology" })]
     public void Keywords_are_cleaned_up(string answer, string[] expected) => Assert.Equal(expected, BookSearch.ParseKeywords(answer));
 
+    [Theory]
+    [InlineData("which book has the phrase the quick brown fox", "the quick brown fox")]
+    [InlineData("which book contains \"survival of the fittest\"?", "survival of the fittest")]
+    [InlineData("search my books for photosynthesis", "photosynthesis")]
+    [InlineData("أنهي كتاب فيه جملة العلم نور", "العلم نور")]
+    [InlineData("دور في الكتب على كلمة الفاعل", "كلمة الفاعل")]
+    public void Asking_which_book_holds_some_words_keeps_the_words(string said, string wanted)
+    {
+        Mubsir.Core.Reading.BookCommand? command = Mubsir.Core.Reading.BookCommands.Parse(said);
+
+        Assert.NotNull(command);
+        Assert.Equal(Mubsir.Core.Reading.BookCommandKind.FindPhrase, command.Kind);
+        Assert.Equal(wanted, command.Text);
+    }
+
+    [Fact]
+    public void Exact_words_are_found_on_their_page_whatever_the_case_tashkeel_or_line_breaks()
+    {
+        string[] pages = ["Chapter one.", "It was the best of times,\nit was the worst of times.", "قَالَ: العِلْمُ نُورٌ."];
+
+        Assert.Equal(2, PhraseSearch.FirstPage(pages, "Best of times it was"));
+        Assert.Equal(3, PhraseSearch.FirstPage(pages, "العلم نور"));
+        Assert.Equal(0, PhraseSearch.FirstPage(pages, "the age of wisdom"));
+        Assert.Equal(0, PhraseSearch.FirstPage(pages, "?!"));
+    }
+
+    [Fact]
+    public void What_was_found_is_said_with_its_page_and_nothing_found_says_how_many_were_searched()
+    {
+        PhraseHit[] hits = [new(Card(@"C:\a\tale.pdf", "A Tale"), 2)];
+
+        Assert.Equal("I found it in 1 of 40 books. 1: A Tale, page 2. Say the number and I'll open it at that page.", PhraseSearch.Heard(hits, 40, Lang.English));
+        Assert.Equal("I searched 40 books and didn't find those words.", PhraseSearch.Heard([], 40, Lang.English));
+    }
+
     [Fact]
     public void A_spoken_list_is_numbered_and_tells_same_named_books_apart()
     {

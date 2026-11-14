@@ -20,6 +20,8 @@ internal sealed partial class WindowsToolExecutor
 
     public ReminderBook? Reminders { get; init; }
 
+    public Mubsir.Core.Sessions.SessionArchive? Sessions { get; init; }
+
     private (string, bool) SetReminder(AgentAction a)
     {
         if (Reminders is null)

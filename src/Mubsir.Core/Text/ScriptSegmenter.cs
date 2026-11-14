@@ -2,6 +2,8 @@ using Mubsir.Core.Common;
 
 namespace Mubsir.Core.Text;
 
+public sealed record TextRun(string Text, Lang Lang, bool SpellOut = false);
+
 public static class ScriptSegmenter
 {
     private enum Cls : byte

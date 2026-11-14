@@ -6,6 +6,8 @@ using Mubsir.App.Screen.Interop;
 using Mubsir.Core.Common;
 using Mubsir.Core.Localization;
 using Mubsir.Core.Policy;
+using Mubsir.Core.Reading;
+using Mubsir.Core.Sessions;
 using Mubsir.Core.Speech;
 
 namespace Mubsir.App.Actions;
@@ -323,6 +325,25 @@ internal sealed partial class WindowsToolExecutor
         }
 
         return Ok("Remembered.");
+    }
+
+    /// <summary>Lines from the saved chats, and the books read lately. Private mode keeps old chats on this PC.</summary>
+    private (string, bool) Recall(AgentAction a)
+    {
+        if (Sessions is null || _settings is null || _settings.Settings.PrivateMode)
+        {
+            return Error("saved chats can't be read right now");
+        }
+
+        DateTimeOffset today = DateTimeOffset.Now;
+        string day = Arg(a, "day") ?? string.Empty;
+        string text = Sessions.Recall(SessionArchive.ParseDay(day, today), Arg(a, "query"));
+        if (_books?.Journal(3) is { Count: > 0 } books)
+        {
+            text += "\n\nBooks read lately: " + ReadingJournal.Summary(books, today, Lang.English);
+        }
+
+        return Ok(text);
     }
 
     private async Task<(string, bool)> AskUserAsync(AgentAction a, CancellationToken ct)

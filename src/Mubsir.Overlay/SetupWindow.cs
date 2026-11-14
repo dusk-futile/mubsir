@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using Mubsir.Core.Agent;
 using Mubsir.Core.Common;
 using Mubsir.Core.Input;
 using Mubsir.Core.Onboarding;
@@ -44,6 +45,27 @@ public interface ISetupDriver
 
     void SetTalkKey(KeyIdentity key);
 
+    /// <summary>The brain the person chose, or null if they haven't chosen.</summary>
+    BrainChoice? GetBrain();
+
+    void SetBrain(BrainChoice brain);
+
+    /// <summary>The hearing the person chose, or null if they haven't chosen.</summary>
+    EarsChoice? GetEars();
+
+    void SetEars(EarsChoice ears);
+
+    /// <summary>The Gemini model used as the brain.</summary>
+    string GetGeminiModel();
+
+    void SetGeminiModel(string model);
+
+    /// <summary>A typed setting: "AssistantName", "CustomBrainUrl" or "CustomBrainModel".</summary>
+    string? GetText(string name);
+
+    /// <summary>The same names, and "CustomBrainKey", which is saved as a secret and never read back.</summary>
+    void SetText(string name, string? value);
+
     string? GetFishVoiceId();
 
     void SetFishVoiceId(string? voiceId);
@@ -83,10 +105,12 @@ public sealed class SetupWindow : Window
         return list;
     }
 
-    private static readonly Brush Ground = Palette.Solid(Color.FromRgb(0xF7, 0xF6, 0xF3));
-    private static readonly Brush Ink = Palette.Solid(Color.FromRgb(0x1B, 0x1C, 0x20));
-    private static readonly Brush Quiet = Palette.Solid(Color.FromRgb(0x5E, 0x60, 0x68));
-    private static readonly Brush Accent = Palette.Solid(Color.FromRgb(0x2B, 0x4C, 0x7E));
+    // The notch's colours: near-black ground, cream words, amber for what matters.
+    private static readonly Brush Ground = Palette.Solid(Color.FromRgb(0x0B, 0x0C, 0x14));
+    private static readonly Brush Card = Palette.Solid(Color.FromRgb(0x16, 0x18, 0x24));
+    private static readonly Brush Ink = Palette.Solid(Color.FromRgb(0xFF, 0xF4, 0xDE));
+    private static readonly Brush Quiet = Palette.Solid(Color.FromRgb(0xFF, 0xF4, 0xDE), 0.62);
+    private static readonly Brush Accent = Palette.Solid(Color.FromRgb(0xF3, 0xC3, 0x43));
     private static readonly FontFamily Font = new("Segoe UI Variable Text, Segoe UI, Tahoma");
 
     private readonly ISetupDriver _driver;
@@ -98,6 +122,8 @@ public sealed class SetupWindow : Window
     private string? _lastClipboard;
     private string? _notice;
     private CancellationTokenSource? _listening;
+    private string? _focusChoice;
+    private bool _servicesOpen;
 
     /// <summary>Opens straight on the first question. Only the demo that takes the pictures uses this.</summary>
     public bool StartOnQuestions { get; init; }
@@ -114,6 +140,12 @@ public sealed class SetupWindow : Window
         MinHeight = 480;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         Background = Ground;
+        Foreground = Ink;
+
+        // Windows 11's own dark controls, so every box, list and button matches and screen readers know them.
+#pragma warning disable WPF0001
+        ThemeMode = ThemeMode.Dark;
+#pragma warning restore WPF0001
         Content = new ScrollViewer { Content = _body, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Focusable = false };
         _clipboard.Tick += (_, _) => WatchClipboard();
         Closed += (_, _) =>
@@ -184,42 +216,220 @@ public sealed class SetupWindow : Window
     private void ShowKeys(bool speak)
     {
         Begin(T("أهلا بك في مبصر", "Welcome to Mubsir"));
-        Add(Words(T("مبصر مجاني. محتاج مفتاح واحد مجاني من Google، ومفاتيحك بتفضل مشفرة على جهازك.",
-            "Mubsir is free. It needs one free key from Google, and your keys stay encrypted on this PC."), 14, Ink));
-        Add(Words(T("انسخ المفتاح من الموقع وهنا هيتحفظ لوحده.", "Copy a key on the website and it's picked up here by itself."), 14, Quiet));
-        Button first = KeyRow(KeyKind.Gemini, T("Google Gemini: العقل والسمع", "Google Gemini: the brain and hearing"),
-            T("مطلوب ومجاني. جوجل ممكن تستخدم الطلبات المجانية لتحسين خدماتها.", "Required and free. Google may use free requests to improve its products."));
-        KeyRow(KeyKind.FishAudio, T("Fish Audio: صوت العربي", "Fish Audio: the Arabic voice"),
-            T("مجاني دلوقتي، بصوت طبيعي. من غيره صوت ويندوز المجاني بيتكلم عربي.", "Free for now, in a natural voice. Without it, the free Windows voice speaks Arabic."));
+        Add(Words(T("الموصى به مجاني: مفتاح واحد من Google Gemini يكفي.", "The recommended setup is free: one Google Gemini key is enough."), 14, Quiet));
+        Button? first = ShowServices();
 
-        var extra = new Expander { Header = T("بدائل", "Other options"), Margin = new Thickness(0, 8, 0, 8), FontFamily = Font };
-        var inner = new StackPanel();
-        var save = _body;
-        extra.Content = inner;
-        Add(extra);
-        KeyRow(KeyKind.Anthropic, T("Claude: عقل مدفوع", "Claude: a paid brain"),
-            T($"اختياري. لو حطيته هيتستخدم Claude Haiku بدل Gemini، وبتدفع اللي بتستخدمه: حوالي {CostGuide.Estimate(60).Brain:0} دولار في الشهر لـ 60 طلب في اليوم.", $"Optional. If you add it, Claude Haiku is used instead of Gemini and you pay for what you use: about ${CostGuide.Estimate(60).Brain:0} a month at 60 requests a day."), inner);
-
-        bool ready = KeySetup.CanStart(_driver.HasKey(KeyKind.Anthropic), _driver.HasKey(KeyKind.FishAudio), _driver.HasKey(KeyKind.Gemini));
+        bool ready = Providers.CanStart(_driver.GetBrain(), _driver.GetEars(), Held());
         Button next = MainButton(T("التالي", "Continue"), ShowPrivacy);
         next.IsEnabled = ready;
         Add(next);
-        (ready ? next : first).Focus();
+        if (_focusChoice is null)
+        {
+            (ready ? next : first ?? next).Focus();
+        }
+
         if (speak)
         {
             _driver.Say(T(
-                "أهلا بك في مبصر. محتاج مفتاح مجاني من Google Gemini. اضغط إدخال عشان أفتح لك صفحته. انشئ مفتاح وانسخه، وأنا هاخده وأجربه وأقولك النتيجة.",
-                "Welcome to Mubsir. I need one free key from Google Gemini. Press Enter and I'll open its page. Create a key and copy it, and I'll pick it up, test it and tell you the result."), _lang);
+                "أهلا بك في مبصر. اختار العقل والسمع والصوت. Gemini مجاني ومفتاح واحد منه يكفي للعقل والسمع. انسخ المفتاح من الموقع، وأنا هاخده وأجربه وأقولك النتيجة.",
+                "Welcome to Mubsir. Choose the brain, the hearing and the voice. Gemini is free, and one Gemini key covers the brain and the hearing. Copy a key on the website and I'll pick it up, test it and tell you the result."), _lang);
         }
+    }
+
+    private KeysHeld Held() => new(_driver.HasKey(KeyKind.Anthropic), _driver.HasKey(KeyKind.FishAudio), _driver.HasKey(KeyKind.Gemini));
+
+    /// <summary>
+    /// What Mubsir will use, in one line, then the keys that choice needs. "Choose other services and models"
+    /// opens the full choice: brain and model, hearing, and Arabic voice, with the recommended ones marked.
+    /// Returns the first key button, to focus when nothing is set up yet.
+    /// </summary>
+    private Button? ShowServices(bool open = false)
+    {
+        KeysHeld held = Held();
+        BrainChoice brain = Providers.Chosen(_driver.GetBrain(), held);
+        EarsChoice ears = Providers.Chosen(_driver.GetEars(), held);
+        bool fishVoice = _driver.GetOption("UseFishVoice");
+        string model = _driver.GetGeminiModel();
+        bool flash = brain == BrainChoice.Gemini && model == FlashModel;
+
+        string brainName = brain == BrainChoice.Claude ? "Claude Haiku 5.5"
+            : brain == BrainChoice.Custom ? _driver.GetText("CustomBrainModel") ?? T("خدمة تانية", "another service")
+            : flash ? "Gemini 3.5 Flash" : "Gemini 3.5 Flash-Lite";
+        string earsName = ears == EarsChoice.Fish ? "Fish Audio" : "Gemini";
+        string voiceName = fishVoice ? "Fish Audio" : T("صوت ويندوز", "the Windows voice");
+        Add(Words(T($"العقل: {brainName}. السمع: {earsName}. صوت العربي: {voiceName}. صوت الإنجليزي: Ryan، مجاني على جهازك.",
+            $"Brain: {brainName}. Hearing: {earsName}. Arabic voice: {voiceName}. English voice: Ryan, free on this PC."), 14, Ink, top: 10));
+
+        var expander = new Expander
+        {
+            Header = T("اختار خدمات وموديلات تانية", "Choose other services and models"),
+            IsExpanded = open || _servicesOpen,
+            FontFamily = Font,
+            FontSize = 14,
+            Margin = new Thickness(0, 8, 0, 4),
+        };
+        expander.Expanded += (_, _) => _servicesOpen = true;
+        expander.Collapsed += (_, _) => _servicesOpen = false;
+        var choices = new StackPanel { Margin = new Thickness(4, 0, 0, 0) };
+        expander.Content = choices;
+        Add(expander);
+
+        int brainIndex = brain == BrainChoice.Custom ? 3 : brain == BrainChoice.Claude ? 2 : flash ? 1 : 0;
+        Section(T("العقل", "Brain"), choices);
+        Choice("brain", brainIndex,
+        [
+            T("Gemini 3.5 Flash-Lite · مجاني · موصى به", "Gemini 3.5 Flash-Lite · free · recommended"),
+            T("Gemini 3.5 Flash · مجاني، أذكى، طلبات مجانية أقل في اليوم", "Gemini 3.5 Flash · free, smarter, fewer free requests a day"),
+            T($"Claude Haiku 5.5 · مدفوع، حوالي {CostGuide.Estimate(60).Brain:0} دولار في الشهر · الأفضل لو هتدفع", $"Claude Haiku 5.5 · paid, about ${CostGuide.Estimate(60).Brain:0} a month · best if you pay"),
+            T("خدمة تانية بعنوانها · OpenRouter أو OmniRoute أو موديل على جهازك", "Another service by its address · OpenRouter, OmniRoute or a model on this PC"),
+        ],
+        i =>
+        {
+            _driver.SetBrain(i == 3 ? BrainChoice.Custom : i == 2 ? BrainChoice.Claude : BrainChoice.Gemini);
+            if (i < 2)
+            {
+                _driver.SetGeminiModel(i == 1 ? FlashModel : FlashLiteModel);
+            }
+        }, choices);
+
+        if (brain == BrainChoice.Custom)
+        {
+            CustomBrain(choices);
+        }
+
+        Section(T("السمع", "Hearing"), choices);
+        Choice("ears", (int)ears, [T("Gemini · مجاني · موصى به", "Gemini · free · recommended"), "Fish Audio"], i => _driver.SetEars((EarsChoice)i), choices);
+
+        Section(T("صوت العربي", "Arabic voice"), choices);
+        Choice("voice", fishVoice ? 1 : 0, [T("صوت ويندوز · مجاني", "Windows voice · free"), T("Fish Audio · صوت طبيعي · موصى به للعربي", "Fish Audio · natural · recommended for Arabic")],
+            i => _driver.SetOption("UseFishVoice", i == 1), choices);
+
+        // Only the keys the choice needs, each once.
+        var shown = new HashSet<KeyKind>();
+        Button? first = null;
+        void Need(KeyKind kind, string name, string about)
+        {
+            if (shown.Add(kind))
+            {
+                Button button = KeyRow(kind, name, about);
+                first ??= button;
+            }
+        }
+
+        if (brain != BrainChoice.Custom)
+        {
+            Need(Providers.KeyFor(brain), brain == BrainChoice.Claude ? "Claude" : "Google Gemini",
+                brain == BrainChoice.Claude
+                    ? T("بتدفع اللي بتستخدمه.", "You pay for what you use.")
+                    : T("مجاني في حدود جوجل. جوجل ممكن تستخدم الطلبات المجانية لتحسين خدماتها.", "Free within Google's limits. Google may use free requests to improve its products."));
+        }
+
+        Need(Providers.KeyFor(ears), ears == EarsChoice.Fish ? "Fish Audio" : "Google Gemini", string.Empty);
+        if (fishVoice)
+        {
+            Need(KeyKind.FishAudio, "Fish Audio", string.Empty);
+        }
+
+        return first;
+    }
+
+    /// <summary>The address, model and key of another AI service. What Mubsir would send to Gemini goes there instead.</summary>
+    private void CustomBrain(Panel into)
+    {
+        into.Children.Add(Words(T(
+            "أي خدمة بتتكلم صيغة OpenAI. طلبك واللي على الشاشة هيتبعتوا للعنوان ده. لازم https، إلا لو الخدمة على جهازك.",
+            "Any service that speaks the OpenAI chat format. Your request and what's on the screen are sent to this address. It must be https, unless the service runs on this PC."), 12.5, Quiet));
+        TextBox address = TextField(T("عنوان الخدمة، مثلا https://openrouter.ai/api/v1", "Service address, for example https://openrouter.ai/api/v1"), _driver.GetText("CustomBrainUrl"), into);
+        TextBox model = TextField(T("اسم الموديل", "Model name"), _driver.GetText("CustomBrainModel"), into);
+        var key = new PasswordBox { Height = 32, FontFamily = Font, VerticalContentAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 2, 0, 6) };
+        string keyLabel = T("مفتاح الخدمة. سيبه فاضي لو مفيش أو لو محفوظ", "The service's key. Leave it empty if there is none or it's already saved");
+        AutomationProperties.SetName(key, keyLabel);
+        into.Children.Add(Words(keyLabel, 12.5, Quiet, top: 6));
+        into.Children.Add(key);
+        into.Children.Add(SmallButton(T("احفظ الخدمة", "Save the service"), () =>
+        {
+            _driver.SetText("CustomBrainUrl", address.Text);
+            _driver.SetText("CustomBrainModel", model.Text);
+            if (key.Password.Length > 0)
+            {
+                _driver.SetText("CustomBrainKey", key.Password);
+            }
+
+            bool usable = OpenAiWire.Endpoint(address.Text) is not null && model.Text.Trim().Length > 0;
+            _notice = usable
+                ? T("اتحفظت الخدمة.", "The service is saved.")
+                : T("العنوان ده مينفعش. لازم يبدأ بـ https، واكتب اسم الموديل.", "That address won't work. It must start with https, and the model needs a name.");
+            _driver.Say(_notice, _lang);
+            Refresh();
+        }));
+    }
+
+    /// <summary>A labelled text box that a screen reader names.</summary>
+    private TextBox TextField(string label, string? value, Panel into)
+    {
+        var box = new TextBox { Text = value ?? string.Empty, Height = 32, FontFamily = Font, FontSize = 13, VerticalContentAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 2, 0, 6) };
+        AutomationProperties.SetName(box, label);
+        into.Children.Add(Words(label, 12.5, Quiet, top: 6));
+        into.Children.Add(box);
+        return box;
+    }
+
+    private const string FlashLiteModel = "gemini-3.5-flash-lite";
+    private const string FlashModel = "gemini-3.5-flash";
+
+    private void Section(string title, Panel? into = null) => (into ?? _body).Children.Add(Words(title, 15, Accent, FontWeights.SemiBold, top: 14));
+
+    /// <summary>One choice as radio buttons, so a screen reader says "1 of 2". Choosing redraws the page.</summary>
+    private void Choice(string group, int chosen, string[] options, Action<int> choose, Panel into)
+    {
+        var row = new StackPanel { Margin = new Thickness(0, 2, 0, 4) };
+        for (int i = 0; i < options.Length; i++)
+        {
+            int index = i;
+            var radio = new RadioButton
+            {
+                Content = options[i],
+                GroupName = group,
+                IsChecked = i == chosen,
+                FontFamily = Font,
+                FontSize = 14,
+                Margin = new Thickness(0, 3, 0, 3),
+            };
+            AutomationProperties.SetName(radio, options[i]);
+            radio.Checked += (_, _) =>
+            {
+                if (index == chosen)
+                {
+                    return;
+                }
+
+                choose(index);
+                _focusChoice = group + index;
+                Refresh();
+            };
+            if (_focusChoice == group + index)
+            {
+                _focusChoice = null;
+                Dispatcher.BeginInvoke(() => radio.Focus(), DispatcherPriority.Input);
+            }
+
+            row.Children.Add(radio);
+        }
+
+        into.Children.Add(row);
     }
 
     private Button KeyRow(KeyKind kind, string name, string about, StackPanel? into = null)
     {
         StackPanel target = into ?? _body;
-        var row = new StackPanel { Margin = new Thickness(0, 10, 0, 6) };
+        var row = new StackPanel();
         bool has = _driver.HasKey(kind);
-        row.Children.Add(Words(name + (has ? T(" (جاهز)", " (ready)") : string.Empty), 14, Ink, FontWeights.SemiBold));
-        row.Children.Add(Words(about, 13, Quiet));
+        row.Children.Add(Words(name + T(" · المفتاح", " key") + (has ? T(" ✓ جاهز", " ✓ ready") : string.Empty), 14, has ? Accent : Ink, FontWeights.SemiBold));
+        if (about.Length > 0)
+        {
+            row.Children.Add(Words(about, 13, Quiet));
+        }
+
         var status = Words(string.Empty, 13, Accent);
         AutomationProperties.SetLiveSetting(status, AutomationLiveSetting.Polite);
         var box = new PasswordBox { Height = 32, FontFamily = Font, VerticalContentAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 6, 0, 6) };
@@ -250,7 +460,7 @@ public sealed class SetupWindow : Window
         row.Children.Add(box);
         row.Children.Add(buttons);
         row.Children.Add(status);
-        target.Children.Add(row);
+        target.Children.Add(new Border { Background = Card, CornerRadius = new CornerRadius(12), Padding = new Thickness(16, 12, 16, 12), Margin = new Thickness(0, 6, 0, 6), Child = row });
         return open;
     }
 
@@ -455,13 +665,15 @@ public sealed class SetupWindow : Window
     {
         Begin(T("الإعدادات", "Settings"));
 
-        // Keys
-        KeyRow(KeyKind.Anthropic, "Claude", T("العقل", "The brain"));
-        KeyRow(KeyKind.FishAudio, "Fish Audio", T("صوت العربي", "The Arabic voice"));
-        KeyRow(KeyKind.Gemini, "Google Gemini", T("اختياري، للسمع", "Optional, for hearing"));
+        ShowServices(open: true);
+
+        // Name
+        Section(T("اسم المساعد", "The assistant's name"));
+        TextBox name = TextField(T("الاسم اللي تحب تناديه بيه. سيبه فاضي عشان يفضل مبصر. تقدر كمان تقول: اسمك كذا", "What you'd like to call it. Leave empty to keep Mubsir. You can also say: your name is ..."), _driver.GetText("AssistantName"), _body);
+        name.LostFocus += (_, _) => _driver.SetText("AssistantName", name.Text);
 
         // Talk key
-        Add(Words(T("مفتاح الكلام", "Talk key"), 14, Ink, FontWeights.SemiBold));
+        Section(T("مفتاح الكلام", "Talk key"));
         Add(Words(T("اضغط مع الاستمرار على المفتاح ده عشان تتكلم، أو اضغط ضغطة واحدة عشان توقف الكلام.", "Hold this key to talk, or tap it once to stop speech."), 12.5, Quiet));
         var talkKeyBox = new ComboBox { FontFamily = Font, FontSize = 13, Height = 32, Margin = new Thickness(0, 4, 0, 10) };
         AutomationProperties.SetName(talkKeyBox, T("اختر مفتاح الكلام", "Choose talk key"));
@@ -488,13 +700,8 @@ public sealed class SetupWindow : Window
         };
         Add(talkKeyBox);
 
-        // Brain
-        Add(Words(T("عقل الذكاء الاصطناعي", "Brain"), 14, Ink, FontWeights.SemiBold));
-        Add(Words(T("مع مفتاح Claude، مُبصِر بيستخدم Claude Haiku 5.5: سريع وقوي ورخيص للمهام اليومية.",
-            "With a Claude key, Mubsir uses Claude Haiku 5.5: fast, capable and cheap for everyday tasks."), 12.5, Quiet));
-
         // Fish voice id & testing
-        Add(Words(T("صوت العربية (Fish Audio)", "Arabic voice (Fish Audio)"), 14, Ink, FontWeights.SemiBold));
+        Section(T("صوت Fish Audio", "Fish Audio voice"));
         Add(Words(T("اختار من القايمة، أو اكتب معرف صوت من حسابك في Fish Audio.",
             "Pick from the list, or enter a voice ID from Fish Audio."), 12.5, Quiet));
         var voiceIdBox = new TextBox
@@ -531,18 +738,19 @@ public sealed class SetupWindow : Window
         Add(voiceTestPanel);
 
         // NVDA Add-on installation
-        Add(Words(T("إضافة NVDA Bridge", "NVDA Bridge Add-on"), 14, Ink, FontWeights.SemiBold));
+        Section(T("إضافة NVDA", "NVDA add-on"));
         Add(Words(T("لتشغيل جسر NVDA مع مبصر، اضغط هنا لتثبيت الإضافة في NVDA.", "To connect NVDA with Mubsir, click here to install the bridge add-on in NVDA."), 12.5, Quiet));
         Add(SmallButton(T("تثبيت إضافة Mubsir Bridge لـ NVDA", "Install Mubsir Bridge NVDA add-on"), _driver.InstallNvdaAddon));
 
         // Options
-        Add(Words(T("خيارات عامة", "General options"), 14, Ink, FontWeights.SemiBold));
+        Section(T("خيارات", "Options"));
         Option("ShowNotch", T("أظهر الشريط اللي فوق الشاشة (بعد إعادة التشغيل)", "Show the notch at the top of the screen (after a restart)"));
-        Option("UseFishVoice", T("اتكلم عربي بصوت Fish Audio", "Speak Arabic in the Fish Audio voice"));
         Option("OneVoicePerAnswer", T("صوت واحد للرد كله لو فيه عربي (الجمل الإنجليزي كمان بصوت Fish، بتكلفة)", "One voice for a whole answer that has Arabic (English sentences in the Fish voice too, at a cost)"));
         Option("ReadArabicBooksWithFish", T("اقرأ الكتب العربية بصوت Fish (10 صفحات بحوالي 50 سنت)", "Read Arabic books in the Fish voice (about $0.50 for 10 pages)"));
         Option("ReadFullTashkeel", T("اقرأ التشكيل كاملاً (لو مقفول، متروك للصوت)", "Read Arabic diacritics fully (when off, left to the voice)"));
+        Option("LightMode", T("وضع خفيف للأجهزة الضعيفة: من غير تحميل صوت Ryan، والإنجليزي بصوت ويندوز (بعد إعادة التشغيل)", "Light mode for a weak PC: no Ryan voice download, English in the Windows voice (after a restart)"));
         Option("SaveSessions", T("احفظ المحادثات في فولدر على جهازي", "Save chats in a folder on this PC"));
+        Option("EncryptSessions", T("شفّر المحادثات المحفوظة (مش هتتفتح في Notepad، ومبصر يقدر يقرأها ويصدّرها)", "Encrypt saved chats (they won't open in Notepad; Mubsir can still read and export them)"));
 
         // Chats and Export
         var chatsPanel = new WrapPanel { Margin = new Thickness(0, 8, 0, 4) };
@@ -566,7 +774,7 @@ public sealed class SetupWindow : Window
 
     private void Add(UIElement element) => _body.Children.Add(element);
 
-    private static TextBlock Words(string text, double size, Brush brush, FontWeight? weight = null) => new()
+    private static TextBlock Words(string text, double size, Brush brush, FontWeight? weight = null, double top = 3) => new()
     {
         Text = text,
         FontFamily = Font,
@@ -574,12 +782,24 @@ public sealed class SetupWindow : Window
         Foreground = brush,
         FontWeight = weight ?? FontWeights.Normal,
         TextWrapping = TextWrapping.Wrap,
-        Margin = new Thickness(0, 3, 0, 3),
+        Margin = new Thickness(0, top, 0, 3),
     };
 
     private static Button MainButton(string text, Action click)
     {
-        var button = new Button { Content = text, MinHeight = 40, Margin = new Thickness(0, 8, 0, 0), Padding = new Thickness(14, 6, 14, 6), FontFamily = Font, FontSize = 14 };
+        var button = new Button
+        {
+            Content = text,
+            MinHeight = 42,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Margin = new Thickness(0, 20, 0, 0),
+            Padding = new Thickness(14, 6, 14, 6),
+            FontFamily = Font,
+            FontSize = 15,
+            FontWeight = FontWeights.SemiBold,
+            Background = Accent,
+            Foreground = Palette.Solid(Colors.Black),
+        };
         AutomationProperties.SetName(button, text);
         button.Click += (_, _) => click();
         return button;

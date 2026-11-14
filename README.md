@@ -37,9 +37,11 @@ open a new window with the same page
 | --- | --- |
 | **Works the whole PC** | Opens apps, sites and files, reads you numbered results, clicks what it can see, fills in fields, plays YouTube, manages files, and installs a program when you ask and press a key. |
 | **Reads what's really there** | Web pages, Word, PDFs and scanned Arabic books, picking up where you stopped. |
+| **Reads the way you ask** | "Go to the fourth line", "read the heading", "20% faster", "read for ten minutes". "Which book has the phrase ..." searches the text of every book on your PC. |
 | **Reads any symbol** | Phonetic writing such as /ʃɪp/ is said sound by sound, and maths and Greek are named. |
 | **Speaks your Arabic** | Egyptian, Gulf, Levantine, Libyan, Maghrebi and MSA, with English mixed in mid-sentence. |
 | **Asks your own AI chat** | Signed in to ChatGPT or Gemini in your browser? Plain questions go there, cost nothing, and the answer is read aloud. |
+| **Remembers, on your PC** | "What did we do yesterday?" is answered from the chats saved on your PC. Give it a name if you like: "your name is Jarvis". |
 | **Keeps you in control** | One key stops anything, instantly. Sending, paying and deleting need your OK. On bank pages the AI switches off, and you press Pay yourself. |
 | **Stays light** | Everything on screen has a job and can be turned off. It's built for 4 GB PCs. |
 
@@ -55,13 +57,15 @@ On first start it asks a few questions, and each answer changes how it behaves. 
 
 ## Your keys
 
-There are no keys in this repo and no account to make. Copy a key on the website and Mubsir picks it up, tests it and stores it, encrypted for your Windows account. Nothing goes in a file.
+There are no keys in this repo and no account to make. Every service is optional: you choose one for each part, and add only that one's key. Copy a key on the website and Mubsir picks it up, tests it and stores it, encrypted for your Windows account. Nothing goes in a file.
 
-| Key | What it's for | |
+| Part | Choose | |
 | --- | --- | --- |
-| [Google Gemini](https://aistudio.google.com/apikey) | The brain and hearing you | Required and free, within Google's limits. Google may use free requests to improve its products. |
-| [Fish Audio](https://fish.audio/app/api-keys) | A natural Arabic voice | Optional, and free while Fish offers its free model. Without it, the free Windows voice speaks Arabic. |
-| [Claude](https://console.anthropic.com/settings/keys) | A paid brain | Optional. If you add it, Claude Haiku is used instead of Gemini. |
+| Brain | [Google Gemini](https://aistudio.google.com/apikey), [Claude Haiku](https://console.anthropic.com/settings/keys), or any service by its address | Gemini is free within Google's limits (Google may use free requests to improve its products). Claude costs about $2 a month at 60 requests a day. "Another service" takes the address, model and key of anything that speaks the OpenAI chat format: OpenRouter, a router such as OmniRoute, or a model on your PC. |
+| Hearing | Google Gemini or [Fish Audio](https://fish.audio/app/api-keys) | One Gemini key covers the brain and the hearing. |
+| Arabic voice | The Windows voice or Fish Audio | The Windows voice is free; Fish sounds natural. |
+
+If a chosen service has no key yet, Mubsir uses the other one when its key is there, so it keeps working.
 
 English speech is free and private: Ryan, a natural voice that runs on your PC, downloads once in the background.
 
@@ -118,7 +122,7 @@ Settings are in the tray icon's menu. To see the interface on its own, run `Mubs
 
 ## What your PC needs
 
-64-bit Windows 10 (22H2) or 11, 4 GB of RAM (8 GB is smoother), a microphone, the internet, and about 300 MB of disk with the English voice.
+64-bit Windows 10 (22H2) or 11, 4 GB of RAM (8 GB is smoother), a microphone, the internet, and about 300 MB of disk with the English voice. On a PC with under about 6 GB of memory Mubsir starts light, with no notch and the Windows voice for English; one option in settings turns them back on.
 
 ## Privacy
 
@@ -127,7 +131,8 @@ Settings are in the tray icon's menu. To see the interface on its own, run `Mubs
 - Say "private mode on" to keep everything on your PC.
 - It never uses the camera.
 - Logs contain timings and error codes only, never what you said or read.
-- Chats are plain files in `Documents\Mubsir\Chats`, one a day. Card numbers and codes are hidden first. You can turn this off, and private mode saves nothing.
+- Chats are plain files in `Documents\Mubsir\Chats`, one a day. Card numbers and codes are hidden first. You can turn this off, or have them encrypted for your Windows account, and private mode saves nothing.
+- When you ask about an earlier day, the lines saved for that day go to your brain service so it can answer. Private mode stops that too.
 
 ## For developers
 

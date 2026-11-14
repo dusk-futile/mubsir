@@ -182,6 +182,85 @@ public class BookFeaturesTests
         public void Dispose() => Directory.Delete(_dir, recursive: true);
     }
 
+    [Theory]
+    [InlineData("go to the fourth line", BookCommandKind.GoToLine, 4)]
+    [InlineData("line 12", BookCommandKind.GoToLine, 12)]
+    [InlineData("read from line twenty two", BookCommandKind.GoToLine, 22)]
+    [InlineData("السطر الرابع", BookCommandKind.GoToLine, 4)]
+    [InlineData("روح للسطر ٧", BookCommandKind.GoToLine, 7)]
+    [InlineData("آخر سطر", BookCommandKind.GoToLine, -1)]
+    [InlineData("the last sentence", BookCommandKind.GoToSentence, -1)]
+    [InlineData("الجملة التانية", BookCommandKind.GoToSentence, 2)]
+    [InlineData("go to paragraph 3", BookCommandKind.GoToParagraph, 3)]
+    [InlineData("اقرأ من الفقرة الثالثة", BookCommandKind.GoToParagraph, 3)]
+    [InlineData("go to السطر 5", BookCommandKind.GoToLine, 5)]
+    [InlineData("read the heading", BookCommandKind.ReadHeading, null)]
+    [InlineData("اقرأ العنوان", BookCommandKind.ReadHeading, null)]
+    [InlineData("read the ending", BookCommandKind.ReadEnding, null)]
+    [InlineData("اقرأ آخر الصفحة", BookCommandKind.ReadEnding, null)]
+    [InlineData("20% faster", BookCommandKind.Speed, 20)]
+    [InlineData("read ten percent slower", BookCommandKind.Speed, -10)]
+    [InlineData("speed up by 15 percent", BookCommandKind.Speed, 15)]
+    [InlineData("أسرع عشرين في المية", BookCommandKind.Speed, 20)]
+    [InlineData("أبطأ ١٠٪", BookCommandKind.Speed, -10)]
+    [InlineData("اقرأ أبطأ بنسبة عشرة بالمئة", BookCommandKind.Speed, -10)]
+    public void Finer_reading_commands_are_understood(string said, BookCommandKind kind, int? number)
+    {
+        BookCommand? command = BookCommands.Parse(said);
+
+        Assert.NotNull(command);
+        Assert.Equal(kind, command.Kind);
+        Assert.Equal(number, command.Number);
+    }
+
+    [Theory]
+    [InlineData("the battery is at 20 percent")]
+    [InlineData("is it 20% faster than mine")]
+    [InlineData("200% faster")]
+    [InlineData("draw a line")]
+    [InlineData("write a sentence about cats")]
+    [InlineData("first in line")]
+    public void Other_sentences_are_not_reading_commands(string said) => Assert.Null(BookCommands.Parse(said));
+
+    [Fact]
+    public void A_page_is_split_into_lines_sentences_and_paragraphs()
+    {
+        const string pdf = "Chapter One\nIt was late. The rain\nhad stopped. He went home.";
+        Assert.Equal([0, 12, 34], PageParts.Starts(pdf, BookCommandKind.GoToLine));
+        Assert.Equal([0, 12, 34], PageParts.Starts(pdf, BookCommandKind.GoToParagraph));
+        Assert.Equal("Chapter One", PageParts.Heading("\n  Chapter One\nText."));
+
+        const string blocks = "First block\nstill first.\n\nSecond block.";
+        Assert.Equal([0, 26], PageParts.Starts(blocks, BookCommandKind.GoToParagraph));
+
+        const string three = "One. Two. Three. Four.";
+        Assert.Equal([0, 5, 10, 17], PageParts.Starts(three, BookCommandKind.GoToSentence));
+        Assert.Equal(5, PageParts.Ending(three));
+        Assert.Equal(0, PageParts.Ending("Only one."));
+    }
+
+    [Fact]
+    public async Task A_sentence_or_line_can_be_asked_for_by_number()
+    {
+        using var h = new Harness();
+        await h.Open();
+        h.Voice.Hear("One start");
+
+        int before = h.Voice.Queue.Count;
+        Assert.Null(await h.Session.GoToPartAsync(BookCommandKind.GoToSentence, 2));
+        Assert.Equal("One end.", h.Voice.Queue[before + 1].Text);
+        h.Voice.Hear("One end");
+        Assert.Equal(11, h.Positions.Get(h.BookPath)!.Offset);
+
+        Assert.Equal("This page has only 2 sentences.", await h.Session.GoToPartAsync(BookCommandKind.GoToSentence, 9));
+        Assert.Equal("This page has only 1 lines.", await h.Session.GoToPartAsync(BookCommandKind.GoToLine, 2));
+        Assert.Equal("One start. One end.", await h.Session.HeadingAsync());
+
+        before = h.Voice.Queue.Count;
+        Assert.Null(await h.Session.GoToPartAsync(BookCommandKind.GoToSentence, -1));
+        Assert.Equal("One end.", h.Voice.Queue[before + 1].Text);
+    }
+
     [Fact]
     public async Task Next_and_previous_page_work_from_what_was_heard()
     {

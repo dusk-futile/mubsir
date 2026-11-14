@@ -23,10 +23,6 @@ internal sealed class PaneContext(OverlayAssets assets, bool reduceMotion)
 
     public Action? Stop { get; set; }
 
-    public Action? Tap { get; set; }
-
-    public Action? Cancel { get; set; }
-
     public Spring NewSpring(double value, SpringToken token, double precision = 0.001) =>
         new(value, token, precision) { Instant = ReduceMotion };
 }
@@ -334,9 +330,10 @@ internal sealed class ListeningPane : Pane
         : base(context, size)
     {
         _mark = new RippleMark(P);
-        _wave = new VoiceWave(P) { Width = 150, Height = 30 };
+        _wave = new VoiceWave(P, listening: true) { Width = 150, Height = 30 };
         _heard = Ui.Text(string.Empty, 15, P.CreamBrush);
-        Set(Column(6, Ends(Row(10, _mark.Element, Ui.Label("Listening", P.AmberBrush)), _wave), _heard));
+        _mark.Element.HorizontalAlignment = HorizontalAlignment.Left;
+        Set(Column(6, Ends(_mark.Element, _wave), _heard));
     }
 
     public override void Apply(CompanionContent content)
@@ -356,31 +353,106 @@ internal sealed class ListeningPane : Pane
     }
 }
 
-/// <summary>Clean and minimal: one breathing light and the word.</summary>
+/// <summary>
+/// Thinking: Mubsir's signature. A stroke shaped like the letter م writes itself right to left, amber into
+/// coral, with a cream pen tip, then lifts away from where it began, like a pen moving on. The sharp ink has a
+/// warm light under it, warm sparks lift off the tip and fade, and the faint outline of the letter breathes.
+/// The colours never leave Mubsir's amber, coral and cream. A light passes over the word beside it.
+/// </summary>
 internal sealed class ThinkingPane : Pane
 {
-    private readonly ScaleTransform _scale = new(1, 1);
+    private const double Draw = 1.4;
+    private const double Hold = 0.4;
+    private const double Lift = 0.8;
+    private const double Cycle = Draw + Hold + Lift;
+    private const double SparkLife = 0.9;
+    private const int Sparks = 12;
+
+    // The letter's path in a 44 x 22 box, as chained cubic curves: the joining stroke, the round head, the tail.
+    private static readonly Point[][] Curves =
+    [
+        [new(40, 8), new(34, 8), new(29, 9), new(26, 9)],
+        [new(26, 9), new(24, 2), new(17, 2), new(18, 8)],
+        [new(18, 8), new(19, 12), new(25, 12), new(26, 9)],
+        [new(26, 9), new(20, 18), new(7, 20), new(2, 13)],
+    ];
+
+    private static readonly Point[] Points = Sample();
+    private readonly WpfPath _stroke;
+    private readonly WpfPath _glow;
+    private readonly WpfPath _ghost;
+    private readonly Grid _tip;
+    private readonly TranslateTransform _tipAt = new();
+    private readonly TranslateTransform _float = new();
+    private readonly TranslateTransform _sweep = new(-1, 0);
+    private readonly (WpfPath Shape, TranslateTransform At, ScaleTransform Size)[] _sparks = new (WpfPath, TranslateTransform, ScaleTransform)[Sparks];
+    private readonly (double Born, double X, double Y, double Vx, double Vy)[] _sparkState = new (double, double, double, double, double)[Sparks];
+    private readonly Random _random = new(7);
+    private (int From, int To) _drawn = (-1, -1);
+    private double _nextSpark;
+    private int _spark;
 
     public ThinkingPane(PaneContext context, Size2 size)
         : base(context, size)
     {
-        var fill = new RadialGradientBrush { Center = new Point(0.35, 0.35), GradientOrigin = new Point(0.35, 0.35), RadiusX = 0.75, RadiusY = 0.75 };
-        fill.GradientStops.Add(new GradientStop(P.Cream, 0));
-        fill.GradientStops.Add(new GradientStop(P.Amber, 0.45));
-        fill.GradientStops.Add(new GradientStop(P.Crest, 1));
-        fill.Freeze();
-        var orb = new WpfEllipse
+        var mark = new Canvas { Width = 44, Height = 22, RenderTransform = _float };
+        _ghost = new WpfPath { Data = Line(0, Points.Length - 1), Stroke = Palette.Solid(P.Cream, 1), StrokeThickness = 3, Opacity = 0.14 };
+        Round(_ghost);
+        mark.Children.Add(_ghost);
+
+        var ink = new LinearGradientBrush { StartPoint = new Point(1, 0), EndPoint = new Point(0, 1) };
+        ink.GradientStops.Add(new GradientStop(P.Amber, 0.15));
+        ink.GradientStops.Add(new GradientStop(P.Crest, 0.95));
+        ink.Freeze();
+
+        // The light under the ink: the same line, wider and soft. Only this small shape is blurred.
+        _glow = new WpfPath { Stroke = ink, StrokeThickness = 6, Opacity = 0.35, Effect = new BlurEffect { Radius = 5, RenderingBias = RenderingBias.Performance } };
+        Round(_glow);
+        mark.Children.Add(_glow);
+        _stroke = new WpfPath { Stroke = ink, StrokeThickness = 3 };
+        Round(_stroke);
+        mark.Children.Add(_stroke);
+
+        for (int i = 0; i < Sparks; i++)
         {
-            Width = 12,
-            Height = 12,
-            Fill = fill,
-            RenderTransform = _scale,
-            RenderTransformOrigin = new Point(0.5, 0.5),
-            Effect = new DropShadowEffect { Color = P.Amber, BlurRadius = 12, ShadowDepth = 0, Opacity = 0.7 },
-        };
-        StackPanel row = Row(10, orb, Ui.Text("Thinking", 13.5, P.CreamDim));
+            var at = new TranslateTransform();
+            var scale = new ScaleTransform(1, 1);
+            var group = new TransformGroup();
+            group.Children.Add(scale);
+            group.Children.Add(at);
+            var spark = Shape("M2 0 C2.15 1.4 2.6 1.85 4 2 C2.6 2.15 2.15 2.6 2 4 C1.85 2.6 1.4 2.15 0 2 C1.4 1.85 1.85 1.4 2 0 Z", Palette.Solid(i % 3 == 0 ? P.Amber : i % 3 == 1 ? P.Cream : P.Crest), null);
+            spark.RenderTransform = group;
+            spark.Opacity = 0;
+            mark.Children.Add(spark);
+            _sparks[i] = (spark, at, scale);
+            _sparkState[i] = (double.NegativeInfinity, 0, 0, 0, 0);
+        }
+
+        // The pen tip: a cream point inside a soft halo (a radial fade, so no blur is needed).
+        var halo = new RadialGradientBrush();
+        halo.GradientStops.Add(new GradientStop(Palette.WithAlpha(P.Amber, 0.5), 0));
+        halo.GradientStops.Add(new GradientStop(Palette.WithAlpha(P.Amber, 0), 1));
+        halo.Freeze();
+        _tip = new Grid { Width = 12, Height = 12, RenderTransform = _tipAt, IsHitTestVisible = false };
+        _tip.Children.Add(new WpfEllipse { Fill = halo });
+        _tip.Children.Add(new WpfEllipse { Width = 5, Height = 5, Fill = P.CreamBrush });
+        mark.Children.Add(_tip);
+
+        var shimmer = new LinearGradientBrush { StartPoint = new Point(0, 0.5), EndPoint = new Point(1, 0.5), RelativeTransform = _sweep };
+        Color dim = Palette.WithAlpha(P.Cream, 0.5);
+        shimmer.GradientStops.Add(new GradientStop(dim, 0));
+        shimmer.GradientStops.Add(new GradientStop(dim, 0.35));
+        shimmer.GradientStops.Add(new GradientStop(P.Cream, 0.5));
+        shimmer.GradientStops.Add(new GradientStop(dim, 0.65));
+        shimmer.GradientStops.Add(new GradientStop(dim, 1));
+        TextBlock word = Ui.Text("Thinking", 13.5, shimmer, FontWeights.Medium);
+
+        // Drawn in a 44 x 22 box, shown a quarter larger so the letter reads at a glance.
+        var scaled = new Viewbox { Width = 55, Height = 27.5, Child = mark };
+        StackPanel row = Row(10, scaled, word);
         row.HorizontalAlignment = HorizontalAlignment.Center;
         Set(row, new Thickness(0));
+        Show(0, Points.Length - 1, 1);
     }
 
     public override FrameNeed Animate(double t, double dt, double voice)
@@ -390,9 +462,140 @@ internal sealed class ThinkingPane : Pane
             return FrameNeed.None;
         }
 
-        double dip = 0.5 - (0.5 * Math.Cos(t * Math.PI * 2 / 1.5));
-        _scale.ScaleX = _scale.ScaleY = 1 - (0.32 * dip);
+        // Write, hold, then lift away from the start so the tip carries on to the end of the letter.
+        double x = t % Cycle;
+        double from = 0, to = 1, tip = 1;
+        bool writing = x < Draw;
+        if (writing)
+        {
+            to = Ease(x / Draw);
+        }
+        else if (x >= Draw + Hold)
+        {
+            from = Ease((x - Draw - Hold) / Lift);
+            tip = 1 - (from * from);
+        }
+
+        int last = Points.Length - 1;
+        Show((int)Math.Round(from * last), (int)Math.Round(to * last), tip);
+
+        // Breath and float.
+        _ghost.Opacity = 0.1 + (0.08 * (0.5 + (0.5 * Math.Sin(t * 2.2))));
+        _glow.Opacity = 0.28 + (0.17 * (0.5 + (0.5 * Math.Sin(t * 3.1))));
+        _float.Y = 0.7 * Math.Sin(t * 1.4);
+
+        // Stardust lifts off the pen tip while it writes, drifts up and fades.
+        Point pen = Points[(int)Math.Round(to * last)];
+        if (writing && t >= _nextSpark)
+        {
+            _nextSpark = t + 0.07;
+            int i = _spark++ % Sparks;
+            double angle = (-Math.PI / 2) + ((_random.NextDouble() - 0.5) * 1.6);
+            double speed = 6 + (_random.NextDouble() * 8);
+            _sparkState[i] = (t, pen.X, pen.Y, speed * Math.Cos(angle), speed * Math.Sin(angle));
+        }
+
+        for (int i = 0; i < Sparks; i++)
+        {
+            var (born, sx, sy, vx, vy) = _sparkState[i];
+            double age = t - born;
+            var (shape, at, size) = _sparks[i];
+            if (age < 0 || age > SparkLife)
+            {
+                shape.Opacity = 0;
+                continue;
+            }
+
+            double life = age / SparkLife;
+            at.X = sx - 2 + (vx * age);
+            at.Y = sy - 2 + (vy * age) - (4 * age * age);
+            size.ScaleX = size.ScaleY = 0.5 + (0.6 * Math.Sin(Math.PI * life));
+            shape.Opacity = (1 - life) * 0.9;
+        }
+
+        // The light crosses the word in a second, then rests for half a second.
+        double phase = t % 1.5;
+        _sweep.X = phase <= 1 ? -1 + (2 * phase) : 1;
         return FrameNeed.Fast;
+    }
+
+    private void Show(int from, int to, double tipOpacity)
+    {
+        if (to - from < 2)
+        {
+            _stroke.Data = null;
+            _glow.Data = null;
+            _tip.Opacity = 0;
+            return;
+        }
+
+        if ((from, to) != _drawn)
+        {
+            _drawn = (from, to);
+            StreamGeometry line = Line(from, to);
+            _stroke.Data = line;
+            _glow.Data = line;
+        }
+
+        _tipAt.X = Points[to].X - 6;
+        _tipAt.Y = Points[to].Y - 6;
+        _tip.Opacity = tipOpacity;
+    }
+
+    private static double Ease(double x) => x < 0.5 ? 4 * x * x * x : 1 - (Math.Pow((-2 * x) + 2, 3) / 2);
+
+    private static void Round(WpfPath path)
+    {
+        path.StrokeStartLineCap = PenLineCap.Round;
+        path.StrokeEndLineCap = PenLineCap.Round;
+        path.StrokeLineJoin = PenLineJoin.Round;
+        path.IsHitTestVisible = false;
+    }
+
+    private static StreamGeometry Line(int from, int to)
+    {
+        var geometry = new StreamGeometry();
+        using (StreamGeometryContext c = geometry.Open())
+        {
+            c.BeginFigure(Points[from], isFilled: false, isClosed: false);
+            for (int i = from + 1; i <= to; i++)
+            {
+                c.LineTo(Points[i], isStroked: true, isSmoothJoin: true);
+            }
+        }
+
+        geometry.Freeze();
+        return geometry;
+    }
+
+    /// <summary>Evenly spaced points along the letter, so the pen moves at a steady speed.</summary>
+    private static Point[] Sample()
+    {
+        var dense = new List<Point>();
+        foreach (Point[] c in Curves)
+        {
+            for (int i = 0; i <= 60; i++)
+            {
+                double t = i / 60.0, u = 1 - t;
+                dense.Add(new Point(
+                    (u * u * u * c[0].X) + (3 * u * u * t * c[1].X) + (3 * u * t * t * c[2].X) + (t * t * t * c[3].X),
+                    (u * u * u * c[0].Y) + (3 * u * u * t * c[1].Y) + (3 * u * t * t * c[2].Y) + (t * t * t * c[3].Y)));
+            }
+        }
+
+        var even = new List<Point> { dense[0] };
+        double carried = 0;
+        for (int i = 1; i < dense.Count; i++)
+        {
+            carried += (dense[i] - dense[i - 1]).Length;
+            if (carried >= 0.5)
+            {
+                even.Add(dense[i]);
+                carried = 0;
+            }
+        }
+
+        return even.ToArray();
     }
 }
 
@@ -526,7 +729,7 @@ internal sealed class DoingPane : Pane
     public DoingPane(PaneContext context, Size2 size)
         : base(context, size)
     {
-        _label = Ui.Label("Working on it", P.AmberBrush);
+        _label = Ui.Label("Step 1", P.AmberBrush);
         _stop = Pill("Stop · Ctrl", Palette.Solid(Colors.White, 0.08), Palette.Solid(Colors.White, 0.16), P.CreamBrush, 12, () => Context.Stop?.Invoke());
         _list.Margin = new Thickness(0, 4, 0, 0);
         Set(Column(6, Ends(Row(10, Ui.Mark(P.Amber, 20, 16), _label), _stop), _list));
@@ -539,7 +742,7 @@ internal sealed class DoingPane : Pane
             DoingMode.Done => ("Done", P.OkBrush),
             DoingMode.Stopped => ("Stopped", P.OkBrush),
             DoingMode.Undoing => ("Stopping and undoing", P.CrestBrush),
-            _ => ("Working on it", P.AmberBrush),
+            _ => (StepCount(content.Steps), P.AmberBrush),
         };
         _label.Text = Ui.Tracked(label);
         _label.Foreground = brush;
@@ -581,6 +784,15 @@ internal sealed class DoingPane : Pane
         }
     }
 
+    /// <summary>"Step 3": the step running now, counted from the start of the task.</summary>
+    private static string StepCount(IReadOnlyList<CompanionStep>? steps)
+    {
+        IReadOnlyList<CompanionStep> all = steps ?? [];
+        int running = all.ToList().FindIndex(s => s.State == StepState.Running);
+        int done = all.Count(s => s.State == StepState.Done);
+        return "Step " + (running >= 0 ? running + 1 : Math.Max(1, done));
+    }
+
     public override FrameNeed Animate(double t, double dt, double voice)
     {
         bool moving = false;
@@ -615,7 +827,8 @@ internal sealed class SpeakingPane : Pane
         _arabic.TextWrapping = TextWrapping.Wrap;
         _arabic.Opacity = 0;
         _arabicFade = context.NewSpring(0, context.Content);
-        Set(Column(6, Ends(Row(10, _mark.Element, Ui.Label("Mubsir", P.AmberBrush)), _wave), _caption, _arabic));
+        _mark.Element.HorizontalAlignment = HorizontalAlignment.Left;
+        Set(Column(6, Ends(_mark.Element, _wave), _caption, _arabic));
     }
 
     public override void Apply(CompanionContent content)
@@ -650,27 +863,26 @@ internal sealed class SpeakingPane : Pane
     }
 }
 
+/// <summary>Reading a book: "Book open" and the page, with a ring that fills as the book goes on.</summary>
 internal sealed class ReadingPane : Pane
 {
-    // The ring's circumference in stroke widths: 2π · 18 / 4.
-    private const double RingLength = 28.27;
+    // The ring's circumference in stroke widths: 2π · 13 / 3.
+    private const double RingLength = 27.2;
     private readonly WpfEllipse _ring;
     private readonly Spring _progress;
-    private readonly TextBlock _title;
     private readonly TextBlock _place;
-    private readonly TextBlock _hint;
     private double _drawn;
 
     public ReadingPane(PaneContext context, Size2 size)
         : base(context, size)
     {
-        var icon = new Grid { Width = 46, Height = 46 };
-        icon.Children.Add(new WpfEllipse { Width = 40, Height = 40, StrokeThickness = 4, Stroke = Palette.Solid(P.Amber, 0.2) });
+        var icon = new Grid { Width = 30, Height = 30 };
+        icon.Children.Add(new WpfEllipse { Width = 26, Height = 26, StrokeThickness = 3, Stroke = Palette.Solid(P.Amber, 0.2) });
         _ring = new WpfEllipse
         {
-            Width = 40,
-            Height = 40,
-            StrokeThickness = 4,
+            Width = 26,
+            Height = 26,
+            StrokeThickness = 3,
             Stroke = P.AmberBrush,
             StrokeDashCap = PenLineCap.Round,
             StrokeDashArray = [0, 100],
@@ -679,20 +891,13 @@ internal sealed class ReadingPane : Pane
         };
         icon.Children.Add(_ring);
         _progress = context.NewSpring(0, new SpringToken(0.9, 1));
-        _title = Ui.Text(string.Empty, 14.5, P.CreamBrush, FontWeights.SemiBold);
-        _place = Ui.Text(string.Empty, 12.5, P.CreamDim);
-        _hint = Ui.Text(string.Empty, 12.5, P.AmberBrush);
-        Set(Row(10, icon, Column(0, _title, _place, _hint)), new Thickness(22, 8, 22, 8));
+        _place = Ui.Text(string.Empty, 13, P.CreamDim);
+        Set(Row(12, icon, Column(0, Ui.Text("Book open", 14.5, P.CreamBrush, FontWeights.SemiBold), _place)), new Thickness(20, 6, 20, 6));
     }
 
     public override void Apply(CompanionContent content)
     {
-        _title.Text = content.BookTitle ?? string.Empty;
-        _title.FlowDirection = FlowOf(content.BookTitle);
         _place.Text = content.BookPlace ?? string.Empty;
-        _place.FlowDirection = FlowOf(content.BookPlace);
-        _hint.Text = content.BookHint ?? string.Empty;
-        _hint.FlowDirection = FlowOf(content.BookHint);
         _progress.SetTarget(Math.Clamp(content.BookProgress, 0, 1));
     }
 
@@ -709,123 +914,7 @@ internal sealed class ReadingPane : Pane
     }
 }
 
-/// <summary>Payment: the real amount and site, and the four Ctrl presses that alone can approve it.</summary>
-internal sealed class ConfirmPane : Pane
-{
-    private readonly TextBlock _site;
-    private readonly TextBlock _amount;
-    private readonly TextBlock _facts;
-    private readonly WpfEllipse[] _taps = new WpfEllipse[4];
-    private readonly ScaleTransform[] _tapScale = new ScaleTransform[4];
-    private readonly Spring[] _tapPop = new Spring[4];
-    private readonly Border _key;
-    private readonly Spring _keyHit;
-    private readonly Brush _keyRest;
-    private int _shown;
-
-    public ConfirmPane(PaneContext context, Size2 size)
-        : base(context, size)
-    {
-        var lockBox = new Canvas { Width = 11, Height = 12 };
-        lockBox.Children.Add(Shape("M1 6.5 A1.5 1.5 0 0 1 2.5 5 H8.5 A1.5 1.5 0 0 1 10 6.5 V10 A1.5 1.5 0 0 1 8.5 11.5 H2.5 A1.5 1.5 0 0 1 1 10 Z", P.OkBrush, null));
-        lockBox.Children.Add(Shape("M3 5 V3.6 A2.5 2.5 0 0 1 8 3.6 V5", null, P.OkBrush, 1.4));
-        _site = Ui.Text(string.Empty, 12.5, P.OkBrush);
-
-        _amount = Ui.Text(string.Empty, 34, P.CreamBrush, FontWeights.SemiBold);
-        _facts = Ui.Text(string.Empty, 13.5, P.CreamDim);
-
-        var tapRow = new StackPanel { Orientation = Orientation.Horizontal };
-        var popToken = new SpringToken(0.34, 0.5);
-        for (int i = 0; i < 4; i++)
-        {
-            _tapScale[i] = new ScaleTransform(1, 1);
-            _tapPop[i] = context.NewSpring(1, popToken);
-            _taps[i] = new WpfEllipse
-            {
-                Width = 14,
-                Height = 14,
-                StrokeThickness = 2,
-                Stroke = P.AmberBrush,
-                Margin = new Thickness(i == 0 ? 0 : 9, 0, 0, 0),
-                RenderTransform = _tapScale[i],
-                RenderTransformOrigin = new Point(0.5, 0.5),
-            };
-            tapRow.Children.Add(_taps[i]);
-        }
-
-        _keyRest = Palette.Solid(Colors.White, 0.08);
-        _key = new Border
-        {
-            CornerRadius = new CornerRadius(5),
-            BorderBrush = Palette.Solid(Colors.White, 0.18),
-            BorderThickness = new Thickness(1, 1, 1, 2),
-            Padding = new Thickness(5, 0, 5, 0),
-            Margin = new Thickness(4, 0, 4, 0),
-            Background = _keyRest,
-            Child = Ui.Text("Ctrl", 12, P.CreamBrush),
-            VerticalAlignment = VerticalAlignment.Center,
-        };
-        _keyHit = context.NewSpring(0, new SpringToken(0.25, 1));
-        var hint = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(14, 0, 0, 0) };
-        hint.Children.Add(Ui.Text("Press", 12.5, P.CreamDim));
-        hint.Children.Add(_key);
-        hint.Children.Add(Ui.Text("4 times · Esc cancels", 12.5, P.CreamDim));
-
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal };
-        Border press = Pill("Press Ctrl", P.AmberBrush, P.AmberBrush, Palette.Solid(Color.FromRgb(0x14, 0x16, 0x2B)), 13, () => Context.Tap?.Invoke(), FontWeights.Medium);
-        Border cancel = Pill("Cancel", Brushes.Transparent, Palette.Solid(Colors.White, 0.2), P.CreamBrush, 13, () => Context.Cancel?.Invoke());
-        cancel.Margin = new Thickness(8, 0, 0, 0);
-        buttons.Children.Add(press);
-        buttons.Children.Add(cancel);
-
-        var taps = new StackPanel { Orientation = Orientation.Horizontal };
-        taps.Children.Add(tapRow);
-        taps.Children.Add(hint);
-
-        Set(Column(6, Ends(Ui.Label("Please confirm", P.CrestBrush), Row(5, lockBox, _site)), _amount, _facts, taps, buttons));
-    }
-
-    public override void Apply(CompanionContent content)
-    {
-        _site.Text = content.Site ?? string.Empty;
-        _amount.Text = content.Amount ?? string.Empty;
-        _facts.Text = content.Facts ?? string.Empty;
-        _facts.FlowDirection = FlowOf(content.Facts);
-        int taps = Math.Clamp(content.Taps, 0, 4);
-        for (int i = 0; i < 4; i++)
-        {
-            bool on = i < taps;
-            _taps[i].Fill = on ? P.CrestBrush : null;
-            _taps[i].Stroke = on ? P.CrestBrush : P.AmberBrush;
-            if (on && i >= _shown)
-            {
-                // The new dot pops in, and the key on screen flashes as if pressed.
-                _tapPop[i].Jump(0.45);
-                _tapPop[i].SetTarget(1);
-                _keyHit.Jump(1);
-                _keyHit.SetTarget(0);
-            }
-        }
-
-        _shown = taps;
-    }
-
-    public override FrameNeed Animate(double t, double dt, double voice)
-    {
-        bool moving = false;
-        for (int i = 0; i < 4; i++)
-        {
-            moving |= _tapPop[i].Step(dt);
-            _tapScale[i].ScaleX = _tapScale[i].ScaleY = _tapPop[i].Value;
-        }
-
-        moving |= _keyHit.Step(dt);
-        _key.Background = _keyHit.Value > 0.02 ? Palette.Solid(P.Crest, Math.Clamp(_keyHit.Value, 0, 1)) : _keyRest;
-        return moving ? FrameNeed.Fast : FrameNeed.None;
-    }
-}
-
-/// <summary>A short result line: paid, or stopped and undone.</summary>
+/// <summary>A short result line: stopped and undone.</summary>
 internal sealed class ResultPane : Pane
 {
     private readonly TextBlock _text;
@@ -837,14 +926,5 @@ internal sealed class ResultPane : Pane
         StackPanel row = Row(10, ResultIcon(color, icon, iconThickness), _text);
         row.HorizontalAlignment = HorizontalAlignment.Center;
         Set(row, new Thickness(0));
-    }
-
-    public override void Apply(CompanionContent content)
-    {
-        if (!string.IsNullOrEmpty(content.PaidText))
-        {
-            _text.Text = content.PaidText;
-            _text.FlowDirection = FlowOf(content.PaidText);
-        }
     }
 }

@@ -48,7 +48,7 @@ public sealed class PolicyEngine
         var t = (tool ?? "").Trim().ToLowerInvariant();
         return t switch
         {
-            ToolNames.ReadDocument or ToolNames.ListFolder or ToolNames.FindFiles or ToolNames.ReadClipboard or ToolNames.BrowseSearch or ToolNames.ReadNotifications or ToolNames.DescribePhoto => true,
+            ToolNames.ReadDocument or ToolNames.ListFolder or ToolNames.FindFiles or ToolNames.ReadClipboard or ToolNames.BrowseSearch or ToolNames.ReadNotifications or ToolNames.DescribePhoto or ToolNames.Recall => true,
             ToolNames.ReadScreen or ToolNames.OcrWindow or ToolNames.DescribeScreen => PolicyRules.IsUntrustedSource(screen),
             _ => false,
         };

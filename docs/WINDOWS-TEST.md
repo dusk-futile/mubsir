@@ -186,6 +186,20 @@ For each, try while idle, during a request and during reading.
 | 89. I5 | Notifications in the zip build and the Store build, with permission on and off | Reads them, or says exactly what to allow. Codes are hidden. **It may not work in the zip build** |
 | 90. I6 | "النهاردة إيه", "الساعة كام", "what day is it" | Right at once, with no AI use |
 
+## J. Added on 2026-11-14, never run on Windows
+
+| # | Test | Passes when |
+|---|---|---|
+| 91. J1 | In a book: "go to the fourth line", "السطر الرابع", "the last sentence", "paragraph 2", a number past the end, on a PDF and a Word file | Reading restarts at that place, the place is saved when heard, and a number too high says how many there are |
+| 92. J2 | "read the heading", "read the ending", "اقرأ العنوان" | The first line is said and the book carries on; the last sentences of the page are read |
+| 93. J3 | "20% faster", "أبطأ عشرة في المية", then past both limits, with Ryan, Fish, the Windows voice and NVDA | The next sentence is at the new speed. **By ear:** does 20% sound like 20%? |
+| 94. J4 | "which book has the phrase ..." with words from the middle of a real book, words in no book, and Arabic with tashkeel. Time it on the real library, twice | Says it started, stays usable meanwhile, then says the book and page; a number opens it there. The second search is much faster. Record both times and the size of `book-text` |
+| 95. J5 | Talk, then next day ask "what did we do yesterday" and "when did I ask about ...". Repeat with encrypted chats on, in private mode, and with saving off | Right answers; private mode refuses; the `.chat` file is unreadable in Notepad; the Word export still works |
+| 96. J6 | "your name is Jarvis", "اسمك محمد", "اسمك ايه", and the name box in settings | It confirms the name, answers to it, and the question isn't taken as a name |
+| 97. J7 | Brain set to another service: OpenRouter, Ollama on this PC, a wrong address, a wrong key, an http address | Tasks work with tools; each failure is said clearly; http to another machine is refused. **The biggest unknown here** |
+| 98. J8 | First start on a 4 GB PC or VM with fresh settings | No notch, no Ryan download, English in the Windows voice, and the option in settings turns them back |
+| 99. J9 | A long task with several screen reads on Claude | Works as before; record the tokens of one task before and after |
+
 ## Finish
 
 1. Fix and re-test all severity 1 and 2 failures.

@@ -1,5 +1,6 @@
 using Mubsir.Core.Common;
 using Mubsir.Core.Input;
+using Mubsir.Core.Setup;
 
 namespace Mubsir.Core.Config;
 
@@ -56,6 +57,24 @@ public sealed record MubsirSettings
     /// <summary>Speak Arabic through Fish Audio when it has a key. Otherwise, or if it fails, the free Windows voice speaks. English always uses the free voice.</summary>
     public bool UseFishVoice { get; set; } = true;
 
+    /// <summary>The brain the person chose. Null until they choose: then a Claude key means Claude, otherwise Gemini.</summary>
+    public BrainChoice? Brain { get; set; }
+
+    /// <summary>The address of another AI service to use as the brain, such as https://openrouter.ai/api/v1. Used when <see cref="Brain"/> is Custom.</summary>
+    public string? CustomBrainUrl { get; set; }
+
+    /// <summary>The model to ask for at <see cref="CustomBrainUrl"/>.</summary>
+    public string? CustomBrainModel { get; set; }
+
+    /// <summary>What the person calls the assistant. Null means Mubsir.</summary>
+    public string? AssistantName { get; set; }
+
+    /// <summary>A weak PC: no Ryan voice download, so English uses the Windows voice. Null until the PC has been checked.</summary>
+    public bool? LightMode { get; set; }
+
+    /// <summary>The hearing the person chose. Null until they choose: Gemini when its key is there.</summary>
+    public EarsChoice? Ears { get; set; }
+
     /// <summary>When an answer has any Arabic, the Fish voice says all of it, English sentences too, so the speaker never changes mid-answer. Costs Fish for those English sentences, so it's off unless chosen.</summary>
     public bool OneVoicePerAnswer { get; set; }
 
@@ -79,6 +98,10 @@ public sealed record MubsirSettings
 
     /// <summary>Keep conversations as files the user can open. Private mode saves nothing.</summary>
     public bool SaveSessions { get; set; } = true;
+
+    /// <summary>Save chats encrypted, so only this Windows account can read them. They no longer open in Notepad;
+    /// Mubsir can still look through them and export a day as a Word file.</summary>
+    public bool EncryptSessions { get; set; }
 
     /// <summary>Where chats go. Empty means Documents\\Mubsir\\Chats.</summary>
     public string? SessionsFolder { get; set; }

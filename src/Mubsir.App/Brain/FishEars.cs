@@ -6,6 +6,7 @@ using Mubsir.App.Audio;
 using Mubsir.Core.Agent;
 using Mubsir.Core.Cost;
 using Mubsir.Core.Logging;
+using Mubsir.Core.Setup;
 
 namespace Mubsir.App.Brain;
 
@@ -85,21 +86,26 @@ internal sealed class EarsRouter(GeminiEars gemini, FishEars fish, SecretStore s
             throw new EarsException(BrainErrorKind.Other, "private_mode");
         }
 
-        bool hasGemini = secrets.Has(SecretNames.Gemini);
-        bool hasFish = secrets.Has(SecretNames.Fish);
-        if (hasGemini)
+        // The chosen service first; the other one only if the first fails.
+        IReadOnlyList<EarsChoice> order = Providers.Ears(settings.Settings.Ears, secrets.Held());
+        if (order.Count == 0)
+        {
+            return await gemini.TranscribeAsync(wav, hints, ct).ConfigureAwait(false);
+        }
+
+        for (int i = 0; ; i++)
         {
             try
             {
-                return await gemini.TranscribeAsync(wav, hints, ct).ConfigureAwait(false);
+                return order[i] == EarsChoice.Fish
+                    ? await fish.TranscribeAsync(wav, ct).ConfigureAwait(false)
+                    : await gemini.TranscribeAsync(wav, hints, ct).ConfigureAwait(false);
             }
-            catch (EarsException e) when (hasFish && e.Code != "private_mode")
+            catch (EarsException e) when (i + 1 < order.Count && e.Code != "private_mode")
             {
-                log.Fail(LogKind.Transcribe, "fallback_fish_" + e.Code);
+                log.Fail(LogKind.Transcribe, "fallback_" + order[i + 1].ToString().ToLowerInvariant() + "_" + e.Code);
             }
         }
-
-        return await fish.TranscribeAsync(wav, ct).ConfigureAwait(false);
     }
 
     public void Dispose()

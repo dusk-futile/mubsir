@@ -157,6 +157,22 @@ public static class GeminiWire
     public static void Trim(JsonArray contents, int keep = KeepContents)
     {
         ArgumentNullException.ThrowIfNull(contents);
+
+        // Only the newest screen snapshot is kept whole; see ConversationTrimmer.OldSnapshotNote.
+        JsonObject? newest = null;
+        foreach (JsonNode? part in contents.SelectMany(c => c?["parts"] as JsonArray ?? []))
+        {
+            if (part?["functionResponse"] is JsonObject answer && answer["name"]?.GetValue<string>() == ToolNames.ReadScreen && answer["response"]?["result"] is not null)
+            {
+                if (newest is not null)
+                {
+                    newest["response"] = new JsonObject { ["result"] = ConversationTrimmer.OldSnapshotNote };
+                }
+
+                newest = answer;
+            }
+        }
+
         while (contents.Count > keep)
         {
             contents.RemoveAt(1);

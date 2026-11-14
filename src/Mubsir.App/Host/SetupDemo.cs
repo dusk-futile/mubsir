@@ -55,9 +55,19 @@ internal static class SetupDemo
 
         public void SetOption(string name, bool value)
         {
+            if (name == "UseFishVoice")
+            {
+                _fishVoice = value;
+            }
         }
 
-        public bool GetOption(string name) => name is "ShowNotch" or "SaveSessions";
+        private readonly Dictionary<string, string?> _texts = [];
+
+        public string? GetText(string name) => _texts.GetValueOrDefault(name);
+
+        public void SetText(string name, string? value) => _texts[name] = value;
+
+        public bool GetOption(string name) => name is "ShowNotch" or "SaveSessions" || (name == "UseFishVoice" && _fishVoice);
 
         public void InstallNvdaAddon()
         {
@@ -68,6 +78,24 @@ internal static class SetupDemo
         public void SetTalkKey(KeyIdentity key)
         {
         }
+
+        private BrainChoice? _brain;
+        private EarsChoice? _ears;
+        private bool _fishVoice;
+
+        public BrainChoice? GetBrain() => _brain;
+
+        public void SetBrain(BrainChoice brain) => _brain = brain;
+
+        public EarsChoice? GetEars() => _ears;
+
+        public void SetEars(EarsChoice ears) => _ears = ears;
+
+        private string _gemini = MubsirSettings.DefaultGeminiBrainModel;
+
+        public string GetGeminiModel() => _gemini;
+
+        public void SetGeminiModel(string model) => _gemini = model;
 
         public string? GetFishVoiceId() => null;
 

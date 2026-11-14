@@ -42,6 +42,9 @@ public interface INarrator
 {
     void Narrate(string text, NarrationKind kind);
 
+    /// <summary>The step just narrated has finished: said out loud, so someone who can't see knows it's done.</summary>
+    void StepFinished(bool ok);
+
     void AnswerDelta(string text);
 
     void AnswerEnd();

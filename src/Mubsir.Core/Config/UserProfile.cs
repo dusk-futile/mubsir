@@ -26,3 +26,11 @@ public sealed record UserProfile
 
     public DateTimeOffset? CloudConsentAt { get; set; }
 }
+
+/// <summary>Who this copy of Mubsir is set up for: someone blind or someone who sees with difficulty.</summary>
+public enum UserKind
+{
+    Unknown,
+    Blind,
+    LowVision,
+}

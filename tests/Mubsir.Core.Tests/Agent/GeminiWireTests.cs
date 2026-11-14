@@ -109,4 +109,106 @@ public class GeminiWireTests
     [InlineData(503, null, BrainErrorKind.Overloaded)]
     public void Each_failure_gets_the_right_message(int status, string? body, BrainErrorKind kind) =>
         Assert.Equal(kind, GeminiWire.KindOf(status, body));
+
+    [Theory]
+    [InlineData("https://openrouter.ai/api/v1", "https://openrouter.ai/api/v1/chat/completions")]
+    [InlineData("https://openrouter.ai/api/v1/", "https://openrouter.ai/api/v1/chat/completions")]
+    [InlineData("http://localhost:20128/v1", "http://localhost:20128/v1/chat/completions")]
+    [InlineData("http://127.0.0.1:11434/v1/chat/completions", "http://127.0.0.1:11434/v1/chat/completions")]
+    [InlineData("http://example.com/v1", null)]
+    [InlineData("ftp://example.com", null)]
+    [InlineData("openrouter", null)]
+    [InlineData("", null)]
+    public void A_custom_address_must_be_https_unless_it_is_this_pc(string address, string? endpoint) =>
+        Assert.Equal(endpoint, OpenAiWire.Endpoint(address)?.ToString());
+
+    [Fact]
+    public void The_common_chat_format_carries_the_prompt_the_tools_and_the_turns()
+    {
+        var messages = new JsonArray(OpenAiWire.UserTurn(new UserTurn("open mail", "[1] button \"Mail\"", null)));
+        foreach (JsonObject answer in OpenAiWire.ToolAnswers([new ToolResult("call_1", "done"), new ToolResult("call_2", "no such window", IsError: true)]))
+        {
+            messages.Add((JsonNode)answer);
+        }
+
+        JsonNode request = JsonNode.Parse(OpenAiWire.Request(Options(), messages, "some/model"))!;
+
+        Assert.Equal("some/model", request["model"]!.GetValue<string>());
+        Assert.Equal("system", request["messages"]![0]!["role"]!.GetValue<string>());
+        Assert.Contains("Name: Sami", request["messages"]![0]!["content"]!.GetValue<string>(), StringComparison.Ordinal);
+        Assert.Equal("[1] button \"Mail\"\n\nopen mail", request["messages"]![1]!["content"]!.GetValue<string>());
+        Assert.Equal("Error: no such window", request["messages"]![3]!["content"]!.GetValue<string>());
+        Assert.Equal(ToolCatalog.All.Count, request["tools"]!.AsArray().Count);
+        Assert.Equal("object", request["tools"]![0]!["function"]!["parameters"]!["type"]!.GetValue<string>());
+        Assert.Null(JsonNode.Parse(OpenAiWire.Request(Options([]), messages, "m"))!["tools"]);
+
+        JsonNode picture = OpenAiWire.UserTurn(new UserTurn("what is this", null, [1, 2, 3]));
+        Assert.Equal("data:image/jpeg;base64,AQID", picture["content"]![1]!["image_url"]!["url"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void An_answer_gives_its_words_and_its_tool_calls_however_the_arguments_are_sent()
+    {
+        const string json = """
+            {"choices":[{"finish_reason":"tool_calls","message":{"role":"assistant","content":"Opening Mail.","tool_calls":[
+              {"id":"call_9","type":"function","function":{"name":"open_app","arguments":"{\"name\":\"Mail\"}"}},
+              {"type":"function","function":{"name":"read_screen","arguments":{}}},
+              {"id":"call_x","type":"function","function":{"name":"wait","arguments":"not json"}}]}}]}
+            """;
+
+        OpenAiWire.Answer answer = OpenAiWire.Parse(json, () => "made_up");
+
+        Assert.Equal("Opening Mail.", answer.Text);
+        Assert.Equal(["call_9", "made_up", "call_x"], answer.Calls.Select(c => c.Id));
+        Assert.Equal("Mail", answer.Calls[0].Arguments.GetProperty("name").GetString());
+        Assert.Equal(JsonValueKind.Object, answer.Calls[2].Arguments.ValueKind);
+        Assert.Equal("made_up", answer.Message["tool_calls"]![1]!["id"]!.GetValue<string>());
+
+        Assert.Null(OpenAiWire.Parse("{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null}}]}", () => "x").Text);
+        Assert.Throws<InvalidOperationException>(() => OpenAiWire.Parse("{\"error\":{\"message\":\"bad key\"}}", () => "x"));
+    }
+
+    [Fact]
+    public void Only_the_newest_screen_snapshot_is_kept_in_geminis_and_the_common_formats()
+    {
+        var names = new Dictionary<string, string> { ["a"] = "read_screen", ["b"] = "list_windows", ["c"] = "read_screen" };
+        var contents = new JsonArray(
+            GeminiWire.UserTurn(new UserTurn("open mail", null, null)),
+            GeminiWire.ToolAnswers([new ToolResult("a", "OLD SCREEN"), new ToolResult("b", "Mail, Chrome")], names),
+            GeminiWire.ToolAnswers([new ToolResult("c", "NEW SCREEN")], names));
+
+        GeminiWire.Trim(contents);
+
+        string sent = contents.ToJsonString();
+        Assert.DoesNotContain("OLD SCREEN", sent, StringComparison.Ordinal);
+        Assert.Contains("NEW SCREEN", sent, StringComparison.Ordinal);
+        Assert.Contains("Mail, Chrome", sent, StringComparison.Ordinal);
+
+        var messages = new JsonArray();
+        void Add(string json) => messages.Add(JsonNode.Parse(json));
+        Add("{\"role\":\"assistant\",\"tool_calls\":[{\"id\":\"a\",\"function\":{\"name\":\"read_screen\"}},{\"id\":\"b\",\"function\":{\"name\":\"list_windows\"}}]}");
+        Add("{\"role\":\"tool\",\"tool_call_id\":\"a\",\"content\":\"OLD SCREEN\"}");
+        Add("{\"role\":\"tool\",\"tool_call_id\":\"b\",\"content\":\"Mail, Chrome\"}");
+        Add("{\"role\":\"assistant\",\"tool_calls\":[{\"id\":\"c\",\"function\":{\"name\":\"read_screen\"}}]}");
+        Add("{\"role\":\"tool\",\"tool_call_id\":\"c\",\"content\":\"NEW SCREEN\"}");
+
+        OpenAiWire.ShortenOldSnapshots(messages);
+
+        Assert.Equal(ConversationTrimmer.OldSnapshotNote, messages[1]!["content"]!.GetValue<string>());
+        Assert.Equal("Mail, Chrome", messages[2]!["content"]!.GetValue<string>());
+        Assert.Equal("NEW SCREEN", messages[4]!["content"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void The_part_of_the_prompt_that_is_cached_is_the_same_on_every_request_and_for_every_user()
+    {
+        string arabic = SystemPrompt.Build(Lang.Arabic, ReplyStyle.Dialect, Verbosity.Brief, Mubsir.Core.Config.UserKind.Blind, "Jarvis");
+        string english = SystemPrompt.Build(Lang.English, ReplyStyle.SimpleMsa, Verbosity.Detailed);
+        int shared = arabic.Zip(english).TakeWhile(pair => pair.First == pair.Second).Count();
+
+        Assert.Equal(arabic, SystemPrompt.Build(Lang.Arabic, ReplyStyle.Dialect, Verbosity.Brief, Mubsir.Core.Config.UserKind.Blind, "Jarvis"));
+        Assert.True(shared > arabic.Length * 0.8, $"only {shared} of {arabic.Length} characters are shared");
+        Assert.Contains("HOW TO SPEAK", arabic[..shared], StringComparison.Ordinal);
+        Assert.Equal(ToolCatalog.All.Select(t => t.InputSchemaJson), ToolCatalog.All.Select(t => t.InputSchemaJson));
+    }
 }
